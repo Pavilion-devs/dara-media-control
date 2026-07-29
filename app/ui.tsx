@@ -895,7 +895,6 @@ export function Studio() {
               <div className="result-strip live-result">
                 {liveRun.asset_url ? (
                   // B2 signs this short-lived URL at runtime, so it cannot use a static Next image allowlist.
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img alt="Newly generated Dara still" src={liveRun.asset_url} />
                 ) : null}
                 <p>
@@ -944,7 +943,6 @@ export function Studio() {
                     <span className="eyebrow">{label as string}</span>
                     {comparedRun.asset_url ? (
                       // B2 signs these short-lived comparison URLs at request time.
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         alt={`${label as string} Dara asset`}
                         src={comparedRun.asset_url}
@@ -1410,7 +1408,6 @@ function DisclosureMedia({ share }: { share: PublicShare }) {
     );
   }
   // The API supplies a short-lived B2 URL, so it cannot use a static image allowlist.
-  // eslint-disable-next-line @next/next/no-img-element
   return <img className="shared-media" src={asset.url} alt={alt} />;
 }
 
