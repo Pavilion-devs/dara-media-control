@@ -19,6 +19,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .policy import (
+    B2JobStore,
+    JobStore,
     MemoryJobStore,
     PlannedStep,
     Policy,
@@ -42,7 +44,14 @@ app = FastAPI(
     description="Governance, provenance, and spend control for generated media.",
 )
 
-store = MemoryJobStore()
+def build_job_store() -> JobStore:
+    required = ("B2_KEY_ID", "B2_APP_KEY", "B2_BUCKET", "B2_REGION")
+    if all(os.getenv(name) for name in required):
+        return B2JobStore(DaraStorage.from_env())
+    return MemoryJobStore()
+
+
+store = build_job_store()
 engine = PolicyEngine(store)
 
 
@@ -338,12 +347,35 @@ async def create_demo_job(
     job = await engine.execute(
         get_policy(policy_id), plan, MODEL_PRICES, demo_provider
     )
+    if job.status == "blocked":
+        raise DaraApiError(
+            409,
+            "POLICY_BLOCKED",
+            (
+                job.error
+                or "This run was blocked before any provider call. Nothing was spent."
+            ),
+            {
+                "job_id": job.job_id,
+                "estimate": {
+                    "expected_usd": str(estimate.expected_usd),
+                    "worst_case_usd": str(estimate.worst_case_usd),
+                },
+                "violations": [
+                    asdict(violation)
+                    for decision in job.policy_decisions
+                    for violation in decision.violations
+                ],
+                "spent_usd": "0.000000",
+            },
+        )
     return job_to_json(job)
 
 
 @app.get("/v1/jobs/{job_id}")
 async def get_job(job_id: str) -> dict[str, object]:
-    job = store.jobs.get(job_id)
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    job = await store.get_job(tenant_id, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found.")
     return job_to_json(job)

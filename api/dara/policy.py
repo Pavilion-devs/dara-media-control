@@ -8,6 +8,10 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Awaitable, Callable, Protocol
 
+from pydantic import BaseModel, ConfigDict
+
+from .storage import DaraStorage
+
 ZERO = Decimal("0.000000")
 MONEY_QUANTUM = Decimal("0.000001")
 
@@ -105,6 +109,8 @@ class JobRecord:
 class JobStore(Protocol):
     async def put_job(self, job: JobRecord) -> None: ...
 
+    async def get_job(self, tenant_id: str, job_id: str) -> JobRecord | None: ...
+
 
 class MemoryJobStore:
     def __init__(self) -> None:
@@ -112,6 +118,125 @@ class MemoryJobStore:
 
     async def put_job(self, job: JobRecord) -> None:
         self.jobs[job.job_id] = job
+
+    async def get_job(self, tenant_id: str, job_id: str) -> JobRecord | None:
+        job = self.jobs.get(job_id)
+        return job if job is not None and job.tenant_id == tenant_id else None
+
+
+class StoredViolation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    severity: Severity
+    message: str
+    field: str | None = None
+    actual: str | None = None
+    limit: str | None = None
+
+
+class StoredDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enforcement_point: str
+    outcome: Severity
+    violations: list[StoredViolation]
+    evaluated_at: datetime
+    estimated_cost_usd: Decimal
+    saved_cost_usd: Decimal | None = None
+
+
+class StoredJob(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: int = 1
+    job_id: str
+    tenant_id: str
+    status: str
+    estimated_cost_usd: Decimal
+    reserved_cost_usd: Decimal
+    actual_cost_usd: Decimal
+    policy_decisions: list[StoredDecision]
+    error: str | None = None
+
+    @classmethod
+    def from_record(cls, job: JobRecord) -> StoredJob:
+        return cls.model_validate(
+            {
+                "schema_version": 1,
+                "job_id": job.job_id,
+                "tenant_id": job.tenant_id,
+                "status": job.status,
+                "estimated_cost_usd": job.estimated_cost_usd,
+                "reserved_cost_usd": job.reserved_cost_usd,
+                "actual_cost_usd": job.actual_cost_usd,
+                "policy_decisions": [asdict(item) for item in job.policy_decisions],
+                "error": job.error,
+            }
+        )
+
+    def to_record(self) -> JobRecord:
+        decisions = [
+            Decision(
+                enforcement_point=item.enforcement_point,
+                outcome=item.outcome,
+                violations=tuple(
+                    Violation(
+                        code=violation.code,
+                        severity=violation.severity,
+                        message=violation.message,
+                        field=violation.field,
+                        actual=violation.actual,
+                        limit=violation.limit,
+                    )
+                    for violation in item.violations
+                ),
+                evaluated_at=item.evaluated_at,
+                estimated_cost_usd=money(item.estimated_cost_usd),
+                saved_cost_usd=(
+                    money(item.saved_cost_usd)
+                    if item.saved_cost_usd is not None
+                    else None
+                ),
+            )
+            for item in self.policy_decisions
+        ]
+        return JobRecord(
+            job_id=self.job_id,
+            tenant_id=self.tenant_id,
+            status=self.status,
+            estimated_cost_usd=money(self.estimated_cost_usd),
+            reserved_cost_usd=money(self.reserved_cost_usd),
+            actual_cost_usd=money(self.actual_cost_usd),
+            policy_decisions=decisions,
+            error=self.error,
+        )
+
+
+def job_storage_key(tenant_id: str, job_id: str) -> str:
+    return f"dara/state/jobs/{tenant_id}/{job_id}.json"
+
+
+class B2JobStore:
+    """One-object-per-job durable store; the engine remains stateless."""
+
+    def __init__(self, storage: DaraStorage) -> None:
+        self.storage = storage
+
+    async def put_job(self, job: JobRecord) -> None:
+        await asyncio.to_thread(
+            self.storage.put_json,
+            job_storage_key(job.tenant_id, job.job_id),
+            StoredJob.from_record(job),
+        )
+
+    async def get_job(self, tenant_id: str, job_id: str) -> JobRecord | None:
+        stored = await asyncio.to_thread(
+            self.storage.get_json,
+            job_storage_key(tenant_id, job_id),
+            StoredJob,
+        )
+        return stored.to_record() if stored is not None else None
 
 
 class ProviderCall(Protocol):

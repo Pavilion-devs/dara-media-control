@@ -61,3 +61,17 @@ published derivative, and recorded both hashes:
 
 The published object, flat manifest lookup, trusted AssetRef, and source/published
 SHA-index pointers all live in Dara's dedicated B2 prefix.
+
+## Durable zero-spend policy proof
+
+Job `job_b2_block_proof_20260729` requested three variants under a one-variant locked
+policy. Dara returned `blocked`, made zero provider calls, recorded actual cost
+`0.000000`, and wrote the job to:
+
+```text
+dara/state/jobs/demo/job_b2_block_proof_20260729.json
+```
+
+A newly constructed `B2JobStore` loaded the record back with status `blocked` and
+violation `TOO_MANY_VARIANTS`. This proves the policy decision survives service
+reconstruction rather than existing only in process memory.

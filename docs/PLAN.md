@@ -110,7 +110,7 @@ Work top to bottom. Each task is one commit.
 - [ ] **T-18** `policy/engine.py`: `evaluate()` at all four enforcement points.
 - [ ] **T-19** Policy CRUD endpoints + three seeded policies (permissive, standard,
       locked-down).
-- [ ] **T-20** Wire pre-flight enforcement into run creation. A blocked run returns
+- [x] **T-20** Wire pre-flight enforcement into run creation. A blocked run returns
       `409` with a persisted blocked `job_id`, estimate, and structured violations and
       **spends nothing**. It creates no daily-budget reservation.
 - [ ] **T-21** Policy decisions recorded onto the run record and surfaced in the UI.

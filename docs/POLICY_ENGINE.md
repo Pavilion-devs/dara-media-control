@@ -23,7 +23,7 @@ Everything the engine decides is recorded. Governance you cannot audit is decora
   "description": "Default guardrails for billable client projects.",
 
   "providers": {
-    "allowed": ["nvidia", "google", "replicate", "elevenlabs"],
+    "allowed": ["openai", "google", "replicate", "elevenlabs"],
     "denied": []
   },
   "models": {

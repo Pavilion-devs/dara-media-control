@@ -4,7 +4,11 @@ import asyncio
 import unittest
 from decimal import Decimal
 
+from fastapi.testclient import TestClient
+
+from dara.main import app
 from dara.policy import (
+    B2JobStore,
     MemoryJobStore,
     PlannedStep,
     Policy,
@@ -15,6 +19,42 @@ from dara.policy import (
     Severity,
     estimate_run_cost,
 )
+from dara.storage import DaraStorage
+
+
+class DictBackend:
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+
+    def put(
+        self,
+        key: str,
+        data: bytes,
+        *,
+        content_type: str | None = None,
+        metadata: dict[str, str] | None = None,
+    ) -> str:
+        del content_type, metadata
+        self.objects[key] = bytes(data)
+        return f"memory://{key}"
+
+    def get(self, key: str) -> bytes:
+        return self.objects[key]
+
+    def exists(self, key: str) -> bool:
+        return key in self.objects
+
+    def list(
+        self,
+        prefix: str = "",
+        *,
+        max_keys: int = 1000,
+        continuation_token: str | None = None,
+    ) -> object:
+        raise NotImplementedError
+
+    def get_url(self, key: str, *, expires_in: int = 3600) -> str:
+        return f"memory://{key}?expires={expires_in}"
 
 
 def standard_policy(**overrides: object) -> Policy:
@@ -60,6 +100,32 @@ class EstimateTests(unittest.TestCase):
 
 
 class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_b2_job_record_survives_store_reconstruction(self) -> None:
+        backend = DictBackend()
+        first_store = B2JobStore(DaraStorage(backend))
+        engine = PolicyEngine(first_store)
+        calls = 0
+
+        async def provider(_: RunPlan) -> Decimal:
+            nonlocal calls
+            calls += 1
+            return Decimal("0.180000")
+
+        locked = standard_policy(max_cost_usd_per_run=Decimal("0.100000"))
+        original = await engine.execute(locked, image_plan("job_durable"), PRICES, provider)
+        reconstructed_store = B2JobStore(DaraStorage(backend))
+        restored = await reconstructed_store.get_job("demo", "job_durable")
+
+        self.assertEqual(calls, 0)
+        self.assertIsNotNone(restored)
+        assert restored is not None
+        self.assertEqual(restored.status, "blocked")
+        self.assertEqual(restored.actual_cost_usd, Decimal("0.000000"))
+        self.assertEqual(
+            restored.policy_decisions[0].violations[0].code,
+            original.policy_decisions[0].violations[0].code,
+        )
+
     async def test_blocked_job_is_persisted_and_makes_zero_provider_calls(self) -> None:
         store = MemoryJobStore()
         engine = PolicyEngine(store)
@@ -130,6 +196,33 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
         )
         outcomes = sorted(decision.outcome for _, decision in decisions)
         self.assertEqual(outcomes, [Severity.ALLOW, Severity.BLOCK])
+
+
+class PolicyEndpointTests(unittest.TestCase):
+    def test_blocked_job_returns_structured_409_and_zero_spend(self) -> None:
+        with TestClient(app) as client:
+            response = client.post(
+                "/v1/jobs?policy_id=pol_locked",
+                json={
+                    "tenant_id": "demo",
+                    "job_id": "job_http_block",
+                    "provider": "replicate",
+                    "model": "flux-1.1-pro",
+                    "modality": "image",
+                    "aspect_ratio": "16:9",
+                    "variants": 3,
+                    "max_attempts": 3,
+                    "step_count": 1,
+                },
+            )
+        payload = response.json()
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(payload["error"]["code"], "POLICY_BLOCKED")
+        self.assertEqual(payload["error"]["details"]["spent_usd"], "0.000000")
+        self.assertEqual(
+            payload["error"]["details"]["job_id"],
+            "job_http_block",
+        )
 
 
 if __name__ == "__main__":
