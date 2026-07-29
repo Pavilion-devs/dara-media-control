@@ -132,7 +132,7 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 4 — ledger and regeneration (M4, M5)
 
-- [ ] **T-29** Attach `ParquetSink` alongside `ObjectStorageSink`; write to a per-job local
+- [x] **T-29** Attach `ParquetSink` alongside `ObjectStorageSink`; write to a per-job local
       staging directory, then explicitly upload each completed table to an immutable,
       year/month-partitioned B2 key under `ledger/`. Confirm the local staging directory
       is cleaned. `ParquetSink` itself does not upload to B2.

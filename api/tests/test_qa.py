@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import unittest
 from datetime import UTC, datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 from dara.pipelines.qa import OpenAIVisionEvaluator
+from dara.pipelines.still import _upload_parquet_ledger
 
 
 class FakeStorage:
@@ -86,6 +89,45 @@ class VisionEvaluatorTests(unittest.TestCase):
         self.assertEqual(evaluation.score, 0.5)
         self.assertEqual(calls, 2)
         self.assertEqual(evaluator.parse_failures, 1)
+
+    def test_parquet_staging_uploads_to_immutable_month_partition(self) -> None:
+        uploaded: list[tuple[str, bytes]] = []
+
+        class UploadStorage:
+            def put_bytes(
+                self,
+                key: str,
+                data: bytes,
+                **kwargs: object,
+            ) -> str:
+                del kwargs
+                uploaded.append((key, data))
+                return key
+
+        with tempfile.TemporaryDirectory() as temporary:
+            staging = Path(temporary)
+            parquet = (
+                staging
+                / "runs"
+                / "dt=2026-07-29"
+                / "tenant_id=demo"
+                / "modality=image"
+                / "provider=openai"
+                / "run_ledger.parquet"
+            )
+            parquet.parent.mkdir(parents=True)
+            parquet.write_bytes(b"PAR1-test")
+            count = _upload_parquet_ledger(  # type: ignore[arg-type]
+                UploadStorage(),
+                staging,
+            )
+
+        self.assertEqual(count, 1)
+        self.assertEqual(
+            uploaded[0][0],
+            "dara/ledger/runs/year=2026/month=07/run_ledger.parquet",
+        )
+        self.assertEqual(uploaded[0][1], b"PAR1-test")
 
 
 if __name__ == "__main__":

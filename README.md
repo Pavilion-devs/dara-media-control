@@ -27,6 +27,8 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - B2-backed policy and live-run records persisted on every state transition
 - Startup reconciliation that fails orphaned nonterminal jobs safely, releases their
   persisted reservations, and records a recovery event instead of retrying spend
+- Genblaze `ParquetSink` telemetry staged per job, uploaded as immutable B2
+  `runs`/`steps`/`assets` month partitions, then removed with the temporary workspace
 - Structured `409 POLICY_BLOCKED` responses with persisted zero-spend decisions
 - Asset detail with separate source and published hashes
 - Redacted client disclosure view

@@ -11,7 +11,14 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
-from genblaze_core import AgentLoop, KeyStrategy, Modality, ObjectStorageSink, Pipeline
+from genblaze_core import (
+    AgentLoop,
+    KeyStrategy,
+    Modality,
+    ObjectStorageSink,
+    ParquetSink,
+    Pipeline,
+)
 from genblaze_core.media import SmartEmbedder
 from genblaze_openai import DalleProvider
 from genblaze_s3 import S3StorageBackend
@@ -70,6 +77,34 @@ EventCallback = Callable[[dict[str, object]], Awaitable[None]]
 
 def _content_address(kind: str, sha256: str, extension: str) -> str:
     return f"dara/{kind}/{sha256[:2]}/{sha256[2:4]}/{sha256}{extension}"
+
+
+def _upload_parquet_ledger(storage: DaraStorage, staging_dir: Path) -> int:
+    uploaded = 0
+    for path in sorted(staging_dir.rglob("*.parquet")):
+        relative = path.relative_to(staging_dir)
+        table = relative.parts[0]
+        date_part = next(
+            (
+                part.removeprefix("dt=")
+                for part in relative.parts
+                if part.startswith("dt=")
+            ),
+            datetime.now(UTC).date().isoformat(),
+        )
+        year, month, _ = date_part.split("-", maxsplit=2)
+        key = (
+            f"dara/ledger/{table}/year={year}/month={month}/"
+            f"{path.stem}.parquet"
+        )
+        storage.put_bytes(
+            key,
+            path.read_bytes(),
+            content_type="application/vnd.apache.parquet",
+            metadata={"run-id": path.stem, "table": table},
+        )
+        uploaded += 1
+    return uploaded
 
 
 def _event_payload(event: object) -> dict[str, object]:
@@ -260,23 +295,25 @@ async def run_still_pipeline(
     except KeyError as exc:
         raise ValueError(f"Unsupported image aspect ratio: {aspect_ratio}") from exc
 
-    backend = S3StorageBackend.for_backblaze(
-        os.environ["B2_BUCKET"],
-        region=os.environ["B2_REGION"],
-        key_id=os.environ["B2_KEY_ID"],
-        app_key=os.environ["B2_APP_KEY"],
-        preflight=True,
-    )
-    sink = ObjectStorageSink(
-        backend,
-        prefix="dara/live",
-        key_strategy=KeyStrategy.HIERARCHICAL,
-    )
     result = None
     qa_passed = False
     qa_attempts = 0
     with tempfile.TemporaryDirectory(prefix="dara-live-still-") as output_dir:
         storage = DaraStorage.from_env()
+        staging_dir = Path(output_dir) / "ledger"
+        backend = S3StorageBackend.for_backblaze(
+            os.environ["B2_BUCKET"],
+            region=os.environ["B2_REGION"],
+            key_id=os.environ["B2_KEY_ID"],
+            app_key=os.environ["B2_APP_KEY"],
+            preflight=True,
+        )
+        sink = ObjectStorageSink(
+            backend,
+            prefix="dara/live",
+            key_strategy=KeyStrategy.HIERARCHICAL,
+            parquet_sink=ParquetSink(staging_dir),
+        )
         evaluator = OpenAIVisionEvaluator(storage=storage, brief=prompt)
 
         def pipeline_factory(context: Any) -> Pipeline:
@@ -323,6 +360,22 @@ async def run_still_pipeline(
                     qa_attempts = int(getattr(event, "iterations", 0))
         finally:
             await asyncio.to_thread(sink.close)
+        ledger_files = await asyncio.to_thread(
+            _upload_parquet_ledger,
+            storage,
+            staging_dir,
+        )
+        await on_event(
+            {
+                "type": "ledger.uploaded",
+                "at": datetime.now(UTC),
+                "provider": "backblaze",
+                "model": "parquet/v1",
+                "message": (
+                    f"Uploaded {ledger_files} immutable Parquet ledger file(s) to B2."
+                ),
+            }
+        )
 
     if result is None:
         raise RuntimeError("The image QA pipeline finished without a result.")
