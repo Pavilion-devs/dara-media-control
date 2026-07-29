@@ -54,6 +54,15 @@ class ReservationBook:
         )
         return money(self._settled[(tenant_id, day)] + reserved)
 
+    def restore_settled(
+        self,
+        tenant_id: str,
+        day: date,
+        amount: Decimal,
+    ) -> None:
+        """Restore the durable daily total before accepting new work."""
+        self._settled[(tenant_id, day)] = money(amount)
+
     def reserve(self, plan: RunPlan, amount: Decimal) -> None:
         self._reservations[plan.job_id] = (
             plan.tenant_id,

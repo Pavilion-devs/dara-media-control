@@ -14,7 +14,13 @@ from genblaze_core.media import SmartEmbedder
 from genblaze_core.testing import MockProvider
 from PIL import Image
 
-from dara.main import app, get_verifier
+from dara.main import (
+    DaraApiError,
+    VerifyRateLimiter,
+    app,
+    get_verifier,
+    verification_client_id,
+)
 from dara.storage import DaraStorage
 from dara.verify import (
     AssetRef,
@@ -253,6 +259,33 @@ class VerifyEndpointTests(unittest.TestCase):
                 app.dependency_overrides.clear()
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"]["code"], "INVALID_REQUEST")
+
+    def test_verify_rate_limit_is_per_client(self) -> None:
+        limiter = VerifyRateLimiter()
+        limiter.check("198.51.100.10", limit=2)
+        limiter.check("198.51.100.10", limit=2)
+        with self.assertRaises(DaraApiError) as raised:
+            limiter.check("198.51.100.10", limit=2)
+        self.assertEqual(raised.exception.status_code, 429)
+        self.assertEqual(raised.exception.code, "RATE_LIMITED")
+        limiter.check("198.51.100.11", limit=2)
+
+    def test_verify_client_id_trusts_forwarding_only_from_loopback_proxy(self) -> None:
+        proxied = SimpleNamespace(
+            client=SimpleNamespace(host="127.0.0.1"),
+            headers={"CF-Connecting-IP": "198.51.100.24"},
+        )
+        direct = SimpleNamespace(
+            client=SimpleNamespace(host="203.0.113.9"),
+            headers={"CF-Connecting-IP": "198.51.100.24"},
+        )
+        malformed = SimpleNamespace(
+            client=SimpleNamespace(host="127.0.0.1"),
+            headers={"X-Forwarded-For": "not-an-ip"},
+        )
+        self.assertEqual(verification_client_id(proxied), "198.51.100.24")
+        self.assertEqual(verification_client_id(direct), "203.0.113.9")
+        self.assertEqual(verification_client_id(malformed), "127.0.0.1")
 
 
 if __name__ == "__main__":

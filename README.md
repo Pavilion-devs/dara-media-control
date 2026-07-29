@@ -33,6 +33,9 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Default zero-spend replay with the original 61-second event clock accelerated
   for presentation; live OpenAI generation remains behind an explicit
   spend-labelled control
+- Per-client verification throttling behind the Cloudflare tunnel, plus a
+  per-tenant daily live-spend cap with atomic admission, worst-case reservation,
+  and B2-backed restart hydration that fails closed on uncertain provider spend
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - A persisted version tree for every QA attempt, including rejected and failed runs,

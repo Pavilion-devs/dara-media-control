@@ -186,8 +186,13 @@ Work top to bottom. Each task is one commit.
       61-second event clock. The screen explicitly labels the fixture, shows zero
       settled spend, and keeps live OpenAI generation behind a separate
       spend-labelled control.
-- [ ] **T-41** Rate limits: per-IP on verify, global daily spend cap on live generation.
-      Cap enforced by the policy engine itself — dogfood it.
+- [x] **T-41** Rate limits: per-IP on verify, global daily spend cap on live
+      generation. The verifier trusts Cloudflare forwarding only from the local
+      tunnel peer; direct clients cannot spoof it. Policy admission holds a
+      per-tenant lock across worst-case reservation. On restart Dara rebuilds
+      today's committed amount from durable B2 live-run records and pessimistically
+      charges the full reservation for failed runs whose provider execution began
+      but whose settled cost is unknown.
 - [ ] **T-42** Deploy `api/` to a US-East region (Fly.io or Railway). Deploy `web/` to
       Vercel, US-East. Confirm cold-start latency is acceptable from a non-US connection.
 - [ ] **T-43** Test account and login instructions in the submission. Judges must not

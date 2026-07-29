@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
@@ -89,8 +90,11 @@ async def lifespan(_: FastAPI):
         orphaned = await reconcile_orphaned_runs()
         if orphaned:
             logger.warning("Reconciled %s orphaned live run(s) at startup", orphaned)
+        restored = await hydrate_daily_spend_cap()
+        logger.info("Restored today's live-spend commitment at $%.6f", restored)
     except Exception:
-        logger.exception("Live-run startup reconciliation failed")
+        logger.exception("Live-run startup reconciliation or spend hydration failed")
+        raise
     yield
 
 
@@ -177,6 +181,26 @@ class VerifyRateLimiter:
 
 
 verify_rate_limiter = VerifyRateLimiter()
+
+
+def verification_client_id(request: Request) -> str:
+    peer = request.client.host if request.client else "unknown"
+    try:
+        is_loopback = ipaddress.ip_address(peer).is_loopback
+    except ValueError:
+        is_loopback = False
+    if not is_loopback:
+        return peer
+    forwarded = (
+        request.headers.get("CF-Connecting-IP")
+        or request.headers.get("X-Forwarded-For", "").partition(",")[0].strip()
+    )
+    if not forwarded:
+        return peer
+    try:
+        return str(ipaddress.ip_address(forwarded))
+    except ValueError:
+        return peer
 
 
 @lru_cache(maxsize=1)
@@ -483,6 +507,33 @@ async def reconcile_orphaned_runs() -> int:
             policy_job.error = run.error_message
             await store.put_job(policy_job)
     return orphaned
+
+
+async def hydrate_daily_spend_cap() -> Decimal:
+    """Rebuild today's admission total from durable B2 live-run records.
+
+    Failed runs with no settled cost are charged their worst-case reservation
+    when they reached provider execution. This is intentionally pessimistic:
+    after a crash Dara must not silently forget spend that may have occurred.
+    """
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    today = datetime.now(UTC).date()
+    runs = await live_run_store.list(tenant_id)
+    committed = money("0")
+    for run in runs:
+        if run.created_at.astimezone(UTC).date() != today or run.status == "blocked":
+            continue
+        if run.actual_cost_usd is not None:
+            committed = money(committed + run.actual_cost_usd)
+            continue
+        provider_started = any(
+            event.type in {"run.started", "step.started", "step.submitted"}
+            for event in run.events
+        )
+        if run.status == "failed" and provider_started:
+            committed = money(committed + run.worst_case_cost_usd)
+    engine.reservations.restore_settled(tenant_id, today, committed)
+    return committed
 
 
 async def persist_accounting(run: LiveRunRecord) -> None:
@@ -1432,7 +1483,7 @@ async def verify_upload(
     file: Annotated[UploadFile, File(...)],
     verifier: Annotated[Verifier, Depends(get_verifier)],
 ) -> VerificationResponse:
-    client_id = request.client.host if request.client else "unknown"
+    client_id = verification_client_id(request)
     limit = int(os.getenv("KILN_VERIFY_RATE_LIMIT_PER_MIN", "10"))
     verify_rate_limiter.check(client_id, limit=limit)
     max_bytes = int(os.getenv("KILN_MAX_UPLOAD_MB", "100")) * 1024 * 1024

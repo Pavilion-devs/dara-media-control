@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import unittest
+from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -381,6 +382,36 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
         )
         outcomes = sorted(decision.outcome for _, decision in decisions)
         self.assertEqual(outcomes, [Severity.ALLOW, Severity.BLOCK])
+
+    async def test_restored_daily_spend_blocks_after_process_restart(self) -> None:
+        reservations = ReservationBook()
+        reservations.restore_settled(
+            "demo",
+            datetime.now(UTC).date(),
+            Decimal("0.750000"),
+        )
+        engine = PolicyEngine(MemoryJobStore(), reservations)
+        policy = standard_policy(
+            max_cost_usd_per_run=Decimal("1.000000"),
+            max_cost_usd_per_day=Decimal("0.800000"),
+        )
+        _, decision = await engine.admit(
+            policy,
+            image_plan("job_after_restart", variants=1),
+            {
+                "flux-1.1-pro": Price(
+                    model="flux-1.1-pro",
+                    per_unit_usd=Decimal("0.250000"),
+                )
+            },
+        )
+        self.assertEqual(decision.outcome, Severity.BLOCK)
+        self.assertTrue(
+            any(
+                violation.code == "DAILY_BUDGET_EXCEEDED"
+                for violation in decision.violations
+            )
+        )
 
 
 class PolicyEndpointTests(unittest.TestCase):

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -142,6 +142,53 @@ class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(restored.error_code, "ORPHANED")
         self.assertEqual(restored.events[-1].type, "run.orphaned")
         self.assertEqual(policy_job.reserved_cost_usd, money("0"))
+
+    async def test_startup_hydrates_settled_and_uncertain_spend_fail_closed(self) -> None:
+        run_store = MemoryLiveRunStore()
+        succeeded = LiveRunRecord(
+            job_id="job_spend_succeeded",
+            project_id="prj_test",
+            prompt="A completed live generation",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.200000"),
+            worst_case_cost_usd=Decimal("0.400000"),
+            actual_cost_usd=Decimal("0.200000"),
+            status="succeeded",
+        )
+        uncertain = LiveRunRecord(
+            job_id="job_spend_uncertain",
+            project_id="prj_test",
+            prompt="A provider run interrupted after it started",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.100000"),
+            worst_case_cost_usd=Decimal("0.300000"),
+            status="failed",
+        )
+        uncertain.append_event("run.started", "Provider execution started.")
+        old = succeeded.model_copy(
+            update={
+                "job_id": "job_spend_old",
+                "created_at": datetime.now(UTC) - timedelta(days=1),
+                "actual_cost_usd": Decimal("0.900000"),
+            }
+        )
+        for run in (succeeded, uncertain, old):
+            await run_store.put(run)
+
+        restored_engine = PolicyEngine(MemoryJobStore())
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.object(main_module, "engine", restored_engine),
+        ):
+            committed = await main_module.hydrate_daily_spend_cap()
+
+        self.assertEqual(committed, Decimal("0.500000"))
+        self.assertEqual(
+            restored_engine.reservations.committed_today("demo"),
+            Decimal("0.500000"),
+        )
 
 
 class LiveRunEndpointTests(unittest.TestCase):

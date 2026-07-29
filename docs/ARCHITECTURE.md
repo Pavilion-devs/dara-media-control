@@ -139,6 +139,12 @@ the revision passed, one multi-provider fallback event, and one run per pipeline
 | Secrets | Platform secret store only. Never in the repo, never in `web/` |
 | CORS | Allowlist the Vercel domain and localhost only |
 | Rate limits | Per-IP on `/v1/verify`; global daily cap on live generation |
+
+The verify limiter derives the public client address from Cloudflare forwarding headers
+only when the TCP peer is the local tunnel process; direct callers cannot spoof another
+address. The daily cap survives a process restart: startup rebuilds settled spend from
+today's B2-backed live-run records and charges the full reservation for any failed run
+that reached provider execution without a known settled cost.
 | Health | `GET /healthz` checks B2 reachability and returns SDK versions |
 
 ## Failure modes and responses
