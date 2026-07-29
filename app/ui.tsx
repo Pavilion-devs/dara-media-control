@@ -30,6 +30,8 @@ const fullEvents: EventItem[] = [
 const hash =
   "b7418d3e26369454a50b8c162ad80cb38c2eaf8388c5e05e63f84bf724be6a17";
 
+const verifyApiUrl = process.env.NEXT_PUBLIC_DARA_API_URL?.replace(/\/$/, "");
+
 const navItems = [
   ["/", "Studio"],
   ["/ledger", "Ledger"],
@@ -464,8 +466,21 @@ export function Verify() {
     const body = new FormData();
     body.set("file", file);
     try {
-      const response = await fetch("/api/verify", { method: "POST", body });
-      const json: unknown = await response.json();
+      const endpoint = verifyApiUrl
+        ? `${verifyApiUrl}/v1/verify`
+        : "/api/verify";
+      const response = await fetch(endpoint, { method: "POST", body });
+      const responseText = await response.text();
+      let json: unknown;
+      try {
+        json = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          response.ok
+            ? "Dara returned an unreadable verification response."
+            : responseText || "Dara could not verify this file. Try again.",
+        );
+      }
       if (!response.ok) {
         const error = apiErrorSchema.parse(json);
         throw new Error(error.error.message);

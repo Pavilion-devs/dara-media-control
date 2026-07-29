@@ -15,6 +15,7 @@ from threading import Lock
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -42,6 +43,22 @@ app = FastAPI(
     title="Dara API",
     version="0.1.0",
     description="Governance, provenance, and spend control for generated media.",
+)
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "DARA_ALLOWED_ORIGINS",
+        "https://dara-media-control.asaborodaniel.chatgpt.site",
+    ).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 def build_job_store() -> JobStore:

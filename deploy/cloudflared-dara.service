@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare HTTPS tunnel for Dara API
+After=network-online.target dara-api.service
+Wants=network-online.target
+Requires=dara-api.service
+
+[Service]
+Type=simple
+User=dara
+Group=dara
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8000
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
