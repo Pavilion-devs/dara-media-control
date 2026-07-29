@@ -246,6 +246,7 @@ select:focus-visible {
 }
 
 .status-blocked,
+.status-failed,
 .block {
   background: var(--blocked-wash);
   color: var(--blocked);
@@ -318,6 +319,17 @@ select:focus-visible {
   background: var(--ink);
   border-color: var(--ink);
   color: white;
+}
+
+.mode-switch {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.live-mode-note {
+  color: var(--graphite);
+  display: block;
+  line-height: 1.5;
+  margin-top: 8px;
 }
 
 .estimate {
@@ -438,6 +450,13 @@ select:focus-visible {
   min-height: 350px;
 }
 
+.stream-empty {
+  color: var(--graphite);
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 24px 16px;
+}
+
 .event {
   align-items: start;
   border-bottom: 1px solid var(--rule);
@@ -512,6 +531,24 @@ select:focus-visible {
   font-size: 12px;
   line-height: 1.5;
   margin: 0;
+}
+
+.live-result {
+  gap: 14px;
+}
+
+.live-result img {
+  aspect-ratio: 1;
+  border: 1px solid #cce1d6;
+  height: 64px;
+  object-fit: cover;
+}
+
+.live-result .secondary-btn {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  text-decoration: none;
 }
 
 .hash-short {

@@ -7,12 +7,13 @@ import tempfile
 import time
 from collections import defaultdict, deque
 from dataclasses import asdict
+from datetime import UTC, datetime
 from decimal import Decimal
 from functools import lru_cache
 from importlib.metadata import version
 from pathlib import Path
 from threading import Lock
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from .policy import (
     B2JobStore,
+    JobRecord,
     JobStore,
     MemoryJobStore,
     PlannedStep,
@@ -31,6 +33,13 @@ from .policy import (
     job_to_json,
     money,
 )
+from .jobs import (
+    B2LiveRunStore,
+    LiveRunRecord,
+    LiveRunStore,
+    MemoryLiveRunStore,
+)
+from .pipelines.still import run_still_pipeline
 from .storage import DaraStorage, StorageUnavailableError
 from .verify import (
     InvalidHashError,
@@ -70,6 +79,17 @@ def build_job_store() -> JobStore:
 
 store = build_job_store()
 engine = PolicyEngine(store)
+
+
+def build_live_run_store() -> LiveRunStore:
+    required = ("B2_KEY_ID", "B2_APP_KEY", "B2_BUCKET", "B2_REGION")
+    if all(os.getenv(name) for name in required):
+        return B2LiveRunStore(DaraStorage.from_env())
+    return MemoryLiveRunStore()
+
+
+live_run_store = build_live_run_store()
+live_tasks: set[asyncio.Task[None]] = set()
 
 
 class DaraApiError(RuntimeError):
@@ -175,7 +195,7 @@ POLICIES = {
         "pol_permissive", run_limit="20.000000", daily_limit="100.000000"
     ),
     "pol_standard": policy(
-        "pol_standard", run_limit="2.000000", daily_limit="10.000000"
+        "pol_standard", run_limit="2.000000", daily_limit="1.000000"
     ),
     "pol_locked": policy(
         "pol_locked",
@@ -246,6 +266,14 @@ class SimulateRequest(BaseModel):
         )
 
 
+class LiveRunRequest(BaseModel):
+    project_id: str = Field(default="prj_dara_live", min_length=3, max_length=80)
+    policy_id: str = "pol_standard"
+    prompt: str = Field(min_length=8, max_length=4000)
+    aspect_ratio: Literal["1:1", "3:2", "2:3"] = "1:1"
+    variants: Literal[1] = 1
+
+
 def get_policy(policy_id: str) -> Policy:
     resolved = POLICIES.get(policy_id)
     if resolved is None:
@@ -285,6 +313,121 @@ def policy_payload(value: Policy) -> dict[str, object]:
     ):
         payload[key] = str(payload[key])
     return payload
+
+
+async def live_run_payload(run: LiveRunRecord) -> dict[str, object]:
+    payload = run.model_dump(mode="json")
+    payload["expected_cost_usd"] = f"{run.expected_cost_usd:.6f}"
+    payload["worst_case_cost_usd"] = f"{run.worst_case_cost_usd:.6f}"
+    payload["actual_cost_usd"] = (
+        f"{run.actual_cost_usd:.6f}"
+        if run.actual_cost_usd is not None
+        else None
+    )
+    payload["asset_url"] = None
+    if run.status == "succeeded" and run.published_content_address:
+        try:
+            payload["asset_url"] = await asyncio.to_thread(
+                DaraStorage.from_env().presign,
+                run.published_content_address,
+                expires_in=900,
+            )
+        except StorageUnavailableError:
+            payload["asset_url"] = None
+    return payload
+
+
+async def execute_live_still(job_id: str) -> None:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    run = await live_run_store.get(tenant_id, job_id)
+    if run is None:
+        return
+    run.status = "running"
+    run.append_event(
+        "run.started",
+        "The authenticated live job started.",
+        provider="dara",
+        model="still-campaign/v1",
+    )
+    await live_run_store.put(run)
+
+    async def record_event(event: dict[str, object]) -> None:
+        if event["type"] == "publish.started":
+            run.status = "publishing"
+        run.append_event(
+            str(event["type"]),
+            str(event["message"]),
+            provider=(
+                str(event["provider"])
+                if event.get("provider") is not None
+                else None
+            ),
+            model=(
+                str(event["model"])
+                if event.get("model") is not None
+                else None
+            ),
+            at=(
+                event["at"]
+                if isinstance(event.get("at"), datetime)
+                else datetime.now(UTC)
+            ),
+        )
+        await live_run_store.put(run)
+
+    try:
+        output = await run_still_pipeline(
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            prompt=run.prompt,
+            aspect_ratio=run.aspect_ratio,
+            estimated_cost_usd=run.expected_cost_usd,
+            on_event=record_event,
+        )
+        run.status = "succeeded"
+        run.genblaze_run_id = output.run_id
+        run.asset_id = output.asset_id
+        run.manifest_hash = output.manifest_hash
+        run.source_sha256 = output.source_sha256
+        run.published_sha256 = output.published_sha256
+        run.published_content_address = output.published_content_address
+        run.actual_cost_usd = output.actual_cost_usd
+        run.cost_basis = output.cost_basis
+        run.append_event(
+            "run.completed",
+            "The live asset is approved and its trusted published hash is on record.",
+            provider="dara",
+            model="still-campaign/v1",
+        )
+        engine.reservations.settle(run.job_id, output.actual_cost_usd)
+        policy_job = await store.get_job(run.tenant_id, run.job_id)
+        if policy_job is not None:
+            policy_job.status = "succeeded"
+            policy_job.actual_cost_usd = output.actual_cost_usd
+            policy_job.reserved_cost_usd = money("0")
+            await store.put_job(policy_job)
+        await live_run_store.put(run)
+    except Exception:
+        engine.reservations.release(run.job_id)
+        run.status = "failed"
+        run.error_code = "PROVIDER_ERROR"
+        run.error_message = (
+            "The live image job failed. No additional retry was started; "
+            "the recorded events remain available."
+        )
+        run.append_event(
+            "run.failed",
+            run.error_message,
+            provider="dara",
+            model="still-campaign/v1",
+        )
+        policy_job = await store.get_job(run.tenant_id, run.job_id)
+        if policy_job is not None:
+            policy_job.status = "failed"
+            policy_job.reserved_cost_usd = money("0")
+            policy_job.error = run.error_message
+            await store.put_job(policy_job)
+        await live_run_store.put(run)
 
 
 @app.get("/health")
@@ -343,6 +486,116 @@ async def list_policies() -> dict[str, object]:
 @app.get("/v1/policies/{policy_id}")
 async def read_policy(policy_id: str) -> dict[str, object]:
     return policy_payload(get_policy(policy_id))
+
+
+@app.post("/v1/runs", status_code=202)
+async def create_live_run(
+    request: LiveRunRequest,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    if os.getenv("DARA_LIVE_GENERATION_ENABLED", "false").lower() != "true":
+        raise DaraApiError(
+            503,
+            "LIVE_GENERATION_DISABLED",
+            "Live generation is temporarily disabled. Demo replay remains available.",
+        )
+
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    job_id = f"job_{secrets.token_hex(10)}"
+    plan = RunPlan(
+        tenant_id=tenant_id,
+        job_id=job_id,
+        modality="image",
+        aspect_ratio=request.aspect_ratio,
+        variants=request.variants,
+        max_attempts=3,
+        steps=(
+            PlannedStep(
+                provider="openai",
+                model="gpt-image-2",
+                modality="image",
+            ),
+        ),
+    )
+    estimate, decision = await engine.admit(
+        get_policy(request.policy_id),
+        plan,
+        MODEL_PRICES,
+    )
+    blocked = decision.outcome.value == "block"
+    policy_job = JobRecord(
+        job_id=job_id,
+        tenant_id=tenant_id,
+        status="blocked" if blocked else "queued",
+        estimated_cost_usd=estimate.expected_usd,
+        reserved_cost_usd=money("0") if blocked else estimate.worst_case_usd,
+        policy_decisions=[decision],
+        error=(
+            decision.violations[0].message
+            if blocked and decision.violations
+            else None
+        ),
+    )
+    await store.put_job(policy_job)
+
+    if blocked:
+        raise DaraApiError(
+            409,
+            "POLICY_BLOCKED",
+            (
+                policy_job.error
+                or "This live run was blocked before any provider call. Nothing was spent."
+            ),
+            {
+                "job_id": job_id,
+                "estimate": {
+                    "expected_usd": str(estimate.expected_usd),
+                    "worst_case_usd": str(estimate.worst_case_usd),
+                },
+                "violations": [
+                    asdict(violation) for violation in decision.violations
+                ],
+                "spent_usd": "0.000000",
+            },
+        )
+
+    live_run = LiveRunRecord(
+        job_id=job_id,
+        tenant_id=tenant_id,
+        project_id=request.project_id,
+        prompt=request.prompt,
+        aspect_ratio=request.aspect_ratio,
+        variants=request.variants,
+        policy_id=request.policy_id,
+        expected_cost_usd=estimate.expected_usd,
+        worst_case_cost_usd=estimate.worst_case_usd,
+    )
+    live_run.append_event(
+        "policy.allowed",
+        (
+            f"Pre-flight allowed. Dara reserved "
+            f"${estimate.worst_case_usd:.6f} before the provider call."
+        ),
+        provider="dara",
+        model="policy/v1",
+    )
+    await live_run_store.put(live_run)
+    task = asyncio.create_task(execute_live_still(job_id))
+    live_tasks.add(task)
+    task.add_done_callback(live_tasks.discard)
+    return await live_run_payload(live_run)
+
+
+@app.get("/v1/runs/{job_id}")
+async def read_live_run(
+    job_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    run = await live_run_store.get(tenant_id, job_id)
+    if run is None:
+        raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
+    return await live_run_payload(run)
 
 
 @app.post("/v1/verify", response_model=VerificationResponse)

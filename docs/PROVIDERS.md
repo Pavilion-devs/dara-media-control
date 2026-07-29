@@ -5,7 +5,7 @@
 GMI Cloud hackathon credits are exhausted, so every live call must be deliberately
 budgeted. Dara uses the official `genblaze-openai` adapter as its primary provider:
 GPT Image for images, Sora for video, and OpenAI TTS for speech. The first
-`gpt-image-2` run has already completed and persisted successfully to B2.
+`gpt-image-2` runs have completed and persisted successfully to B2.
 
 ## Credit strategy — do this first
 
@@ -69,7 +69,7 @@ numbers here make the whole governance layer wrong.
 
 | Provider | Model | Modality | Unit | Price USD | p50 latency | Measured |
 |---|---|---|---|---|---|---|
-| openai | gpt-image-2 | image | per image | pending registry | 29.369s | ☑ one low-quality 1024² run |
+| openai | gpt-image-2 | image | per image | $0.01 estimated reservation | 25.2s | ☑ two low-quality 1024² runs (21.1s, 29.4s) |
 | openai | gpt-image-1-mini | image | per image | | | ☐ |
 | openai | sora-2 | video | per second | | | ☐ |
 | openai | gpt-4o-mini-tts | audio | per 1k chars | | | ☐ |
@@ -80,6 +80,10 @@ Register these via `ModelRegistry.fork()` + `register_pricing()`. Where a model 
 published price, register a conservative estimate and flag it `UNPRICED_MODEL` in the UI
 rather than silently reporting zero. A ledger that quietly under-reports is worse than one
 that admits uncertainty.
+
+The current Genblaze/OpenAI adapter does not return a provider-reported image cost, so
+Dara settles these runs from its conservative registry estimate and labels the basis
+`estimated`.
 
 ## Model id verification
 

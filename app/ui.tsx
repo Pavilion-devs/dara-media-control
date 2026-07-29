@@ -7,6 +7,7 @@ import {
   type VerificationResponse,
   verificationResponseSchema,
 } from "./verification-schema";
+import { liveRunSchema, type LiveRun } from "./run-schema";
 
 type EventItem = {
   seq: number;
@@ -25,6 +26,26 @@ const fullEvents: EventItem[] = [
   { seq: 5, time: "1.08s", provider: "backblaze", model: "b2/private", message: "Source asset and manifest resolved in trusted storage", type: "normal" },
   { seq: 6, time: "1.36s", provider: "dara", model: "publish/v1", message: "Embedded derivative and exact published hash indexed", type: "success" },
 ];
+
+function liveEvents(run: LiveRun): EventItem[] {
+  const started = new Date(run.created_at).getTime();
+  return run.events.map((event) => {
+    const elapsed = Math.max(0, new Date(event.at).getTime() - started) / 1000;
+    return {
+      seq: event.seq,
+      time: `${elapsed.toFixed(2)}s`,
+      provider: event.provider ?? "dara",
+      model: event.model ?? event.type,
+      message: event.message,
+      type:
+        event.type === "run.failed"
+          ? "failover"
+          : event.type === "run.completed" || event.type === "publish.completed"
+            ? "success"
+            : "normal",
+    };
+  });
+}
 
 const hash =
   "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25";
@@ -161,9 +182,17 @@ export function Studio() {
   const [variants, setVariants] = useState(3);
   const [policy, setPolicy] = useState("standard");
   const [aspectRatio, setAspectRatio] = useState("1:1");
+  const [runMode, setRunMode] = useState<"demo" | "live">("demo");
+  const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
   const [events, setEvents] = useState(fullEvents);
   const [runState, setRunState] = useState<"ready" | "running" | "done">("done");
-  const [simulation, setSimulation] = useState<PolicySimulation | null>(null);
+  const simulationKey = `${policy}:${aspectRatio}:${variants}`;
+  const [simulationResult, setSimulationResult] = useState<{
+    key: string;
+    value: PolicySimulation;
+  } | null>(null);
+  const simulation =
+    simulationResult?.key === simulationKey ? simulationResult.value : null;
   const [policyStatus, setPolicyStatus] = useState<"checking" | "live" | "fallback">("checking");
   const [runMessage, setRunMessage] = useState("");
   const [toast, setToast] = useState("");
@@ -184,7 +213,7 @@ export function Studio() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setSimulation(null);
+    const requestKey = `${policy}:${aspectRatio}:${variants}`;
     const timer = setTimeout(async () => {
       if (!daraApiUrl) {
         setPolicyStatus("fallback");
@@ -212,7 +241,10 @@ export function Studio() {
           },
         );
         if (!response.ok) throw new Error("Policy preview unavailable");
-        setSimulation(await response.json() as PolicySimulation);
+        setSimulationResult({
+          key: requestKey,
+          value: await response.json() as PolicySimulation,
+        });
         setPolicyStatus("live");
       } catch (error) {
         if ((error as Error).name !== "AbortError") setPolicyStatus("fallback");
@@ -227,12 +259,91 @@ export function Studio() {
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
+  async function pollLiveRun(jobId: string) {
+    try {
+      const response = await fetch(`/api/runs/${encodeURIComponent(jobId)}`, {
+        cache: "no-store",
+      });
+      const json: unknown = await response.json();
+      if (!response.ok) {
+        const parsed = apiErrorSchema.safeParse(json);
+        throw new Error(
+          parsed.success
+            ? parsed.data.error.message
+            : "Dara could not read the live job status.",
+        );
+      }
+      const current = liveRunSchema.parse(json);
+      setLiveRun(current);
+      setEvents(liveEvents(current));
+      if (current.status === "succeeded") {
+        setRunState("done");
+        return;
+      }
+      if (current.status === "failed" || current.status === "blocked") {
+        setRunState("done");
+        setRunMessage(
+          current.error_message
+            ?? "The live job stopped. Its recorded events remain available.",
+        );
+        return;
+      }
+      const timer = setTimeout(() => void pollLiveRun(jobId), 1200);
+      timers.current.push(timer);
+    } catch (error) {
+      setRunState("done");
+      setRunMessage(
+        error instanceof Error
+          ? error.message
+          : "Dara could not read the live job status.",
+      );
+    }
+  }
+
   async function runBrief() {
     if (blocked) return;
     timers.current.forEach(clearTimeout);
     setEvents([]);
     setRunState("running");
     setRunMessage("");
+    setLiveRun(null);
+    if (runMode === "live") {
+      try {
+        const response = await fetch("/api/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            project_id: "prj_dara_live",
+            policy_id: `pol_${policy}`,
+            prompt,
+            aspect_ratio: aspectRatio,
+            variants: 1,
+          }),
+        });
+        const json: unknown = await response.json();
+        if (!response.ok) {
+          const parsed = apiErrorSchema.safeParse(json);
+          throw new Error(
+            parsed.success
+              ? parsed.data.error.message
+              : "Dara could not start the live image job.",
+          );
+        }
+        const created = liveRunSchema.parse(json);
+        setLiveRun(created);
+        setEvents(liveEvents(created));
+        const timer = setTimeout(() => void pollLiveRun(created.job_id), 800);
+        timers.current.push(timer);
+      } catch (error) {
+        setRunState("done");
+        setRunMessage(
+          error instanceof Error
+            ? error.message
+            : "Dara could not start the live image job.",
+        );
+      }
+      return;
+    }
     if (policyStatus !== "live") {
       setRunMessage("The policy service could not be reached, so Dara is replaying the verified record without making a provider call.");
     }
@@ -279,6 +390,44 @@ export function Studio() {
               <span className="mono hash-short">JOB / DRAFT</span>
             </div>
             <div className="form">
+              <div className="field">
+                <span className="label">Run mode</span>
+                <div className="segmented mode-switch" role="group" aria-label="Run mode">
+                  <button
+                    className={runMode === "demo" ? "selected" : ""}
+                    onClick={() => {
+                      setRunMode("demo");
+                      setVariants(3);
+                      setLiveRun(null);
+                      setEvents(fullEvents);
+                      setRunState("done");
+                      setRunMessage("");
+                    }}
+                    type="button"
+                  >
+                    Demo replay · $0
+                  </button>
+                  <button
+                    className={runMode === "live" ? "selected" : ""}
+                    onClick={() => {
+                      setRunMode("live");
+                      setVariants(1);
+                      setLiveRun(null);
+                      setEvents([]);
+                      setRunState("ready");
+                      setRunMessage("");
+                    }}
+                    type="button"
+                  >
+                    Live OpenAI · spends
+                  </button>
+                </div>
+                {runMode === "live" ? (
+                  <small className="live-mode-note">
+                    One low-quality image. The policy reserves the worst case before OpenAI is called.
+                  </small>
+                ) : null}
+              </div>
               <div className="field">
                 <label htmlFor="project">Project</label>
                 <select id="project" defaultValue="northwind">
@@ -330,7 +479,8 @@ export function Studio() {
                 <label htmlFor="variants">Variants · {variants}</label>
                 <input
                   id="variants"
-                  max="4"
+                  disabled={runMode === "live"}
+                  max={runMode === "live" ? "1" : "4"}
                   min="1"
                   onChange={(e) => setVariants(Number(e.target.value))}
                   type="range"
@@ -358,25 +508,64 @@ export function Studio() {
               </div>
               {runMessage ? <p className="policy-message" role="status">{runMessage}</p> : null}
               <button className="primary-btn" disabled={blocked || !prompt.trim()} onClick={() => void runBrief()} type="button">
-                {blocked ? "Blocked before spend" : runState === "running" ? "Run in progress…" : "Run verified demo"}
+                {blocked
+                  ? "Blocked before spend"
+                  : runState === "running"
+                    ? runMode === "live"
+                      ? "Generating with OpenAI…"
+                      : "Replay in progress…"
+                    : runMode === "live"
+                      ? "Generate one live image"
+                      : "Run verified demo"}
               </button>
             </div>
           </section>
 
           <section className="panel">
             <div className="panel-head">
-              <h2 className="panel-title">Recorded proof · OpenAI to B2</h2>
-              <span className={`status ${runState === "running" ? "status-running" : "status-verified"}`}>
-                {runState === "running" ? "Replaying" : "Verified"}
+              <h2 className="panel-title">
+                {runMode === "live" ? "Live still · OpenAI to B2" : "Recorded proof · OpenAI to B2"}
+              </h2>
+              <span
+                className={`status ${
+                  liveRun?.status === "failed"
+                    ? "status-failed"
+                    : runState === "running"
+                      ? "status-running"
+                      : "status-verified"
+                }`}
+              >
+                {runMode === "live"
+                  ? liveRun?.status ?? (runState === "running" ? "starting" : "ready")
+                  : runState === "running"
+                    ? "Replaying"
+                    : "Verified"}
               </span>
             </div>
             <div className="run-summary">
-              <div className="metric"><span>Run</span><strong className="mono">F1A333</strong></div>
+              <div className="metric">
+                <span>Run</span>
+                <strong className="mono">
+                  {liveRun ? liveRun.job_id.slice(-8).toUpperCase() : runMode === "live" ? "NEW" : "F1A333"}
+                </strong>
+              </div>
               <div className="metric"><span>Provider</span><strong className="mono">OpenAI</strong></div>
               <div className="metric"><span>Model</span><strong className="mono">gpt-image-2</strong></div>
-              <div className="metric"><span>Storage</span><strong className="mono">B2</strong></div>
+              <div className="metric">
+                <span>{liveRun?.actual_cost_usd ? "Recorded cost" : "Reserve"}</span>
+                <strong className="mono">
+                  ${liveRun?.actual_cost_usd ?? liveRun?.worst_case_cost_usd ?? worstCase.toFixed(2)}
+                </strong>
+              </div>
             </div>
             <div className="stream" aria-live="polite">
+              {events.length === 0 ? (
+                <div className="stream-empty">
+                  {runMode === "live"
+                    ? "Choose Generate one live image to start an authenticated job."
+                    : "Replay events will appear here."}
+                </div>
+              ) : null}
               {events.map((event) => (
                 <div className={`event mono ${event.type}`} key={event.seq}>
                   <span className="event-seq">{String(event.seq).padStart(2, "0")}</span>
@@ -389,10 +578,33 @@ export function Studio() {
                 </div>
               ))}
             </div>
-            {runState === "done" ? (
+            {runMode === "demo" && runState === "done" ? (
               <div className="result-strip">
                 <p><strong>The verified sample is ready.</strong><br />Source and published hashes are recorded separately.</p>
                 <button className="secondary-btn" onClick={approve} type="button">Approve</button>
+              </div>
+            ) : null}
+            {runMode === "live" && liveRun?.status === "succeeded" ? (
+              <div className="result-strip live-result">
+                {liveRun.asset_url ? (
+                  // B2 signs this short-lived URL at runtime, so it cannot use a static Next image allowlist.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img alt="Newly generated Dara still" src={liveRun.asset_url} />
+                ) : null}
+                <p>
+                  <strong>Live asset published.</strong><br />
+                  Genblaze manifest embedded; source and published hashes recorded in B2.
+                </p>
+                {liveRun.asset_url ? (
+                  <a
+                    className="secondary-btn"
+                    href={liveRun.asset_url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Open asset
+                  </a>
+                ) : null}
               </div>
             ) : null}
           </section>
