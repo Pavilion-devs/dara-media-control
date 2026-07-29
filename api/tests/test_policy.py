@@ -3,14 +3,22 @@ from __future__ import annotations
 import asyncio
 import unittest
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from genblaze_core import ModelRegistry
+from genblaze_core.providers.pricing import per_unit
+from pydantic import ValidationError
 
+import dara.main as main_module
 from dara.main import app
 from dara.policy import (
     B2JobStore,
+    B2PolicyStore,
+    EnforcementPoint,
     MemoryJobStore,
+    MemoryPolicyStore,
     PlannedStep,
     Policy,
     PolicyEngine,
@@ -52,7 +60,14 @@ class DictBackend:
         max_keys: int = 1000,
         continuation_token: str | None = None,
     ) -> object:
-        raise NotImplementedError
+        del max_keys, continuation_token
+        return SimpleNamespace(
+            entries=[
+                SimpleNamespace(key=key)
+                for key in sorted(self.objects)
+                if key.startswith(prefix)
+            ]
+        )
 
     def get_url(self, key: str, *, expires_in: int = 3600) -> str:
         return f"memory://{key}?expires={expires_in}"
@@ -84,12 +99,21 @@ def image_plan(job_id: str = "job_01", variants: int = 3) -> RunPlan:
         aspect_ratio="16:9",
         variants=variants,
         max_attempts=3,
-        steps=(PlannedStep("replicate", "flux-1.1-pro", "image"),),
+        steps=(
+            PlannedStep(
+                provider="replicate",
+                model="flux-1.1-pro",
+                modality="image",
+            ),
+        ),
     )
 
 
 PRICES = {
-    "flux-1.1-pro": Price("flux-1.1-pro", Decimal("0.060000")),
+    "flux-1.1-pro": Price(
+        model="flux-1.1-pro",
+        per_unit_usd=Decimal("0.060000"),
+    ),
 }
 
 
@@ -98,6 +122,157 @@ class EstimateTests(unittest.TestCase):
         estimate = estimate_run_cost(image_plan(variants=3), PRICES)
         self.assertEqual(estimate.expected_usd, Decimal("0.180000"))
         self.assertEqual(estimate.worst_case_usd, Decimal("0.540000"))
+
+    def test_model_registry_pricing_is_used_without_provider_calls(self) -> None:
+        registry = ModelRegistry()
+        registry.register_pricing("flux-1.1-pro", per_unit(0.06))
+
+        estimate = estimate_run_cost(image_plan(variants=3), registry)
+
+        self.assertEqual(estimate.expected_usd, Decimal("0.180000"))
+        self.assertEqual(estimate.worst_case_usd, Decimal("0.540000"))
+        self.assertEqual(estimate.unpriced_models, ())
+
+
+class PolicyModelTests(unittest.TestCase):
+    def test_policy_rejects_unknown_fields(self) -> None:
+        with self.assertRaises(ValidationError):
+            standard_policy(unguarded_extension=True)
+
+    def test_policy_money_is_normalized_to_six_places(self) -> None:
+        resolved = standard_policy(max_cost_usd_per_run=Decimal("2"))
+        self.assertEqual(resolved.max_cost_usd_per_run, Decimal("2.000000"))
+
+
+class EnforcementPointTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.engine = PolicyEngine(MemoryJobStore())
+
+    def test_pre_flight_reports_all_shape_and_allowlist_codes(self) -> None:
+        plan = RunPlan(
+            tenant_id="demo",
+            job_id="job_invalid",
+            modality="video",
+            aspect_ratio="4:3",
+            variants=5,
+            max_attempts=4,
+            duration_s=Decimal("12"),
+            steps=(
+                PlannedStep(
+                    provider="unknown",
+                    model="veo-3",
+                    modality="video",
+                ),
+            )
+            * 7,
+        )
+        estimate = estimate_run_cost(plan, {})
+        result = self.engine.evaluate(
+            EnforcementPoint.PRE_FLIGHT,
+            standard_policy(
+                allowed_modalities=frozenset({"image"}),
+                allowed_aspect_ratios=frozenset({"1:1"}),
+                max_duration_s=Decimal("10"),
+            ),
+            plan=plan,
+            estimate=estimate,
+        )
+        codes = {violation.code for violation in result.violations}
+        self.assertTrue(
+            {
+                "PROVIDER_NOT_ALLOWED",
+                "MODEL_DENIED",
+                "TOO_MANY_STEPS",
+                "MODALITY_NOT_ALLOWED",
+                "ASPECT_RATIO_NOT_ALLOWED",
+                "DURATION_EXCEEDED",
+                "TOO_MANY_VARIANTS",
+                "MAX_ATTEMPTS_REACHED",
+                "UNPRICED_MODEL",
+            }.issubset(codes)
+        )
+
+    def test_pre_step_blocks_budget_and_warns_on_estimate_drift(self) -> None:
+        estimate = estimate_run_cost(image_plan(variants=1), PRICES)
+        result = self.engine.evaluate(
+            EnforcementPoint.PRE_STEP,
+            standard_policy(max_cost_usd_per_run=Decimal("0.100000")),
+            estimate=estimate,
+            actual_cost=Decimal("0.090000"),
+            step_cost=Decimal("0.060000"),
+        )
+        self.assertEqual(result.outcome, Severity.BLOCK)
+        self.assertEqual(
+            {violation.code for violation in result.violations},
+            {"RUN_BUDGET_EXCEEDED", "ESTIMATE_DRIFT"},
+        )
+
+    def test_post_step_applies_qa_and_attempt_limits(self) -> None:
+        result = self.engine.evaluate(
+            EnforcementPoint.POST_STEP,
+            standard_policy(
+                block_on_qa_failure=False,
+                min_qa_score=0.8,
+                max_attempts=2,
+            ),
+            qa_score=0.4,
+            attempts=2,
+        )
+        self.assertEqual(result.outcome, Severity.BLOCK)
+        self.assertEqual(
+            [violation.code for violation in result.violations],
+            ["QA_BELOW_THRESHOLD", "MAX_ATTEMPTS_REACHED"],
+        )
+
+    def test_pre_publish_checks_actual_candidate_state(self) -> None:
+        result = self.engine.evaluate(
+            EnforcementPoint.PRE_PUBLISH,
+            standard_policy(),
+            approved=False,
+            manifest_embedded=False,
+            sharing=True,
+            redacted=False,
+        )
+        self.assertEqual(result.outcome, Severity.BLOCK)
+        self.assertEqual(
+            {violation.code for violation in result.violations},
+            {
+                "APPROVAL_REQUIRED",
+                "MANIFEST_NOT_EMBEDDED",
+                "REDACTION_REQUIRED",
+            },
+        )
+
+
+class PolicyStoreTests(unittest.IsolatedAsyncioTestCase):
+    async def test_b2_policy_crud_survives_store_reconstruction(self) -> None:
+        backend = DictBackend()
+        store = B2PolicyStore(DaraStorage(backend))
+        configured = standard_policy(
+            policy_id="pol_client",
+            name="Client policy",
+        )
+
+        await store.put_policy(configured)
+        reconstructed = B2PolicyStore(DaraStorage(backend))
+
+        self.assertEqual(
+            await reconstructed.get_policy("demo", "pol_client"),
+            configured,
+        )
+        self.assertEqual(
+            await reconstructed.list_policies("demo"),
+            [configured],
+        )
+
+    async def test_memory_policy_store_is_tenant_scoped(self) -> None:
+        store = MemoryPolicyStore((standard_policy(),))
+        self.assertIsNotNone(
+            await store.get_policy("demo", "pol_standard")
+        )
+        self.assertIsNone(
+            await store.get_policy("other", "pol_standard")
+        )
 
 
 class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
@@ -176,7 +351,13 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
             aspect_ratio="1:1",
             variants=1,
             max_attempts=1,
-            steps=(PlannedStep("replicate", "new-model", "image"),),
+            steps=(
+                PlannedStep(
+                    provider="replicate",
+                    model="new-model",
+                    modality="image",
+                ),
+            ),
         )
         _, decision = await engine.admit(standard_policy(), plan, {})
         self.assertEqual(decision.outcome, Severity.WARN)
@@ -189,7 +370,10 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
             max_cost_usd_per_day=Decimal("0.800000"),
         )
         prices = {
-            "flux-1.1-pro": Price("flux-1.1-pro", Decimal("0.250000")),
+            "flux-1.1-pro": Price(
+                model="flux-1.1-pro",
+                per_unit_usd=Decimal("0.250000"),
+            ),
         }
         decisions = await asyncio.gather(
             engine.admit(policy, image_plan("job_a", variants=1), prices),
@@ -200,6 +384,51 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
 
 
 class PolicyEndpointTests(unittest.TestCase):
+    def test_authenticated_policy_crud_persists_updates(self) -> None:
+        policies = tuple(main_module.POLICIES.values())
+        isolated_store = MemoryPolicyStore(policies)
+        created = standard_policy(
+            policy_id="pol_client",
+            name="Client policy",
+        )
+        with (
+            patch.object(main_module, "policy_store", isolated_store),
+            patch.dict(
+                main_module.POLICIES,
+                {item.policy_id: item for item in policies},
+                clear=True,
+            ),
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+            TestClient(app) as client,
+        ):
+            response = client.post(
+                "/v1/policies",
+                headers={"Authorization": "Bearer test-token"},
+                json=created.model_dump(mode="json"),
+            )
+            self.assertEqual(response.status_code, 201)
+
+            updated = created.model_copy(
+                update={"description": "Updated durable policy."}
+            )
+            response = client.put(
+                "/v1/policies/pol_client",
+                headers={"Authorization": "Bearer test-token"},
+                json=updated.model_dump(mode="json"),
+            )
+            self.assertEqual(response.status_code, 200)
+
+            response = client.get(
+                "/v1/policies/pol_client",
+                headers={"Authorization": "Bearer test-token"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["description"],
+            "Updated durable policy.",
+        )
+
     def test_blocked_job_returns_structured_409_and_zero_spend(self) -> None:
         with patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}):
             with TestClient(app) as client:
@@ -246,8 +475,14 @@ class PolicyEndpointTests(unittest.TestCase):
         self.assertEqual(item["reservation_per_image_usd"], "0.010000")
 
     def test_seeded_policies_use_supported_image_shapes(self) -> None:
-        with TestClient(app) as client:
-            response = client.get("/v1/policies")
+        with (
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+            TestClient(app) as client,
+        ):
+            response = client.get(
+                "/v1/policies",
+                headers={"Authorization": "Bearer test-token"},
+            )
 
         self.assertEqual(response.status_code, 200)
         policies = response.json()["items"]
@@ -255,7 +490,14 @@ class PolicyEndpointTests(unittest.TestCase):
         self.assertTrue(
             all(policy["allowed_providers"] == ["openai"] for policy in policies)
         )
-        self.assertIn("3:2", policies[0]["allowed_aspect_ratios"])
+        self.assertIn(
+            "3:2",
+            next(
+                policy
+                for policy in policies
+                if policy["policy_id"] == "pol_standard"
+            )["allowed_aspect_ratios"],
+        )
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import hashlib
 import os
 import tempfile
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -26,6 +26,15 @@ from genblaze_openai import DalleProvider
 from genblaze_s3 import S3StorageBackend
 
 from ..storage import DaraStorage
+from ..policy import (
+    CostEstimate,
+    Decision,
+    EnforcementPoint,
+    Policy,
+    PolicyEngine,
+    Severity,
+    money,
+)
 from ..verify import (
     AssetRef,
     HashIndexPointer,
@@ -56,6 +65,7 @@ class StillPipelineOutput:
     qa_score: float
     qa_attempts: int
     qa_issues: tuple[str, ...]
+    policy_decisions: tuple[Decision, ...] = ()
 
 
 class QARejectedError(RuntimeError):
@@ -66,16 +76,44 @@ class QARejectedError(RuntimeError):
         attempts: int,
         issues: tuple[str, ...],
         actual_cost_usd: Decimal,
+        policy_decisions: tuple[Decision, ...] = (),
     ) -> None:
         super().__init__("No generated candidate passed Dara's visual QA gate.")
         self.score = score
         self.attempts = attempts
         self.issues = issues
         self.actual_cost_usd = actual_cost_usd
+        self.policy_decisions = policy_decisions
+
+
+class PolicyGateRejectedError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        decisions: tuple[Decision, ...],
+        actual_cost_usd: Decimal,
+    ) -> None:
+        blocking = next(
+            (
+                violation
+                for decision in decisions
+                for violation in decision.violations
+                if violation.severity is Severity.BLOCK
+            ),
+            None,
+        )
+        super().__init__(
+            blocking.message
+            if blocking is not None
+            else "A policy gate rejected the live run."
+        )
+        self.decisions = decisions
+        self.actual_cost_usd = money(actual_cost_usd)
 
 
 EventCallback = Callable[[dict[str, object]], Awaitable[None]]
 AttemptCallback = Callable[[dict[str, object]], Awaitable[None]]
+PublishGate = Callable[[bool], Decision]
 
 
 def _content_address(kind: str, sha256: str, extension: str) -> str:
@@ -168,6 +206,7 @@ def _publish_result(
     qa_score: float,
     qa_attempts: int,
     qa_issues: tuple[str, ...],
+    pre_publish_gate: PublishGate,
 ) -> StillPipelineOutput:
     run = result.run
     manifest = result.manifest
@@ -204,6 +243,13 @@ def _publish_result(
         if embedded.method != "inline":
             raise RuntimeError("Dara could not embed the manifest into the deliverable.")
         published_bytes = published_path.read_bytes()
+
+    publish_decision = pre_publish_gate(embedded.method == "inline")
+    if publish_decision.outcome is Severity.BLOCK:
+        raise PolicyGateRejectedError(
+            decisions=(publish_decision,),
+            actual_cost_usd=recorded_cost_usd,
+        )
 
     published_sha256 = hashlib.sha256(published_bytes).hexdigest()
     source_content_address = _content_address("assets", source_sha256, extension)
@@ -269,6 +315,7 @@ def _publish_result(
         qa_score=qa_score,
         qa_attempts=qa_attempts,
         qa_issues=qa_issues,
+        policy_decisions=(publish_decision,),
     )
 
 
@@ -279,6 +326,10 @@ async def run_still_pipeline(
     prompt: str,
     aspect_ratio: str,
     estimated_cost_usd: Decimal,
+    generation_cost_usd: Decimal,
+    qa_cost_usd: Decimal,
+    policy: Policy,
+    policy_engine: PolicyEngine,
     on_event: EventCallback,
     on_attempt: AttemptCallback | None = None,
     parent_manifest: Manifest | None = None,
@@ -306,6 +357,13 @@ async def run_still_pipeline(
     attempt_number = 0
     current_run_id: str | None = None
     current_prompt: str | None = None
+    policy_decisions: list[Decision] = []
+    estimate = CostEstimate(
+        expected_usd=estimated_cost_usd,
+        worst_case_usd=money(estimated_cost_usd * policy.max_attempts),
+        per_step_usd=(estimated_cost_usd,),
+        unpriced_models=(),
+    )
     with tempfile.TemporaryDirectory(prefix="dara-live-still-") as output_dir:
         storage = DaraStorage.from_env()
         staging_dir = Path(output_dir) / "ledger"
@@ -322,10 +380,53 @@ async def run_still_pipeline(
             key_strategy=KeyStrategy.HIERARCHICAL,
             parquet_sink=ParquetSink(staging_dir),
         )
-        evaluator = OpenAIVisionEvaluator(storage=storage, brief=prompt)
+        current_attempt = 0
+
+        def pre_step(
+            *,
+            actual_cost: Decimal,
+            step_cost: Decimal,
+        ) -> None:
+            resolved = policy_engine.evaluate(
+                EnforcementPoint.PRE_STEP,
+                policy,
+                estimate=estimate,
+                actual_cost=actual_cost,
+                step_cost=step_cost,
+            )
+            policy_decisions.append(resolved)
+            if resolved.outcome is Severity.BLOCK:
+                raise PolicyGateRejectedError(
+                    decisions=tuple(policy_decisions),
+                    actual_cost_usd=actual_cost,
+                )
+
+        def before_qa() -> None:
+            pre_step(
+                actual_cost=money(
+                    estimated_cost_usd * (current_attempt - 1)
+                    + generation_cost_usd
+                ),
+                step_cost=qa_cost_usd,
+            )
+
+        evaluator = OpenAIVisionEvaluator(
+            storage=storage,
+            brief=prompt,
+            threshold=policy.min_qa_score,
+            before_evaluate=before_qa,
+        )
 
         def pipeline_factory(context: Any) -> Pipeline:
-            nonlocal current_prompt
+            nonlocal current_attempt, current_prompt
+            current_attempt = len(context.prior_results) + 1
+            actual_before_attempt = money(
+                estimated_cost_usd * len(context.prior_results)
+            )
+            pre_step(
+                actual_cost=actual_before_attempt,
+                step_cost=generation_cost_usd,
+            )
             candidate_prompt = (
                 context.last_evaluation.feedback
                 if context.last_evaluation is not None
@@ -396,6 +497,17 @@ async def run_still_pipeline(
                             }
                         )
                 elif event_type == "agent.iteration.evaluated":
+                    post_step = policy_engine.evaluate(
+                        EnforcementPoint.POST_STEP,
+                        policy,
+                        qa_score=(
+                            float(getattr(event, "score"))
+                            if getattr(event, "score", None) is not None
+                            else None
+                        ),
+                        attempts=int(getattr(event, "iteration", 0)) + 1,
+                    )
+                    policy_decisions.append(post_step)
                     attempt_result = getattr(event, "result", None)
                     if attempt_result is not None and on_attempt is not None:
                         attempt_run = attempt_result.run
@@ -421,6 +533,14 @@ async def run_still_pipeline(
                                 ),
                                 "created_at": attempt_run.created_at,
                             }
+                        )
+                    if post_step.outcome is Severity.BLOCK:
+                        raise PolicyGateRejectedError(
+                            decisions=tuple(policy_decisions),
+                            actual_cost_usd=money(
+                                estimated_cost_usd
+                                * (int(getattr(event, "iteration", 0)) + 1)
+                            ),
                         )
                 elif event_type in {"pipeline.failed", "step.failed"}:
                     failed_run_id = getattr(event, "run_id", None) or current_run_id
@@ -479,6 +599,7 @@ async def run_still_pipeline(
             attempts=qa_attempts,
             issues=qa_issues,
             actual_cost_usd=estimated_cost_usd * max(1, qa_attempts),
+            policy_decisions=tuple(policy_decisions),
         )
     await on_event(
         {
@@ -489,16 +610,28 @@ async def run_still_pipeline(
             "message": "Embedding the manifest and recording the published hash.",
         }
     )
-    output = await asyncio.to_thread(
-        _publish_result,
-        DaraStorage.from_env(),
-        result,
-        recorded_cost_usd=estimated_cost_usd * max(1, qa_attempts),
-        cost_basis="estimated",
-        qa_score=latest_score.overall,
-        qa_attempts=qa_attempts,
-        qa_issues=qa_issues,
-    )
+    try:
+        output = await asyncio.to_thread(
+            _publish_result,
+            DaraStorage.from_env(),
+            result,
+            recorded_cost_usd=estimated_cost_usd * max(1, qa_attempts),
+            cost_basis="estimated",
+            qa_score=latest_score.overall,
+            qa_attempts=qa_attempts,
+            qa_issues=qa_issues,
+            pre_publish_gate=lambda embedded: policy_engine.evaluate(
+                EnforcementPoint.PRE_PUBLISH,
+                policy,
+                approved=qa_passed,
+                manifest_embedded=embedded,
+            ),
+        )
+    except PolicyGateRejectedError as exc:
+        raise PolicyGateRejectedError(
+            decisions=tuple(policy_decisions) + exc.decisions,
+            actual_cost_usd=exc.actual_cost_usd,
+        ) from exc
     await on_event(
         {
             "type": "publish.completed",
@@ -508,4 +641,9 @@ async def run_still_pipeline(
             "message": "Published derivative and trusted hash index committed to B2.",
         }
     )
-    return output
+    return replace(
+        output,
+        policy_decisions=(
+            tuple(policy_decisions) + output.policy_decisions
+        ),
+    )

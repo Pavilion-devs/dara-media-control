@@ -20,8 +20,12 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
   Genblaze runs, then compares the original and regenerated assets side by side
 - A live regeneration proof whose eight canonical conditions matched, whose native
   lineage verified, and whose regenerated asset passed visual QA at 0.95
-- Pre-flight policy admission with exact-decimal reservations, a $1 standard daily
-  cap, and a guaranteed zero-spend block before any provider call
+- Typed policy enforcement at pre-flight, before each provider step, after visual QA,
+  and after local manifest embedding but before B2 publication
+- Exact-decimal reservations, a $1 standard daily cap, and a guaranteed zero-spend
+  block before any provider call
+- Authenticated B2-backed policy create, list, read, update, and simulation endpoints
+  with permissive, standard, and locked-down policies seeded durably
 - Durable policy decisions embedded in each live run record and rendered in Studio
   with their enforcement point, outcome, reservation, and human-readable violations
 - Honest replay of the recorded OpenAI → Genblaze → B2 proof; it is clearly labelled

@@ -9,7 +9,6 @@ import tempfile
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
-from dataclasses import asdict
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import lru_cache
@@ -26,12 +25,17 @@ from pydantic import BaseModel, Field
 
 from .policy import (
     B2JobStore,
+    B2PolicyStore,
+    CostEstimate,
+    Decision,
     JobRecord,
     JobStore,
     MemoryJobStore,
+    MemoryPolicyStore,
     PlannedStep,
     Policy,
     PolicyEngine,
+    PolicyStore,
     Price,
     RunPlan,
     StoredDecision,
@@ -46,7 +50,12 @@ from .jobs import (
     RunAttempt,
 )
 from .ledger import QUERY_SQL, AccountingRecord, get_ledger, write_accounting_record
-from .pipelines.still import ASPECT_SIZES, QARejectedError, run_still_pipeline
+from .pipelines.still import (
+    ASPECT_SIZES,
+    PolicyGateRejectedError,
+    QARejectedError,
+    run_still_pipeline,
+)
 from .storage import DaraStorage, StorageUnavailableError
 from .verify import (
     InvalidHashError,
@@ -61,6 +70,11 @@ logger = logging.getLogger("dara.api")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    try:
+        await seed_and_hydrate_policies()
+    except Exception:
+        logger.exception("Policy startup hydration failed")
+        raise
     try:
         orphaned = await reconcile_orphaned_runs()
         if orphaned:
@@ -89,7 +103,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -193,13 +207,19 @@ def require_workspace_token(
 def policy(
     policy_id: str,
     *,
+    name: str,
+    description: str,
     run_limit: str,
     daily_limit: str,
     allowed_modalities: frozenset[str] = frozenset({"image"}),
     allowed_ratios: frozenset[str] = frozenset({"1:1", "3:2", "2:3"}),
+    require_approval: bool = True,
+    block_on_qa_failure: bool = False,
 ) -> Policy:
     return Policy(
         policy_id=policy_id,
+        name=name,
+        description=description,
         allowed_providers=frozenset({"openai"}),
         denied_models=frozenset(),
         allowed_modalities=allowed_modalities,
@@ -210,32 +230,81 @@ def policy(
         max_cost_usd_per_step=money("0.500000"),
         max_cost_usd_per_run=money(run_limit),
         max_cost_usd_per_day=money(daily_limit),
+        require_approval=require_approval,
+        block_on_qa_failure=block_on_qa_failure,
     )
 
 
 POLICIES = {
     "pol_permissive": policy(
-        "pol_permissive", run_limit="20.000000", daily_limit="100.000000"
+        "pol_permissive",
+        name="Permissive",
+        description="High budgets with advisory QA for unrestricted exploration.",
+        run_limit="20.000000",
+        daily_limit="100.000000",
+        require_approval=False,
     ),
     "pol_standard": policy(
-        "pol_standard", run_limit="2.000000", daily_limit="1.000000"
+        "pol_standard",
+        name="Standard",
+        description="Default guardrails for billable client work.",
+        run_limit="2.000000",
+        daily_limit="1.000000",
     ),
     "pol_locked": policy(
         "pol_locked",
+        name="Locked down",
+        description="Strict image-only controls with blocking QA.",
         run_limit="0.020000",
         daily_limit="1.000000",
         allowed_modalities=frozenset({"image"}),
         allowed_ratios=frozenset({"1:1"}),
+        block_on_qa_failure=True,
     ),
 }
+SEEDED_POLICIES = tuple(POLICIES.values())
+
+
+def build_policy_store() -> PolicyStore:
+    required = ("B2_KEY_ID", "B2_APP_KEY", "B2_BUCKET", "B2_REGION")
+    if all(os.getenv(name) for name in required):
+        return B2PolicyStore(DaraStorage.from_env())
+    return MemoryPolicyStore(SEEDED_POLICIES)
+
+
+policy_store = build_policy_store()
+
+
+async def seed_and_hydrate_policies() -> None:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    resolved: dict[str, Policy] = {}
+    for seeded in SEEDED_POLICIES:
+        persisted = await policy_store.get_policy(
+            tenant_id,
+            seeded.policy_id,
+        )
+        if persisted is None:
+            await policy_store.put_policy(seeded)
+            persisted = seeded
+        resolved[persisted.policy_id] = persisted
+    for persisted in await policy_store.list_policies(tenant_id):
+        resolved[persisted.policy_id] = persisted
+    POLICIES.clear()
+    POLICIES.update(resolved)
 
 MODEL_PRICES = {
     # Conservative policy reservation for one low-quality image. OpenAI bills
     # GPT Image 2 by image tokens, so the settled ledger will use actual usage.
-    "gpt-image-2": Price("gpt-image-2", money("0.010000")),
+    "gpt-image-2": Price(
+        model="gpt-image-2",
+        per_unit_usd=money("0.010000"),
+    ),
     # Covers one structured low-detail vision evaluation. The adapter exposes
     # tokens but not a settled USD amount, so live jobs label this estimated.
-    "gpt-4.1-mini": Price("gpt-4.1-mini", money("0.005000")),
+    "gpt-4.1-mini": Price(
+        model="gpt-4.1-mini",
+        per_unit_usd=money("0.005000"),
+    ),
 }
 
 
@@ -280,11 +349,21 @@ class SimulateRequest(BaseModel):
 
     def to_plan(self) -> RunPlan:
         steps = tuple(
-            PlannedStep(self.provider, self.model, self.modality)
+            PlannedStep(
+                provider=self.provider,
+                model=self.model,
+                modality=self.modality,
+            )
             for _ in range(self.step_count)
         )
         if self.qa_enabled:
-            steps += (PlannedStep("openai", "gpt-4.1-mini", "image"),)
+            steps += (
+                PlannedStep(
+                    provider="openai",
+                    model="gpt-4.1-mini",
+                    modality="image",
+                ),
+            )
         return RunPlan(
             tenant_id=self.tenant_id,
             job_id=self.job_id,
@@ -311,37 +390,27 @@ def get_policy(policy_id: str) -> Policy:
     return resolved
 
 
-def decision_payload(estimate: object, decision: object) -> dict[str, object]:
-    estimate_data = asdict(estimate)  # type: ignore[arg-type]
-    decision_data = asdict(decision)  # type: ignore[arg-type]
-    for key in ("expected_usd", "worst_case_usd"):
-        estimate_data[key] = str(estimate_data[key])
-    estimate_data["per_step_usd"] = [
-        str(value) if value is not None else None
-        for value in estimate_data["per_step_usd"]
-    ]
-    decision_data["estimated_cost_usd"] = str(decision_data["estimated_cost_usd"])
-    if decision_data["saved_cost_usd"] is not None:
-        decision_data["saved_cost_usd"] = str(decision_data["saved_cost_usd"])
-    decision_data["evaluated_at"] = decision_data["evaluated_at"].isoformat()
-    return {"estimate": estimate_data, "decision": decision_data}
+def decision_payload(
+    estimate: CostEstimate,
+    decision: Decision,
+) -> dict[str, object]:
+    return {
+        "estimate": estimate.model_dump(mode="json"),
+        "decision": decision.model_dump(mode="json"),
+    }
 
 
 def policy_payload(value: Policy) -> dict[str, object]:
-    payload = asdict(value)
+    payload = value.model_dump(mode="json")
     for key in (
         "allowed_providers",
+        "denied_providers",
+        "allowed_models",
         "denied_models",
         "allowed_modalities",
         "allowed_aspect_ratios",
     ):
         payload[key] = sorted(payload[key])
-    for key in (
-        "max_cost_usd_per_step",
-        "max_cost_usd_per_run",
-        "max_cost_usd_per_day",
-    ):
-        payload[key] = str(payload[key])
     return payload
 
 
@@ -422,6 +491,35 @@ async def persist_accounting(run: LiveRunRecord) -> None:
     )
 
 
+async def record_policy_decisions(
+    run: LiveRunRecord,
+    decisions: tuple[Decision, ...],
+) -> None:
+    if not decisions:
+        return
+    policy_job = await store.get_job(run.tenant_id, run.job_id)
+    for resolved in decisions:
+        run.policy_decisions.append(StoredDecision.model_validate(resolved))
+        run.append_event(
+            f"policy.{resolved.outcome.value}",
+            (
+                resolved.violations[0].message
+                if resolved.violations
+                else (
+                    f"{resolved.enforcement_point.value.replace('_', ' ').title()} "
+                    "policy gate allowed."
+                )
+            ),
+            provider="dara",
+            model=f"policy/{resolved.enforcement_point.value}",
+        )
+        if policy_job is not None:
+            policy_job.policy_decisions.append(resolved)
+    if policy_job is not None:
+        await store.put_job(policy_job)
+    await live_run_store.put(run)
+
+
 async def execute_live_still(job_id: str) -> None:
     tenant_id = os.getenv("KILN_TENANT_ID", "demo")
     run = await live_run_store.get(tenant_id, job_id)
@@ -487,10 +585,19 @@ async def execute_live_still(job_id: str) -> None:
             prompt=run.prompt,
             aspect_ratio=run.aspect_ratio,
             estimated_cost_usd=run.expected_cost_usd,
+            generation_cost_usd=(
+                MODEL_PRICES["gpt-image-2"].per_unit_usd or money("0")
+            ),
+            qa_cost_usd=(
+                MODEL_PRICES["gpt-4.1-mini"].per_unit_usd or money("0")
+            ),
+            policy=get_policy(run.policy_id),
+            policy_engine=engine,
             on_event=record_event,
             on_attempt=record_attempt,
             parent_manifest=parent_manifest,
         )
+        await record_policy_decisions(run, output.policy_decisions)
         run.status = "succeeded"
         run.genblaze_run_id = output.run_id
         run.asset_id = output.asset_id
@@ -520,6 +627,7 @@ async def execute_live_still(job_id: str) -> None:
             await store.put_job(policy_job)
         await live_run_store.put(run)
     except QARejectedError as exc:
+        await record_policy_decisions(run, exc.policy_decisions)
         engine.reservations.settle(run.job_id, exc.actual_cost_usd)
         run.status = "failed"
         run.actual_cost_usd = exc.actual_cost_usd
@@ -538,6 +646,42 @@ async def execute_live_still(job_id: str) -> None:
             run.error_message,
             provider="dara",
             model="qa/v1",
+        )
+        await persist_accounting(run)
+        policy_job = await store.get_job(run.tenant_id, run.job_id)
+        if policy_job is not None:
+            policy_job.status = "failed"
+            policy_job.actual_cost_usd = exc.actual_cost_usd
+            policy_job.reserved_cost_usd = money("0")
+            policy_job.error = run.error_message
+            await store.put_job(policy_job)
+        await live_run_store.put(run)
+    except PolicyGateRejectedError as exc:
+        await record_policy_decisions(run, exc.decisions)
+        engine.reservations.settle(run.job_id, exc.actual_cost_usd)
+        run.status = "failed"
+        run.actual_cost_usd = exc.actual_cost_usd
+        run.cost_basis = "estimated"
+        blocking = next(
+            (
+                violation
+                for decision in exc.decisions
+                for violation in decision.violations
+                if violation.severity.value == "block"
+            ),
+            None,
+        )
+        run.error_code = "POLICY_BLOCKED"
+        run.error_message = (
+            blocking.message
+            if blocking is not None
+            else "A policy gate rejected the live run."
+        )
+        run.append_event(
+            "run.failed",
+            run.error_message,
+            provider="dara",
+            model="policy/v1",
         )
         await persist_accounting(run)
         policy_job = await store.get_job(run.tenant_id, run.job_id)
@@ -636,13 +780,73 @@ async def list_models() -> dict[str, object]:
 
 
 @app.get("/v1/policies")
-async def list_policies() -> dict[str, object]:
-    return {"items": [policy_payload(value) for value in POLICIES.values()]}
+async def list_policies(
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    values = await policy_store.list_policies(tenant_id)
+    return {"items": [policy_payload(value) for value in values]}
 
 
 @app.get("/v1/policies/{policy_id}")
-async def read_policy(policy_id: str) -> dict[str, object]:
-    return policy_payload(get_policy(policy_id))
+async def read_policy(
+    policy_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    resolved = await policy_store.get_policy(tenant_id, policy_id)
+    if resolved is None:
+        raise DaraApiError(404, "POLICY_NOT_FOUND", "Policy not found.")
+    return policy_payload(resolved)
+
+
+def validate_policy_tenant(value: Policy) -> None:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    if value.tenant_id != tenant_id:
+        raise DaraApiError(
+            403,
+            "TENANT_MISMATCH",
+            "Policies can only be changed inside the active workspace.",
+        )
+
+
+@app.post("/v1/policies", status_code=201)
+async def create_policy(
+    value: Policy,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    validate_policy_tenant(value)
+    existing = await policy_store.get_policy(value.tenant_id, value.policy_id)
+    if existing is not None:
+        raise DaraApiError(
+            409,
+            "POLICY_EXISTS",
+            "A policy with this identifier already exists.",
+        )
+    await policy_store.put_policy(value)
+    POLICIES[value.policy_id] = value
+    return policy_payload(value)
+
+
+@app.put("/v1/policies/{policy_id}")
+async def update_policy(
+    policy_id: str,
+    value: Policy,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    validate_policy_tenant(value)
+    if policy_id != value.policy_id:
+        raise DaraApiError(
+            400,
+            "POLICY_ID_MISMATCH",
+            "The path and document policy identifiers must match.",
+        )
+    existing = await policy_store.get_policy(value.tenant_id, policy_id)
+    if existing is None:
+        raise DaraApiError(404, "POLICY_NOT_FOUND", "Policy not found.")
+    await policy_store.put_policy(value)
+    POLICIES[value.policy_id] = value
+    return policy_payload(value)
 
 
 @app.get("/v1/ledger/summary")
@@ -785,9 +989,7 @@ async def queue_live_run(
             status="blocked",
             parent_job_id=parent_job_id,
             source_manifest_hash=source_manifest_hash,
-            policy_decisions=[
-                StoredDecision.model_validate(asdict(decision))
-            ],
+            policy_decisions=[StoredDecision.model_validate(decision)],
             error_code="POLICY_BLOCKED",
             error_message=policy_job.error,
         )
@@ -831,7 +1033,8 @@ async def queue_live_run(
                     "worst_case_usd": str(estimate.worst_case_usd),
                 },
                 "violations": [
-                    asdict(violation) for violation in decision.violations
+                    violation.model_dump(mode="json")
+                    for violation in decision.violations
                 ],
                 "spent_usd": "0.000000",
             },
@@ -849,7 +1052,7 @@ async def queue_live_run(
         worst_case_cost_usd=estimate.worst_case_usd,
         parent_job_id=parent_job_id,
         source_manifest_hash=source_manifest_hash,
-        policy_decisions=[StoredDecision.model_validate(asdict(decision))],
+        policy_decisions=[StoredDecision.model_validate(decision)],
     )
     live_run.append_event(
         "policy.allowed",
@@ -1168,7 +1371,11 @@ async def verify_hash(
 
 
 @app.post("/v1/policies/{policy_id}/simulate")
-async def simulate(policy_id: str, request: SimulateRequest) -> dict[str, object]:
+async def simulate(
+    policy_id: str,
+    request: SimulateRequest,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
     estimate, decision = await engine.simulate(
         get_policy(policy_id), request.to_plan(), MODEL_PRICES
     )
@@ -1205,7 +1412,7 @@ async def create_demo_job(
                     "worst_case_usd": str(estimate.worst_case_usd),
                 },
                 "violations": [
-                    asdict(violation)
+                    violation.model_dump(mode="json")
                     for decision in job.policy_decisions
                     for violation in decision.violations
                 ],

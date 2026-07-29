@@ -73,12 +73,14 @@ class OpenAIVisionEvaluator(Evaluator):
         threshold: float = 0.72,
         model: str | None = None,
         chat_call: Callable[..., Any] = chat,
+        before_evaluate: Callable[[], None] | None = None,
     ) -> None:
         self.storage = storage
         self.brief = brief
         self.threshold = threshold
         self.model = model or os.getenv("DARA_QA_MODEL", "gpt-4.1-mini")
         self.chat_call = chat_call
+        self.before_evaluate = before_evaluate
         self.evaluations: list[QAScore] = []
         self.parse_failures = 0
 
@@ -127,6 +129,8 @@ class OpenAIVisionEvaluator(Evaluator):
         return QAScore.model_validate_json(_strip_markdown_fence(response.text))
 
     def evaluate(self, result: Any) -> EvaluationResult:
+        if self.before_evaluate is not None:
+            self.before_evaluate()
         try:
             score = self._score(result)
         except (json.JSONDecodeError, ValidationError, ValueError):

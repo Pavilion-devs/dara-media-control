@@ -139,8 +139,6 @@ function VersionTree({ runs }: { runs: LiveRun[] }) {
 const hash =
   "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25";
 
-const daraApiUrl = process.env.NEXT_PUBLIC_DARA_API_URL?.replace(/\/$/, "");
-
 function formatSpend(value: number) {
   return value < 0.1 ? value.toFixed(3) : value.toFixed(2);
 }
@@ -315,14 +313,10 @@ export function Studio() {
     const controller = new AbortController();
     const requestKey = `${runMode}:${policy}:${aspectRatio}:${variants}`;
     const timer = setTimeout(async () => {
-      if (!daraApiUrl) {
-        setPolicyStatus("fallback");
-        return;
-      }
       setPolicyStatus("checking");
       try {
         const response = await fetch(
-          `${daraApiUrl}/v1/policies/pol_${policy}/simulate`,
+          `/api/policies/pol_${policy}/simulate`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

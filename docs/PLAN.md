@@ -102,13 +102,13 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 2 — policy (M2)
 
-- [ ] **T-16** `policy/models.py`: `Policy`, `Violation`, `Decision` per
+- [x] **T-16** `policy/models.py`: `Policy`, `Violation`, `Decision` per
       `docs/POLICY_ENGINE.md`.
-- [ ] **T-17** `policy/estimator.py`: estimate run cost from `ModelRegistry` pricing
+- [x] **T-17** `policy/estimator.py`: estimate run cost from `ModelRegistry` pricing
       before any provider call. Use `Decimal`, handle unpriced models explicitly, and
       reserve worst-case daily spend under the per-tenant admission lock.
-- [ ] **T-18** `policy/engine.py`: `evaluate()` at all four enforcement points.
-- [ ] **T-19** Policy CRUD endpoints + three seeded policies (permissive, standard,
+- [x] **T-18** `policy/engine.py`: `evaluate()` at all four enforcement points.
+- [x] **T-19** Policy CRUD endpoints + three seeded policies (permissive, standard,
       locked-down).
 - [x] **T-20** Wire pre-flight enforcement into run creation. A blocked run returns
       `409` with a persisted blocked `job_id`, estimate, and structured violations and
