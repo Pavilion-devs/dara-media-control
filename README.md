@@ -18,6 +18,9 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - A four-step motion pipeline: `gpt-image-2` keyframe → Sora image-to-video →
   OpenAI narration → Genblaze `FFmpegCompositor`, with real video/audio fan-in,
   declared fallback routes, and a verified composite MP4 regression
+- Bounded parallel voice packs through Genblaze `abatch_run()`, with strict
+  OpenAI voice validation, `tts-1` → `tts-1-hd` fallback, ordered variant
+  metadata, and a verified manifest for every narration
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - A persisted version tree for every QA attempt, including rejected and failed runs,

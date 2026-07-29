@@ -57,7 +57,7 @@ Track these. Breadth is scored, and each is small.
 - [x] `ModelRegistry.fork()` + `register_pricing()` + `register(ModelSpec(...))`
 - [x] `chat()` for prompt expansion and QA scoring
 - [x] `astream()` for live step events
-- [ ] `arun()` / `abatch_run()` for variants
+- [x] `arun()` / `abatch_run()` for variants
 - [x] `genblaze replay` semantics for regeneration
 - [x] `LoggingTracer`
 
@@ -104,6 +104,11 @@ call succeeding.
 
 Script → N voices in parallel → publish as a set. Cheap, fast, reliable — a good filler
 if video proves unworkable.
+
+Implemented as a single-step OpenAI `tts-1` → `tts-1-hd` pipeline expanded by
+`abatch_run(items=...)`. Each item overrides `voice`, receives an ordered pack index,
+and runs under a bounded concurrency semaphore. The regression uses a thread-safe mock
+provider to prove at least two variants overlap and verifies every resulting manifest.
 
 ## P4 — `regenerate` (P1)
 

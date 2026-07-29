@@ -40,6 +40,9 @@ Confirmed constructor and method shape:
   fallback_models=None, input_from=None, params=None, **extra_params)`
 - `Pipeline.run(*, sink=None, fail_fast=True, raise_on_failure=None, timeout=None, ...)`
 - `Pipeline.arun(...)` and `Pipeline.astream(...)`
+- `Pipeline.abatch_run(items=[...], max_concurrency=N, ...)` clones the graph per
+  item, merges non-reserved item keys into step-zero params, and returns results in
+  input order. Dara uses it for bounded, parallel voice variants.
 - `Pipeline.from_result(result: PipelineResult)` sets the next run's
   `parent_run_id` to `result.run.run_id`; Dara uses this for QA revisions and
   manifest-based regeneration.
@@ -109,6 +112,14 @@ cd api
 
 The test verifies the composite MP4, `input_from` metadata, fallback metadata,
 canonical manifest hash, and declared asset hashes.
+
+The voice-pack regression exercises `abatch_run()` and `arun()` without network
+calls, proves concurrent provider execution, and verifies one manifest per voice:
+
+```bash
+cd api
+.venv/bin/python -m unittest tests.test_voice_pipeline -v
+```
 
 ## Important corrections from the original plan
 

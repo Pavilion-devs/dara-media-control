@@ -156,7 +156,10 @@ Work top to bottom. Each task is one commit.
       metadata, and validates both manifest checks. The production VPS has FFmpeg
       6.1.1 and the configured OpenAI account exposes the routed image, Sora, and TTS
       models; paid seed execution remains part of T-39.
-- [ ] **T-36** `pipelines/voice.py`: script → multi-voice TTS.
+- [x] **T-36** `pipelines/voice.py`: script → multi-voice TTS. Voice variants
+      execute through Genblaze `abatch_run(items=...)` with bounded true
+      concurrency, per-variant metadata, OpenAI `tts-1` → `tts-1-hd` fallback,
+      strict voice validation, and verified manifests.
 - [ ] **T-37** `share.py`: redacted share links using `EmbedPolicy`. Create a separate
       token-scoped embedded derivative, persist `shared_sha256`, and verify it from the
       Share record. Prompt and params stripped, hash chain intact; never reuse an
