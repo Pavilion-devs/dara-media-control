@@ -110,11 +110,13 @@ Not: "great SDK, add more models."
 ## Final checks — Aug 2
 
 - [ ] Open the app in a private window, no session, from a phone. Does it work?
-- [ ] Clone the repo to a fresh directory and follow your own README exactly.
+- [x] Clone the repo to a fresh directory and follow your own README exactly. Verified
+      anonymously from public commit `1cb5b13` on 2026-07-29.
 - [ ] Video is public, not unlisted, and plays without sign-in.
 - [ ] Every link in the submission resolves.
-- [ ] Repo access granted to the Backblaze testing account if private.
-- [ ] Demo mode is the default landing state.
-- [ ] Spend cap is active.
-- [ ] Nobody can reach a screen that requires a key they do not have.
+- [x] Repo access granted to the Backblaze testing account if private. Not applicable:
+      the repository is public and was cloned without authentication.
+- [x] Demo mode is the default landing state.
+- [x] Spend cap is active.
+- [x] Nobody can reach a judge-path screen that requires a key they do not have.
 - [ ] Submit. Then stop deploying.

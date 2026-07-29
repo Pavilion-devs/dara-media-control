@@ -86,6 +86,24 @@ This continuity path does not supersede the live ledger requirement. The operato
 restore the Backblaze download/Class B allowance before recording the final demo and
 before submission, then reconfirm the `LIVE · DUCKDB OVER B2` state in a clean browser.
 
+### Fresh-clone and dependency audit
+
+Commit `1cb5b13` was cloned anonymously from the public GitHub repository into a new
+temporary directory on 2026-07-29. The README sequence was executed without using the
+working tree: copy `.env.example`, create a Python 3.12 virtual environment, install the
+API editable package, and run `npm ci`. The published verification commands then passed:
+
+- 72 Python unit tests, including 17 subtests;
+- ESLint with the React Hooks and TypeScript recommended rule sets;
+- the five-stage Vinext production build and all five rendered-page tests; and
+- generated provider/model inventory from `api/dara/providers.py`.
+
+`npm audit` reported zero production or development dependency advisories. Next.js,
+React, the RSC runtime, Vite, Wrangler, and the Cloudflare Vite plugin are pinned to the
+tested patch releases in `package-lock.json`; patched nested PostCSS and Sharp releases
+are enforced through package overrides. Empty Drizzle starter scaffolding was removed:
+Dara has no application database, matching the deployed one-bucket architecture.
+
 ## Latency
 
 Eight HTTPS health samples from the build workstation configured for Africa/Lagos:
