@@ -119,14 +119,14 @@ Work top to bottom. Each task is one commit.
 
 - [ ] **T-22** `providers.py`: provider factory, per-modality fallback chains, custom
       `ModelRegistry` with real pricing for cost display.
-- [ ] **T-23** `jobs.py`: async job registry. Records persisted to B2 on every state
+- [x] **T-23** `jobs.py`: async job registry. Records persisted to B2 on every state
       transition. State survives a process restart; startup reconciliation marks stale
       running jobs failed as `orphaned` and releases their budget reservations.
 - [ ] **T-24** `pipelines/still.py`: prompt expansion → image → QA → publish.
 - [x] **T-25** `pipelines/qa.py`: `AgentLoop` evaluator. Structured JSON score, revised
       prompt on failure, retries linked by `parent_run_id`, attempt cap from policy.
-- [ ] **T-26** SSE endpoint streaming pipeline step events via `astream()`.
-- [ ] **T-27** Studio screen: brief form, policy selector, live step stream, result.
+- [x] **T-26** SSE endpoint streaming pipeline step events via `astream()`.
+- [x] **T-27** Studio screen: brief form, policy selector, live step stream, result.
 - [ ] **T-28** Version tree component — every attempt including failures, linked by
       parent run.
 

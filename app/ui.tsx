@@ -205,6 +205,7 @@ export function Studio() {
   const [runMessage, setRunMessage] = useState("");
   const [toast, setToast] = useState("");
   const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const eventSource = useRef<EventSource | null>(null);
 
   const localEstimate = useMemo(
     () => (runMode === "live" ? 0.015 : 0.01 * variants),
@@ -269,7 +270,31 @@ export function Studio() {
     };
   }, [aspectRatio, policy, runMode, variants]);
 
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(
+    () => () => {
+      timers.current.forEach(clearTimeout);
+      eventSource.current?.close();
+    },
+    [],
+  );
+
+  function applyLiveRun(current: LiveRun) {
+    setLiveRun(current);
+    setEvents(liveEvents(current));
+    if (current.status === "succeeded") {
+      setRunState("done");
+      return true;
+    }
+    if (current.status === "failed" || current.status === "blocked") {
+      setRunState("done");
+      setRunMessage(
+        current.error_message
+          ?? "The live job stopped. Its recorded events remain available.",
+      );
+      return true;
+    }
+    return false;
+  }
 
   async function pollLiveRun(jobId: string) {
     try {
@@ -286,20 +311,7 @@ export function Studio() {
         );
       }
       const current = liveRunSchema.parse(json);
-      setLiveRun(current);
-      setEvents(liveEvents(current));
-      if (current.status === "succeeded") {
-        setRunState("done");
-        return;
-      }
-      if (current.status === "failed" || current.status === "blocked") {
-        setRunState("done");
-        setRunMessage(
-          current.error_message
-            ?? "The live job stopped. Its recorded events remain available.",
-        );
-        return;
-      }
+      if (applyLiveRun(current)) return;
       const timer = setTimeout(() => void pollLiveRun(jobId), 1200);
       timers.current.push(timer);
     } catch (error) {
@@ -312,9 +324,55 @@ export function Studio() {
     }
   }
 
+  function streamLiveRun(jobId: string) {
+    eventSource.current?.close();
+    const stream = new EventSource(
+      `/api/runs/${encodeURIComponent(jobId)}/events`,
+    );
+    eventSource.current = stream;
+    let finished = false;
+    let fallbackStarted = false;
+
+    stream.addEventListener("run.snapshot", (message) => {
+      try {
+        const current = liveRunSchema.parse(
+          JSON.parse((message as MessageEvent<string>).data) as unknown,
+        );
+        if (applyLiveRun(current)) {
+          finished = true;
+          stream.close();
+          if (eventSource.current === stream) eventSource.current = null;
+        }
+      } catch {
+        stream.close();
+        if (!fallbackStarted) {
+          fallbackStarted = true;
+          void pollLiveRun(jobId);
+        }
+      }
+    });
+    stream.addEventListener("run.error", () => {
+      stream.close();
+      if (!fallbackStarted) {
+        fallbackStarted = true;
+        void pollLiveRun(jobId);
+      }
+    });
+    stream.onerror = () => {
+      stream.close();
+      if (eventSource.current === stream) eventSource.current = null;
+      if (!finished && !fallbackStarted) {
+        fallbackStarted = true;
+        void pollLiveRun(jobId);
+      }
+    };
+  }
+
   async function runBrief() {
     if (blocked) return;
     timers.current.forEach(clearTimeout);
+    eventSource.current?.close();
+    eventSource.current = null;
     setEvents([]);
     setRunState("running");
     setRunMessage("");
@@ -344,8 +402,7 @@ export function Studio() {
         const created = liveRunSchema.parse(json);
         setLiveRun(created);
         setEvents(liveEvents(created));
-        const timer = setTimeout(() => void pollLiveRun(created.job_id), 800);
-        timers.current.push(timer);
+        streamLiveRun(created.job_id);
       } catch (error) {
         setRunState("done");
         setRunMessage(
@@ -409,6 +466,7 @@ export function Studio() {
                     className={runMode === "demo" ? "selected" : ""}
                     onClick={() => {
                       setRunMode("demo");
+                      eventSource.current?.close();
                       setVariants(3);
                       setLiveRun(null);
                       setEvents(fullEvents);
@@ -423,6 +481,7 @@ export function Studio() {
                     className={runMode === "live" ? "selected" : ""}
                     onClick={() => {
                       setRunMode("live");
+                      eventSource.current?.close();
                       setVariants(1);
                       setLiveRun(null);
                       setEvents([]);

@@ -92,6 +92,8 @@ class LiveRunStore(Protocol):
 
     async def get(self, tenant_id: str, job_id: str) -> LiveRunRecord | None: ...
 
+    async def list(self, tenant_id: str) -> list[LiveRunRecord]: ...
+
 
 def live_run_key(tenant_id: str, job_id: str) -> str:
     return f"dara/state/live-runs/{tenant_id}/{job_id}.json"
@@ -115,6 +117,21 @@ class B2LiveRunStore:
             LiveRunRecord,
         )
 
+    async def list(self, tenant_id: str) -> list[LiveRunRecord]:
+        prefix = f"dara/state/live-runs/{tenant_id}/"
+        keys = await asyncio.to_thread(self.storage.list_prefix, prefix)
+        records = await asyncio.gather(
+            *(
+                asyncio.to_thread(
+                    self.storage.get_json,
+                    key,
+                    LiveRunRecord,
+                )
+                for key in keys
+            )
+        )
+        return [record for record in records if record is not None]
+
 
 class MemoryLiveRunStore:
     def __init__(self) -> None:
@@ -128,3 +145,10 @@ class MemoryLiveRunStore:
         if run is None or run.tenant_id != tenant_id:
             return None
         return run.model_copy(deep=True)
+
+    async def list(self, tenant_id: str) -> list[LiveRunRecord]:
+        return [
+            run.model_copy(deep=True)
+            for run in self.runs.values()
+            if run.tenant_id == tenant_id
+        ]

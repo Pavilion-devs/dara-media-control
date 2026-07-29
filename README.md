@@ -10,7 +10,8 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Private Studio with an explicit **Live OpenAI** mode, authenticated server-side so
   the workspace token and provider key never reach the browser
 - Asynchronous `gpt-image-2` still generation with a `gpt-image-1-mini` fallback,
-  durable B2 job events, live status polling, and a signed result preview
+  durable B2 job events, authenticated SSE streaming, polling fallback, and a signed
+  result preview
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - Pre-flight policy admission with exact-decimal reservations, a $1 standard daily
@@ -24,6 +25,8 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Manifest-embedded published derivative with separate source and published hashes
 - Trusted-match and one-byte tamper detection through the public verification API
 - B2-backed policy and live-run records persisted on every state transition
+- Startup reconciliation that fails orphaned nonterminal jobs safely, releases their
+  persisted reservations, and records a recovery event instead of retrying spend
 - Structured `409 POLICY_BLOCKED` responses with persisted zero-spend decisions
 - Asset detail with separate source and published hashes
 - Redacted client disclosure view

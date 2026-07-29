@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 import unittest
 from datetime import UTC, datetime
@@ -11,7 +12,7 @@ from fastapi.testclient import TestClient
 import dara.main as main_module
 from dara.jobs import LiveRunRecord, MemoryLiveRunStore
 from dara.pipelines.still import StillPipelineOutput
-from dara.policy import MemoryJobStore, PolicyEngine
+from dara.policy import JobRecord, MemoryJobStore, PolicyEngine, money
 
 
 class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
@@ -35,6 +36,47 @@ class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(restored.events[0].seq, 1)
         original.events[0].message = "Changed locally."
         self.assertEqual(restored.events[0].message, "Allowed.")
+
+    async def test_startup_reconciliation_fails_nonterminal_jobs_safely(self) -> None:
+        run_store = MemoryLiveRunStore()
+        policy_store = MemoryJobStore()
+        policy_engine = PolicyEngine(policy_store)
+        running = LiveRunRecord(
+            job_id="job_orphaned",
+            project_id="prj_test",
+            prompt="A live job interrupted by a service restart",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.015000"),
+            worst_case_cost_usd=Decimal("0.045000"),
+            status="running",
+        )
+        await run_store.put(running)
+        await policy_store.put_job(
+            JobRecord(
+                job_id=running.job_id,
+                tenant_id=running.tenant_id,
+                status="running",
+                estimated_cost_usd=money("0.015"),
+                reserved_cost_usd=money("0.045"),
+            )
+        )
+
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.object(main_module, "store", policy_store),
+            patch.object(main_module, "engine", policy_engine),
+        ):
+            count = await main_module.reconcile_orphaned_runs()
+
+        restored = await run_store.get("demo", running.job_id)
+        policy_job = await policy_store.get_job("demo", running.job_id)
+        self.assertEqual(count, 1)
+        assert restored is not None and policy_job is not None
+        self.assertEqual(restored.status, "failed")
+        self.assertEqual(restored.error_code, "ORPHANED")
+        self.assertEqual(restored.events[-1].type, "run.orphaned")
+        self.assertEqual(policy_job.reserved_cost_usd, money("0"))
 
 
 class LiveRunEndpointTests(unittest.TestCase):
@@ -136,6 +178,42 @@ class LiveRunEndpointTests(unittest.TestCase):
             response.json()["error"]["code"],
             "LIVE_GENERATION_DISABLED",
         )
+
+    def test_sse_stream_replays_events_and_terminal_snapshot(self) -> None:
+        run_store = MemoryLiveRunStore()
+        completed = LiveRunRecord(
+            job_id="job_1234567890abcdef1234",
+            project_id="prj_stream",
+            prompt="A completed streamed still image job",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.015000"),
+            worst_case_cost_usd=Decimal("0.045000"),
+            actual_cost_usd=Decimal("0.015000"),
+            status="succeeded",
+            qa_status="passed",
+            qa_score=0.9,
+            qa_attempts=1,
+        )
+        completed.append_event("run.completed", "The streamed run completed.")
+        asyncio.run(run_store.put(completed))
+
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+        ):
+            with TestClient(main_module.app) as client:
+                with client.stream(
+                    "GET",
+                    f"/v1/runs/{completed.job_id}/events",
+                    headers={"Authorization": "Bearer test-token"},
+                ) as response:
+                    body = "".join(response.iter_text())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("event: run.event", body)
+        self.assertIn("event: run.snapshot", body)
+        self.assertIn('"status":"succeeded"', body)
 
 
 if __name__ == "__main__":

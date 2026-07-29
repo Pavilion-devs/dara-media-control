@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import secrets
 import tempfile
 import time
 from collections import defaultdict, deque
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -18,7 +20,7 @@ from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .policy import (
@@ -49,12 +51,26 @@ from .verify import (
     Verifier,
 )
 
+logger = logging.getLogger("dara.api")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    try:
+        orphaned = await reconcile_orphaned_runs()
+        if orphaned:
+            logger.warning("Reconciled %s orphaned live run(s) at startup", orphaned)
+    except Exception:
+        logger.exception("Live-run startup reconciliation failed")
+    yield
+
+
 app = FastAPI(
     title="Dara API",
     version="0.1.0",
     description="Governance, provenance, and spend control for generated media.",
+    lifespan=lifespan,
 )
-logger = logging.getLogger("dara.api")
 
 allowed_origins = [
     origin.strip()
@@ -344,6 +360,38 @@ async def live_run_payload(run: LiveRunRecord) -> dict[str, object]:
         except StorageUnavailableError:
             payload["asset_url"] = None
     return payload
+
+
+async def reconcile_orphaned_runs() -> int:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    runs = await live_run_store.list(tenant_id)
+    orphaned = 0
+    for run in runs:
+        if run.status not in {"queued", "running", "publishing"}:
+            continue
+        orphaned += 1
+        engine.reservations.release(run.job_id)
+        run.status = "failed"
+        run.error_code = "ORPHANED"
+        run.error_message = (
+            "Dara restarted before this job reached a terminal state. The job was "
+            "failed safely, its budget reservation was released, and no automatic "
+            "provider retry was started."
+        )
+        run.append_event(
+            "run.orphaned",
+            run.error_message,
+            provider="dara",
+            model="recovery/v1",
+        )
+        await live_run_store.put(run)
+        policy_job = await store.get_job(run.tenant_id, run.job_id)
+        if policy_job is not None:
+            policy_job.status = "failed"
+            policy_job.reserved_cost_usd = money("0")
+            policy_job.error = run.error_message
+            await store.put_job(policy_job)
+    return orphaned
 
 
 async def execute_live_still(job_id: str) -> None:
@@ -657,6 +705,68 @@ async def read_live_run(
     if run is None:
         raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
     return await live_run_payload(run)
+
+
+@app.get("/v1/runs/{job_id}/events")
+async def stream_live_run_events(
+    request: Request,
+    job_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+    last_event_id: Annotated[
+        str | None,
+        Header(alias="Last-Event-ID"),
+    ] = None,
+) -> StreamingResponse:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    try:
+        starting_seq = max(0, int(last_event_id or "0"))
+    except ValueError:
+        starting_seq = 0
+
+    async def event_stream():
+        last_seq = starting_seq
+        last_updated: datetime | None = None
+        while True:
+            if await request.is_disconnected():
+                return
+            run = await live_run_store.get(tenant_id, job_id)
+            if run is None:
+                error = json.dumps(
+                    {"code": "NOT_FOUND", "message": "Live run not found."},
+                    separators=(",", ":"),
+                )
+                yield f"event: run.error\ndata: {error}\n\n"
+                return
+
+            for event in run.events:
+                if event.seq <= last_seq:
+                    continue
+                data = event.model_dump_json()
+                yield f"id: {event.seq}\nevent: run.event\ndata: {data}\n\n"
+                last_seq = event.seq
+
+            if last_updated is None or run.updated_at > last_updated:
+                snapshot = json.dumps(
+                    await live_run_payload(run),
+                    separators=(",", ":"),
+                )
+                yield f"event: run.snapshot\ndata: {snapshot}\n\n"
+                last_updated = run.updated_at
+
+            if run.status in {"succeeded", "failed", "blocked"}:
+                return
+            yield ": keepalive\n\n"
+            await asyncio.sleep(0.8)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.post("/v1/verify", response_model=VerificationResponse)
