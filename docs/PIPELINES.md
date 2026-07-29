@@ -45,21 +45,21 @@ Genblaze feature set and it costs one line.
 Track these. Breadth is scored, and each is small.
 
 - [ ] `Pipeline(chain=True)` multi-step chaining
-- [ ] `input_from` fan-in (audio + video → composite)
-- [ ] `fallback_models=[...]` on every generative step
-- [ ] `AgentLoop` for QA refinement
-- [ ] `from_result()` / `parent_run_id` lineage
+- [x] `input_from` fan-in (audio + video → composite)
+- [x] `fallback_models=[...]` on every generative step
+- [x] `AgentLoop` for QA refinement
+- [x] `from_result()` / `parent_run_id` lineage
 - [ ] `ObjectStorageSink` with both key strategies
-- [ ] `ParquetSink`
+- [x] `ParquetSink`
 - [ ] `EmbedPolicy` for redacted shares
-- [ ] `Mp4Handler` / image handler `embed()` and `extract()`
-- [ ] `manifest.verify()`
-- [ ] `ModelRegistry.fork()` + `register_pricing()` + `register(ModelSpec(...))`
-- [ ] `chat()` for prompt expansion and QA scoring
-- [ ] `astream()` for live step events
+- [x] `Mp4Handler` / image handler `embed()` and `extract()`
+- [x] `manifest.verify()`
+- [x] `ModelRegistry.fork()` + `register_pricing()` + `register(ModelSpec(...))`
+- [x] `chat()` for prompt expansion and QA scoring
+- [x] `astream()` for live step events
 - [ ] `arun()` / `abatch_run()` for variants
-- [ ] `genblaze replay` semantics for regeneration
-- [ ] `LoggingTracer`
+- [x] `genblaze replay` semantics for regeneration
+- [x] `LoggingTracer`
 
 ## P1 — `still-campaign` (P0, build first)
 
@@ -91,10 +91,10 @@ chat(expand) → image(keyframe) → video(image2video) → audio(tts) → compo
 
 | Step | Provider chain | Notes |
 |---|---|---|
-| keyframe | as P1 | Reuse the image step |
-| video | nvidia cosmos → replicate | Cap at 5s / 720p. Video is the expensive and slow step; the policy engine must gate it. |
-| narration | elevenlabs → nvidia riva | Script comes from the expand step |
-| composite | Genblaze AV compositing | This is the `input_from` fan-in demonstration |
+| keyframe | OpenAI `gpt-image-2` → dated `gpt-image-2` snapshot | Reuses the central image route and registry |
+| video | OpenAI `sora-2` → `sora-2-pro` | Fixed at 4s / 720p. Video is the expensive and slow step; the policy engine must gate it. |
+| narration | OpenAI `tts-1` → `tts-1-hd` | Script comes from the expanded brief |
+| composite | Genblaze `FFmpegCompositor` | Real `input_from=[video, audio]` fan-in, exercised with FFmpeg |
 
 Video is where the demo breaks if you are careless. Hard per-step timeout, guaranteed
 fallback to a still, and pre-generated seeds so the demo never depends on a live video

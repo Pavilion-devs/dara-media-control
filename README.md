@@ -15,6 +15,9 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Structured `gpt-4.1-mini` brief expansion before generation, with validated JSON,
   policy-priced execution, an original-brief fallback, and exact prompt reuse on
   regeneration
+- A four-step motion pipeline: `gpt-image-2` keyframe → Sora image-to-video →
+  OpenAI narration → Genblaze `FFmpegCompositor`, with real video/audio fan-in,
+  declared fallback routes, and a verified composite MP4 regression
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - A persisted version tree for every QA attempt, including rejected and failed runs,

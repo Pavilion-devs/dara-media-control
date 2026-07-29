@@ -18,16 +18,19 @@ surface without updating this file and the executable spike.
 from genblaze_core import (
     AgentLoop,
     EmbedPolicy,
+    FFmpegCompositor,
     KeyStrategy,
+    LoggingTracer,
     Manifest,
     Modality,
     ModelRegistry,
+    ModelSpec,
     ObjectStorageSink,
     ParquetSink,
     Pipeline,
 )
 from genblaze_s3 import S3StorageBackend
-from genblaze_openai import DalleProvider
+from genblaze_openai import DalleProvider, OpenAITTSProvider, SoraProvider
 ```
 
 Confirmed constructor and method shape:
@@ -47,6 +50,14 @@ Confirmed constructor and method shape:
   app_key=None, public_url_base=None, auto_lifecycle=False, preflight=True)`
 - `DalleProvider(api_key=None, http_timeout=60.0, output_dir=None, ...)` supports
   the `gpt-image-*` model family and reads `OPENAI_API_KEY` from the environment.
+- `SoraProvider(...)` supports the `sora-2` family, including image-to-video when a
+  prior image asset is wired with `input_from`.
+- `OpenAITTSProvider(...)` supports `tts-1` and `tts-1-hd`.
+- `FFmpegCompositor(output_dir=None, timeout=120.0, ...)` accepts video and audio
+  assets through `input_from=[video_step, audio_step]` and produces an MP4.
+- `LoggingTracer()` is accepted by `Pipeline(..., tracer=...)`.
+- `ModelRegistry.fork()`, `register(ModelSpec(...))`, and `register_pricing(...)`
+  are used by Dara's central image, video, and audio provider factory.
 - `Manifest.verify_hash()` verifies the canonical manifest hash.
 - `Manifest.verify()` additionally requires declared output SHA-256 coverage; it does
   not fetch or rehash remote asset bytes.
@@ -86,6 +97,18 @@ cd api
 
 It uses `gpt-image-2` at low quality for a low-cost smoke test, then persists the
 generated image and manifest under `dara/live/`.
+
+The motion pipeline has a zero-network executable test that runs the full
+image → image-to-video → narration → FFmpeg fan-in graph with mock generative
+providers and real local media composition:
+
+```bash
+cd api
+.venv/bin/python -m unittest tests.test_motion_pipeline -v
+```
+
+The test verifies the composite MP4, `input_from` metadata, fallback metadata,
+canonical manifest hash, and declared asset hashes.
 
 ## Important corrections from the original plan
 

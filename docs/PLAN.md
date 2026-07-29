@@ -150,7 +150,12 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 5 — remaining pipelines and sharing
 
-- [ ] **T-35** `pipelines/motion.py`: image → video → narration → composite.
+- [x] **T-35** `pipelines/motion.py`: image → image-to-video → narration →
+      FFmpeg composite. The zero-network regression executes the four-step Genblaze
+      graph with real MP4/AAC composition, verifies `input_from` fan-in and fallback
+      metadata, and validates both manifest checks. The production VPS has FFmpeg
+      6.1.1 and the configured OpenAI account exposes the routed image, Sora, and TTS
+      models; paid seed execution remains part of T-39.
 - [ ] **T-36** `pipelines/voice.py`: script → multi-voice TTS.
 - [ ] **T-37** `share.py`: redacted share links using `EmbedPolicy`. Create a separate
       token-scoped embedded derivative, persist `shared_sha256`, and verify it from the
