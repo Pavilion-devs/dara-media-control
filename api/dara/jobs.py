@@ -7,6 +7,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .policy import StoredDecision
 from .storage import DaraStorage
 
 
@@ -80,6 +81,7 @@ class LiveRunRecord(BaseModel):
     parent_job_id: str | None = None
     source_manifest_hash: str | None = None
     attempts: list[RunAttempt] = Field(default_factory=list)
+    policy_decisions: list[StoredDecision] = Field(default_factory=list)
     error_code: str | None = None
     error_message: str | None = None
 

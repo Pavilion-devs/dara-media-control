@@ -22,6 +22,8 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
   lineage verified, and whose regenerated asset passed visual QA at 0.95
 - Pre-flight policy admission with exact-decimal reservations, a $1 standard daily
   cap, and a guaranteed zero-spend block before any provider call
+- Durable policy decisions embedded in each live run record and rendered in Studio
+  with their enforcement point, outcome, reservation, and human-readable violations
 - Honest replay of the recorded OpenAI → Genblaze → B2 proof; it is clearly labelled
   and makes no provider call
 - Ledger view grounded in the recorded OpenAI run and durable zero-spend policy proof

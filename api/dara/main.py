@@ -34,6 +34,7 @@ from .policy import (
     PolicyEngine,
     Price,
     RunPlan,
+    StoredDecision,
     job_to_json,
     money,
 )
@@ -784,6 +785,9 @@ async def queue_live_run(
             status="blocked",
             parent_job_id=parent_job_id,
             source_manifest_hash=source_manifest_hash,
+            policy_decisions=[
+                StoredDecision.model_validate(asdict(decision))
+            ],
             error_code="POLICY_BLOCKED",
             error_message=policy_job.error,
         )
@@ -845,6 +849,7 @@ async def queue_live_run(
         worst_case_cost_usd=estimate.worst_case_usd,
         parent_job_id=parent_job_id,
         source_manifest_hash=source_manifest_hash,
+        policy_decisions=[StoredDecision.model_validate(asdict(decision))],
     )
     live_run.append_event(
         "policy.allowed",

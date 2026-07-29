@@ -799,6 +799,26 @@ export function Studio() {
                 </strong>
               </div>
             </div>
+            {liveRun?.policy_decisions.length ? (
+              <div className="policy-audit">
+                {liveRun.policy_decisions.map((decision, index) => (
+                  <div
+                    className={`policy-audit-row ${decision.outcome}`}
+                    key={`${decision.enforcement_point}-${index}`}
+                  >
+                    <span className="mono">
+                      {decision.enforcement_point.replace("_", " ")}
+                    </span>
+                    <strong>{decision.outcome}</strong>
+                    <span>
+                      {decision.violations.length
+                        ? decision.violations.map((item) => item.message).join(" ")
+                        : `Allowed with a $${decision.estimated_cost_usd} worst-case reservation.`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div className="stream" aria-live="polite">
               {events.length === 0 ? (
                 <div className="stream-empty">

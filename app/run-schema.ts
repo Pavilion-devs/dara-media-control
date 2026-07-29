@@ -22,6 +22,24 @@ export const runAttemptSchema = z.object({
   created_at: z.string(),
 });
 
+export const policyDecisionSchema = z.object({
+  enforcement_point: z.string(),
+  outcome: z.enum(["allow", "warn", "block"]),
+  violations: z.array(
+    z.object({
+      code: z.string(),
+      severity: z.enum(["allow", "warn", "block"]),
+      message: z.string(),
+      field: z.string().nullable(),
+      actual: z.string().nullable(),
+      limit: z.string().nullable(),
+    }),
+  ),
+  evaluated_at: z.string(),
+  estimated_cost_usd: z.string(),
+  saved_cost_usd: z.string().nullable(),
+});
+
 export const liveRunSchema = z.object({
   job_id: z.string(),
   tenant_id: z.string(),
@@ -60,6 +78,7 @@ export const liveRunSchema = z.object({
   parent_job_id: z.string().nullable(),
   source_manifest_hash: z.string().nullable(),
   attempts: z.array(runAttemptSchema),
+  policy_decisions: z.array(policyDecisionSchema),
   asset_url: z.string().url().nullable(),
   error_code: z.string().nullable(),
   error_message: z.string().nullable(),

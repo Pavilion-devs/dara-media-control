@@ -222,6 +222,11 @@ class LiveRunEndpointTests(unittest.TestCase):
         self.assertEqual(payload["actual_cost_usd"], "0.010000")
         self.assertEqual(payload["qa_status"], "passed")
         self.assertEqual(payload["qa_score"], 0.91)
+        self.assertEqual(payload["policy_decisions"][0]["outcome"], "allow")
+        self.assertEqual(
+            payload["policy_decisions"][0]["enforcement_point"],
+            "pre_flight",
+        )
         self.assertGreaterEqual(len(payload["events"]), 4)
 
     def test_live_run_is_disabled_fail_closed(self) -> None:

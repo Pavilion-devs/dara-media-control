@@ -113,7 +113,7 @@ Work top to bottom. Each task is one commit.
 - [x] **T-20** Wire pre-flight enforcement into run creation. A blocked run returns
       `409` with a persisted blocked `job_id`, estimate, and structured violations and
       **spends nothing**. It creates no daily-budget reservation.
-- [ ] **T-21** Policy decisions recorded onto the run record and surfaced in the UI.
+- [x] **T-21** Policy decisions recorded onto the run record and surfaced in the UI.
 
 ### Phase 3 — generation (M3)
 

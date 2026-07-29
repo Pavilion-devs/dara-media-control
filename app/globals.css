@@ -425,6 +425,38 @@ select:focus-visible {
   grid-template-columns: repeat(5, 1fr);
 }
 
+.policy-audit {
+  border-bottom: 1px solid var(--rule);
+}
+
+.policy-audit-row {
+  align-items: start;
+  display: grid;
+  font-size: 11px;
+  gap: 12px;
+  grid-template-columns: 100px 52px 1fr;
+  padding: 10px 16px;
+}
+
+.policy-audit-row.allow {
+  background: var(--verified-wash);
+  color: var(--verified);
+}
+
+.policy-audit-row.warn {
+  background: var(--pending-wash);
+  color: var(--pending);
+}
+
+.policy-audit-row.block {
+  background: var(--blocked-wash);
+  color: var(--blocked);
+}
+
+.policy-audit-row strong {
+  text-transform: uppercase;
+}
+
 .metric {
   background: #fafbfa;
   min-height: 84px;
