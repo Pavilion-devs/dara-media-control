@@ -61,6 +61,18 @@ test("server-renders the real verified demo record", async () => {
   assert.match(html, /Not an adversarial authenticity proof/);
 });
 
+test("server-renders the token-scoped disclosure shell without private demo content", async () => {
+  const response = await render(
+    "/share/shr_0123456789abcdefghijklmnopqrstuvwxyzABCDE",
+  );
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Client disclosure/);
+  assert.match(html, /Loading token-scoped disclosure/);
+  assert.doesNotMatch(html, /Northwind campaign deliverable/);
+  assert.doesNotMatch(html, /A cinematic|prompt/i);
+});
+
 test("ships product assets and response validation without starter files", async () => {
   const [packageJson, verifyRoute, schema] = await Promise.all([
     readFile(new URL("../package.json", import.meta.url), "utf8"),

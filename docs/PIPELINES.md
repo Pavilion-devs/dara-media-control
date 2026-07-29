@@ -51,7 +51,7 @@ Track these. Breadth is scored, and each is small.
 - [x] `from_result()` / `parent_run_id` lineage
 - [ ] `ObjectStorageSink` with both key strategies
 - [x] `ParquetSink`
-- [ ] `EmbedPolicy` for redacted shares
+- [x] `EmbedPolicy` for redacted shares
 - [x] `Mp4Handler` / image handler `embed()` and `extract()`
 - [x] `manifest.verify()`
 - [x] `ModelRegistry.fork()` + `register_pricing()` + `register(ModelSpec(...))`

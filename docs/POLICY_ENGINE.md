@@ -138,11 +138,12 @@ exhausted does the run finish unapproved.
 | Manifest embedded when `embed_manifest` | `MANIFEST_NOT_EMBEDDED` | block |
 | Redaction applied when sharing | `REDACTION_REQUIRED` | block |
 
-Redaction uses Genblaze's `EmbedPolicy` — the prompt and parameters are stripped while
-the hash chain stays intact and verifiable. That is the client-disclosure feature.
-Prepare and re-extract the candidate locally first; this gate checks the actual candidate,
-not an intention to embed or redact later. Only an allowed candidate is uploaded or
-marked approved/shared.
+Redaction uses Genblaze's `EmbedPolicy` pointer mode. The sidecar contains only schema
+version, the trusted canonical manifest hash, and an opaque share URI; prompt and params
+are never copied into the token-scoped object or returned publicly. Dara locally checks
+that exact three-field shape and canonical-hash binding, then hashes the isolated shared
+bytes before the policy gate allows upload. This follows the SDK's verifiable pointer
+contract instead of fabricating a full redacted manifest whose old hash could not verify.
 
 ## Types
 

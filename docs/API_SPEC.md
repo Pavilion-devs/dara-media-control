@@ -203,14 +203,15 @@ anything. It makes the governance layer explorable in the demo without spending.
 ```jsonc
 { "job_id": "job_...", "asset_ids": ["ast_..."], "expires_in_days": 30 }
 ```
-Applies `EmbedPolicy` redaction, writes a redacted manifest copy, returns
+Applies `EmbedPolicy` pointer redaction, writes a three-field redacted pointer sidecar,
+returns
 `{ "token": "shr_...", "url": "https://.../share/shr_..." }`.
 
-Create a separate redacted embedded derivative from the source for every shared asset,
-compute `shared_sha256`, and store its key and hash on the Share record. Never serve the
-ordinary published derivative on a redacted route because its embedded manifest may
-contain the stripped fields. Add the exact shared hash to `index/sha/`; mint its download
-URL only when the share is read.
+Create a separate token-scoped copy from trusted source bytes for every shared asset,
+compute `shared_sha256`, and store its key, hash, and pointer-sidecar key on the Share
+record. Never serve the ordinary published derivative on a redacted route because its
+embedded manifest may contain the stripped fields. Add the exact shared hash to
+`index/sha/`; mint its download URL only when the share is read.
 
 ### `GET /v1/share/{token}` — public
 Redacted manifest, a public or freshly presigned asset URL, and verification status.

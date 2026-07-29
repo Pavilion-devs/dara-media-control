@@ -65,6 +65,11 @@ Confirmed constructor and method shape:
 - `Manifest.verify()` additionally requires declared output SHA-256 coverage; it does
   not fetch or rehash remote asset bytes.
 - `AgentLoop(pipeline_factory, evaluator, *, max_iterations=3, ...)`
+- `EmbedPolicy(prompt_visibility=PRIVATE, embed_mode="pointer",
+  include_params=False, include_seed=False)` is the integrity-safe redaction path in
+  the installed SDK. Full-mode redaction is deliberately rejected because it would
+  leave the pre-redaction canonical hash beside changed content. Pointer mode emits
+  only `schema_version`, `canonical_hash`, and `manifest_uri`.
 
 ## Executable proof
 
@@ -130,3 +135,7 @@ cd api
 - Backblaze storage is supplied by `genblaze-s3`, not the core package alone.
 - `ObjectStorageSink` accepts a `ParquetSink`, but the Parquet sink itself remains local.
   Dara uploads closed immutable Parquet files to its B2 ledger partition keys.
+- `SmartEmbedder` pointer mode writes a sidecar; it does not mutate or copy the media.
+  Dara therefore copies trusted source bytes into a separate token-scoped object first,
+  writes the pointer sidecar beside it, and records/rechecks the shared object's exact
+  SHA-256. Calling that object an inline redacted manifest would be incorrect.

@@ -1108,6 +1108,36 @@ td {
   padding: 12px 14px;
 }
 
+.shared-media {
+  background: #dbe0dd;
+  display: block;
+  max-height: 640px;
+  min-height: 360px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.shared-audio {
+  align-content: center;
+  background: #dbe0dd;
+  min-height: 360px;
+  padding: 40px;
+}
+
+.shared-audio audio {
+  margin-top: 18px;
+  width: 100%;
+}
+
+.disclosure-error {
+  color: var(--slate);
+  padding: 24px;
+}
+
+.disclosure-hash {
+  margin-top: 24px;
+}
+
 .toast {
   background: var(--ink);
   bottom: 24px;

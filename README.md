@@ -21,6 +21,12 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Bounded parallel voice packs through Genblaze `abatch_run()`, with strict
   OpenAI voice validation, `tts-1` → `tts-1-hd` fallback, ordered variant
   metadata, and a verified manifest for every narration
+- Authenticated creation of opaque, expiring client shares backed by separate
+  token-scoped B2 objects, exact shared-file hashes, and Genblaze `EmbedPolicy`
+  pointer redaction that exposes no prompt, params, job id, or run id
+- A live public `/share/{token}` disclosure page that rechecks served bytes and
+  shows only allowed provenance fields, the whole-file shared hash, redaction
+  notice, and Dara's explicit trust boundary
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - A persisted version tree for every QA attempt, including rejected and failed runs,

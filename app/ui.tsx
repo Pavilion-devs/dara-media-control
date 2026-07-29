@@ -19,6 +19,7 @@ import {
   type LedgerQuery,
   type LedgerSummary,
 } from "./ledger-schema";
+import { publicShareSchema, type PublicShare } from "./share-schema";
 
 type EventItem = {
   seq: number;
@@ -1368,7 +1369,73 @@ export function AssetDetail() {
   );
 }
 
-export function ShareView() {
+function DisclosureMedia({ share }: { share: PublicShare }) {
+  const asset = share.assets[0];
+  const alt = "AI-generated media disclosed through Dara";
+  if (asset.mime_type.startsWith("video/")) {
+    return <video className="shared-media" controls src={asset.url} aria-label={alt} />;
+  }
+  if (asset.mime_type.startsWith("audio/")) {
+    return (
+      <div className="shared-audio">
+        <p className="eyebrow">Audio disclosure</p>
+        <audio controls src={asset.url} aria-label={alt} />
+      </div>
+    );
+  }
+  return <img className="shared-media" src={asset.url} alt={alt} />;
+}
+
+export function ShareView({ token }: { token: string }) {
+  const [share, setShare] = useState<PublicShare | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const response = await fetch(`/api/share/${encodeURIComponent(token)}`, {
+          cache: "no-store",
+        });
+        const body: unknown = await response.json();
+        if (!response.ok) {
+          const parsed = apiErrorSchema.safeParse(body);
+          throw new Error(
+            parsed.success
+              ? parsed.data.error.message
+              : "This disclosure could not be loaded.",
+          );
+        }
+        const parsed = publicShareSchema.safeParse(body);
+        if (!parsed.success) {
+          throw new Error("The disclosure response did not pass validation.");
+        }
+        if (active) setShare(parsed.data);
+      } catch (reason) {
+        if (active) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "This disclosure could not be loaded.",
+          );
+        }
+      }
+    }
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const asset = share?.assets[0];
+  const generated = asset
+    ? new Date(asset.generated_at).toLocaleString("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "medium",
+        timeZone: "UTC",
+      })
+    : null;
+
   return (
     <main className="share-shell">
       <article className="share-card">
@@ -1377,30 +1444,50 @@ export function ShareView() {
             <Link className="brand display" href="/" style={{ color: "var(--ink)", marginBottom: 38 }}>
               <span className="brand-mark" style={{ borderColor: "var(--ink)" }}>D</span>DARA
             </Link>
-            <p className="eyebrow">Client disclosure preview / Dara</p>
+            <p className="eyebrow">Client disclosure / Dara</p>
             <h1 className="page-title display">Provenance proof.</h1>
-            <p className="page-lede">Generated media disclosure · issued July 29, 2026</p>
-          </div>
-          <Badge type="allow">Record matched</Badge>
-        </div>
-        <div className="asset-grid">
-          <div className="asset-preview" role="img" aria-label="Northwind campaign deliverable" />
-          <div>
-            <dl className="asset-meta">
-              <div className="detail-row"><dt>Provider</dt><dd>OpenAI</dd></div>
-              <div className="detail-row"><dt>Model</dt><dd className="mono">gpt-image-2</dd></div>
-              <div className="detail-row"><dt>Generated</dt><dd className="mono">2026-07-29 12:31:10 UTC</dd></div>
-              <div className="detail-row"><dt>Published hash</dt><dd className="mono">efaf24d3…20244c25</dd></div>
-            </dl>
-            <p className="redaction-note">
-              Prompt and generation parameters were withheld by the project&apos;s disclosure policy.
-              This shared derivative contains a separate redacted manifest and its own recorded hash.
-            </p>
-            <p className="trust-note">
-              This disclosure is tamper-evident within Dara&apos;s controlled storage. It does not claim adversarial proof of authenticity.
+            <p className="page-lede">
+              {share
+                ? `Generated media disclosure · issued ${new Date(
+                    share.issued_at,
+                  ).toLocaleDateString("en-GB", { timeZone: "UTC" })}`
+                : "Loading token-scoped disclosure…"}
             </p>
           </div>
+          <Badge type={error ? "block" : share ? "allow" : "warn"}>
+            {error ? "Unavailable" : share ? "Record matched" : "Checking"}
+          </Badge>
         </div>
+        {error ? (
+          <section className="panel disclosure-error">
+            <p className="eyebrow">Disclosure unavailable</p>
+            <p>{error}</p>
+          </section>
+        ) : share && asset ? (
+          <>
+            <div className="asset-grid">
+              <DisclosureMedia share={share} />
+              <div>
+                <dl className="asset-meta">
+                  <div className="detail-row"><dt>Provider</dt><dd>{asset.provider}</dd></div>
+                  <div className="detail-row"><dt>Model</dt><dd className="mono">{asset.model}</dd></div>
+                  <div className="detail-row"><dt>Generated</dt><dd className="mono">{generated} UTC</dd></div>
+                  <div className="detail-row"><dt>Verification</dt><dd>Token-scoped bytes match Dara&apos;s trusted record</dd></div>
+                </dl>
+                <p className="redaction-note">{share.disclosure} The file is served from a separate token-scoped object with a Genblaze redacted pointer record.</p>
+                <p className="trust-note">{share.trust_note}</p>
+              </div>
+            </div>
+            <section className="panel disclosure-hash">
+              <div className="panel-head"><h2 className="panel-title">Shared SHA-256</h2><span className="mono hash-short">WHOLE FILE</span></div>
+              <div style={{ padding: 16 }}><HashDisplay value={asset.shared_sha256} /></div>
+            </section>
+          </>
+        ) : (
+          <section className="panel disclosure-error">
+            <p>Checking the exact shared bytes against Dara&apos;s trusted record…</p>
+          </section>
+        )}
       </article>
     </main>
   );

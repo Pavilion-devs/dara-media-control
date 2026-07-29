@@ -23,7 +23,9 @@ dara/
       projects/{tenant}/{project_id}.json
       policies/{tenant}/{policy_id}.json
       shares/{token}.json
-  share-assets/{token}/{asset_id}.{ext}          redacted embedded derivatives
+  share-assets/{token}/{asset_id}.{ext}          isolated source-byte copies
+  share-assets/{token}/{asset_id}.{ext}.genblaze.json
+                                                  redacted Genblaze pointer sidecars
   seeds/demo/{scenario_id}.json               committed demo replays
 ```
 
@@ -186,10 +188,14 @@ never silently assigned zero cost.
 
 The token never encodes the job id. Look it up.
 Never serve the ordinary published derivative on a redacted share: its embedded manifest
-may contain the prompt and parameters. Create a redacted embedded derivative from the
-source, hash it as `shared_sha256`, store the key and hash on the Share, and add its exact
+may contain the prompt and parameters. Copy the trusted source bytes into a separate
+token-scoped object, hash it as `shared_sha256`, and store the Genblaze `EmbedPolicy`
+pointer sidecar beside it. The pointer contains only schema version, the trusted
+canonical manifest hash, and an opaque share URI. This is the installed SDK's
+integrity-safe redaction contract; a full redacted manifest is intentionally rejected
+because its old canonical hash could not verify changed content. Add the exact shared
 hash to `index/sha/`. The share route compares served bytes against this token-scoped
-record. Presigned URLs are minted only when the share is read.
+record, and presigned URLs are minted only when the share is read.
 
 ## Ledger tables
 

@@ -28,6 +28,7 @@ from .policy import (
     B2PolicyStore,
     CostEstimate,
     Decision,
+    EnforcementPoint,
     JobRecord,
     JobStore,
     MemoryJobStore,
@@ -37,6 +38,7 @@ from .policy import (
     PolicyEngine,
     PolicyStore,
     RunPlan,
+    Severity,
     StoredDecision,
     job_to_json,
     money,
@@ -57,6 +59,14 @@ from .pipelines.still import (
     run_still_pipeline,
 )
 from .storage import DaraStorage, StorageUnavailableError
+from .share import (
+    PublicShare,
+    ShareCreateRequest,
+    ShareExpiredError,
+    ShareIntegrityError,
+    ShareNotFoundError,
+    ShareService,
+)
 from .verify import (
     InvalidHashError,
     UnsupportedMediaError,
@@ -182,6 +192,18 @@ def get_verifier() -> Verifier:
             503,
             "STORAGE_UNAVAILABLE",
             "Dara's trusted storage is unavailable. Retry verification shortly.",
+        ) from exc
+
+
+@lru_cache(maxsize=1)
+def get_share_service() -> ShareService:
+    try:
+        return ShareService(DaraStorage.from_env())
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted storage is unavailable. Retry sharing shortly.",
         ) from exc
 
 
@@ -1321,6 +1343,87 @@ async def stream_live_run_events(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.post("/v1/shares", status_code=201)
+async def create_share(
+    request: ShareCreateRequest,
+    _: Annotated[None, Depends(require_workspace_token)],
+    service: Annotated[ShareService, Depends(get_share_service)],
+) -> dict[str, object]:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    run = await live_run_store.get(tenant_id, request.job_id)
+    if run is None:
+        raise DaraApiError(404, "NOT_FOUND", "Completed run not found.")
+    policy_decision = engine.evaluate(
+        EnforcementPoint.PRE_PUBLISH,
+        get_policy(run.policy_id),
+        approved=run.status == "succeeded",
+        manifest_embedded=True,
+        sharing=True,
+        redacted=True,
+    )
+    if policy_decision.outcome is Severity.BLOCK:
+        raise DaraApiError(
+            409,
+            "POLICY_BLOCKED",
+            policy_decision.violations[0].message,
+            {
+                "violations": [
+                    violation.model_dump(mode="json")
+                    for violation in policy_decision.violations
+                ]
+            },
+        )
+    try:
+        record = await asyncio.to_thread(
+            service.create,
+            run,
+            asset_ids=request.asset_ids,
+            expires_in_days=request.expires_in_days,
+        )
+    except ShareIntegrityError as exc:
+        raise DaraApiError(409, "SHARE_NOT_READY", str(exc)) from exc
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted storage is unavailable. Retry sharing shortly.",
+        ) from exc
+    app_url = os.getenv(
+        "DARA_PUBLIC_APP_URL",
+        "https://dara-media-control.asaborodaniel.chatgpt.site",
+    ).rstrip("/")
+    return {
+        "token": record.token,
+        "url": f"{app_url}/share/{record.token}",
+        "expires_at": record.expires_at,
+    }
+
+
+@app.get("/v1/share/{token}", response_model=PublicShare)
+async def read_public_share(
+    token: str,
+    service: Annotated[ShareService, Depends(get_share_service)],
+) -> PublicShare:
+    try:
+        return await asyncio.to_thread(service.read_public, token)
+    except ShareNotFoundError as exc:
+        raise DaraApiError(404, "SHARE_NOT_FOUND", "Share not found.") from exc
+    except ShareExpiredError as exc:
+        raise DaraApiError(410, "SHARE_EXPIRED", str(exc)) from exc
+    except ShareIntegrityError as exc:
+        raise DaraApiError(
+            409,
+            "SHARE_INTEGRITY_FAILED",
+            str(exc),
+        ) from exc
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted storage is unavailable. Retry this share shortly.",
+        ) from exc
 
 
 @app.post("/v1/verify", response_model=VerificationResponse)

@@ -160,11 +160,18 @@ Work top to bottom. Each task is one commit.
       execute through Genblaze `abatch_run(items=...)` with bounded true
       concurrency, per-variant metadata, OpenAI `tts-1` → `tts-1-hd` fallback,
       strict voice validation, and verified manifests.
-- [ ] **T-37** `share.py`: redacted share links using `EmbedPolicy`. Create a separate
-      token-scoped embedded derivative, persist `shared_sha256`, and verify it from the
-      Share record. Prompt and params stripped, hash chain intact; never reuse an
-      unredacted published file.
-- [ ] **T-38** Public `/share/{token}` disclosure page.
+- [x] **T-37** `share.py`: redacted share links using Genblaze `EmbedPolicy` pointer
+      mode. Dara copies trusted source bytes to a separate token-scoped object, stores
+      the three-field redacted pointer sidecar separately, persists `shared_sha256`,
+      and rehashes served bytes against the Share record. Prompt, params, job id, and
+      run id never enter the public response; the unredacted published file is never
+      reused. This follows the installed SDK's integrity-safe pointer contract rather
+      than creating an unverifiable full redacted manifest.
+- [x] **T-38** Public `/share/{token}` disclosure page, backed by the live public API
+      and a short-lived URL for the token-scoped object. It renders only provider,
+      model, generated time, whole-file shared hash, verification status, redaction
+      notice, and the trust-boundary note. Invalid, expired, and integrity-failed
+      shares fail closed.
 
 ### Phase 6 — judge-readiness (M6)
 
