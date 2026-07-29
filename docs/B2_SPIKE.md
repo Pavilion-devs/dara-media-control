@@ -22,3 +22,26 @@ dara/spikes/runs/demo/2026-07-29/c206e036-887b-4fab-874d-cb3e2994dd0e/manifest.j
 
 No credentials are committed. The scoped application key is stored in the ignored
 local `.env` file.
+
+## Live OpenAI generation
+
+The first paid provider run completed on 2026-07-29:
+
+| Field | Result |
+|---|---|
+| Provider | `openai-dalle` |
+| Model | `gpt-image-2` |
+| Run ID | `f1a3332d-5727-4644-976a-2f7c09c74e82` |
+| Asset ID | `9856ed41-b723-47e7-99b8-4a6fee2663cf` |
+| Asset SHA-256 | `97f3532e16f7132ee46af4c581a32b6fb720466dd15c131eef1e7a9b7d5f3164` |
+| Downloaded SHA-256 | `97f3532e16f7132ee46af4c581a32b6fb720466dd15c131eef1e7a9b7d5f3164` |
+| Manifest canonical hash | `13dc9b8ae977809a90ffcc5b3971a011dc5cbac8c8505df2e7f131fa8a9e9b28` |
+| Provider latency | `29.369s` |
+| Provider-reported cost | unavailable; must be supplied by Dara's pricing registry |
+| `verify_hash()` | `true` |
+| `verify()` | `true` |
+
+```text
+dara/live/runs/demo/2026-07-29/f1a3332d-5727-4644-976a-2f7c09c74e82/assets/9856ed41-b723-47e7-99b8-4a6fee2663cf.png
+dara/live/runs/demo/2026-07-29/f1a3332d-5727-4644-976a-2f7c09c74e82/manifest.json
+```

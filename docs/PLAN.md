@@ -59,26 +59,24 @@ Work top to bottom. Each task is one commit.
       encryption. Generate a read/write application key scoped only to that bucket.
       Record `B2_KEY_ID`, `B2_APP_KEY`, `B2_BUCKET`, `B2_REGION`, `B2_ENDPOINT`
       in the ignored local environment file.
-- [ ] **T-02** Join the NVIDIA Developer Program at build.nvidia.com and generate an
-      `nvapi-` key. Use a business-style email address — a personal address caps you at
-      1,000 credits, a business address unlocks the additional 4,000 via the free 90-day
-      AI Enterprise license. Do this before anything else; it gates every generation task.
-- [ ] **T-03** Get a Google AI Studio key (free Gemini tier) for the QA evaluator, and a
-      Replicate token for cheap image overflow. ElevenLabs free tier for voice.
-- [ ] **T-04** Scaffold `api/` — FastAPI, Pydantic v2, ruff, pytest. Health endpoint.
-- [ ] **T-05** Scaffold `web/` — Next.js 15 App Router, TypeScript strict, Tailwind.
-- [ ] **T-06** `pip install "genblaze-core[parquet]" genblaze-s3 genblaze-nvidia genblaze-google
-      genblaze-replicate genblaze-elevenlabs genblaze-cli`. Print the public symbols of
-      each and save to `docs/SDK_SURFACE.md`. **Do not skip this** — build against what
-      is installed, not what the README describes.
-- [ ] **T-07** Run `examples/quickstart_local.py` from the Genblaze repo. Confirms
-      manifest construction and verification with zero external calls.
-- [ ] **T-08** **Spike (M0):** one image generation through `Pipeline` → NVIDIA provider
-      → `ObjectStorageSink` → B2. Print the asset URL, SHA-256, manifest URI, and
-      `verify()` result. Do not proceed until this prints clean. **Storage proof is
-      green:** a local image passed through a real Genblaze pipeline and
-      `ObjectStorageSink` into B2 with both verification checks true. The remaining
-      work is replacing the local provider with the selected live media provider.
+- [x] **T-02** Configure an OpenAI API key and confirm this account can access
+      `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, and `gpt-image-1-mini`.
+      OpenAI is Dara's primary live-media provider; NVIDIA is no longer a prerequisite.
+- [ ] **T-03** Add a vision-capable QA evaluator and one provider-diverse image
+      fallback only after the primary OpenAI still pipeline is reliable. Claude may be
+      used as the evaluator, but it is not a Genblaze media-generation provider.
+- [x] **T-04** Scaffold `api/` — FastAPI, Pydantic v2, tests, health and policy
+      endpoints.
+- [x] **T-05** Scaffold and deploy the web control surface.
+- [x] **T-06** Install and inspect the Genblaze core, S3, Parquet, testing, and OpenAI
+      packages actually used by Dara. Record their public surface in
+      `docs/SDK_SURFACE.md`.
+- [x] **T-07** Run Dara's zero-key Genblaze pipeline. It produces a valid canonical
+      manifest with both verification checks true and is covered by the test suite.
+- [x] **T-08** **Spike (M0):** one `gpt-image-2` generation through `Pipeline` →
+      Genblaze's OpenAI provider → `ObjectStorageSink` → B2. The stored asset was
+      downloaded and rehashed; its bytes match the manifest SHA-256, and
+      `verify_hash()` plus `verify()` both return true.
 - [ ] **T-09** Record real latency and cost per model in `docs/PROVIDERS.md`. Mark any
       model that fails or exceeds 90s. These become your fallback ordering.
 

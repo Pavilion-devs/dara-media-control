@@ -2,30 +2,20 @@
 
 ## Context
 
-GMI Cloud hackathon credits are exhausted, so there is no sponsor-funded generation
-budget. Every call is either free-tier or out of pocket. This shapes provider selection
-and it shapes the demo.
-
-The good news: NVIDIA NIM is a first-class Genblaze adapter (`genblaze-nvidia`) covering
-**every modality** — Cosmos for video, SDXL / SD 3.5 / FLUX for image, Fugatto and Riva
-for audio, Nemotron for chat. It scores identically to GMI on the Genblaze criterion.
+GMI Cloud hackathon credits are exhausted, so every live call must be deliberately
+budgeted. Dara uses the official `genblaze-openai` adapter as its primary provider:
+GPT Image for images, Sora for video, and OpenAI TTS for speech. The first
+`gpt-image-2` run has already completed and persisted successfully to B2.
 
 ## Credit strategy — do this first
 
-1. Join the free NVIDIA Developer Program at build.nvidia.com and generate an `nvapi-`
-   key. Signup grants 1,000 API credits with no credit card.
-2. Request more from the profile menu. **Use a business-style email address** — a personal
-   address caps you, while a business address activates a free 90-day AI Enterprise
-   license and unlocks an additional 4,000 credits, for 5,000 total.
-3. Note the terms: the hosted free tier is for development, evaluation, and prototyping.
-   A hackathon demo sits inside that. Do not build a public production service on it, and
-   do not claim you have.
-4. Some catalog models are free and consume no credits at all. Check current model pages
-   and prefer those for the QA evaluator, which runs on every attempt and is your highest
-   call-volume step.
-
-Secondary keys, all free tier: Google AI Studio (Gemini, for vision-capable QA scoring),
-ElevenLabs (voice), Replicate (cheap per-call image overflow, pay-as-you-go).
+1. Use `gpt-image-2` low quality for smoke tests and reserve higher-quality generations
+   for seeded showcase assets.
+2. Keep live generation behind Dara's policy gate. Demo mode must never spend credits.
+3. Add a second provider only where it creates real resilience. Do not collect keys
+   speculatively.
+4. A Claude key is optional for prompt refinement or visual QA through a custom evaluator;
+   it does not replace the Genblaze media provider.
 
 Budget the whole event at **under $20 of real spend.** If you are heading past that,
 something is wrong with demo mode.
@@ -40,16 +30,16 @@ reorder — measured latency beats assumption.
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | nvidia | FLUX.1 dev | Primary. Quality-to-cost leader on the catalog. |
-| 2 | nvidia | SD 3.5 large | Same key, different family — survives a single-model outage |
-| 3 | replicate | flux-schnell | Paid but cheap; the safety net when NIM credits run dry |
+| 1 | openai | `gpt-image-2` | Primary; live B2 proof is green |
+| 2 | openai | `gpt-image-1-mini` | Lower-cost same-provider degradation |
+| 3 | replicate or google | To be measured | Provider-diverse fallback, added only after a real probe |
 
 ### Video
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | nvidia | Cosmos (text2world / video2world) | Cap 5s, 720p. Expensive and slow — gate with policy. |
-| 2 | replicate | image-to-video model | Fallback |
+| 1 | openai | `sora-2` | Primary candidate; must be probed and policy-gated |
+| 2 | replicate or google | To be measured | Provider-diverse fallback |
 | 3 | — | still fallback | If both fail, degrade to the keyframe still and say so in the UI |
 
 Video is the highest-risk path in the project. Treat the still fallback as a real feature,
@@ -59,17 +49,17 @@ not an error state — graceful degradation is a production-readiness signal.
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | elevenlabs | eleven_v3 | Best quality, free tier is limited |
-| 2 | nvidia | Riva TTS | Same key as everything else |
-| 3 | nvidia | Fugatto | Sound effects and music beds |
+| 1 | openai | `gpt-4o-mini-tts` | Primary candidate using the existing key |
+| 2 | elevenlabs | To be measured | Provider-diverse voice fallback |
+| 3 | — | no narration | Graceful degradation for motion output |
 
 ### Chat — prompt expansion and QA scoring
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | google | Gemini (vision-capable) | Needed for image QA — the evaluator must actually see the asset |
-| 2 | nvidia | Nemotron | Text-only fallback; degrade QA to prompt-adherence-only and say so |
-| 3 | nvidia | a free-tier catalog model | Zero-credit option for high-volume scoring |
+| 1 | openai | Vision-capable current model | Reuse the existing key; exact model and price must be registered |
+| 2 | anthropic | Claude, optional custom evaluator | QA only; not a Genblaze media provider |
+| 3 | — | deterministic checks | Dimensions, format, file integrity, and manifest verification |
 
 ## Cost table
 
@@ -79,14 +69,12 @@ numbers here make the whole governance layer wrong.
 
 | Provider | Model | Modality | Unit | Price USD | p50 latency | Measured |
 |---|---|---|---|---|---|---|
-| nvidia | flux.1-dev | image | per image | | | ☐ |
-| nvidia | sd3.5-large | image | per image | | | ☐ |
-| nvidia | cosmos | video | per second | | | ☐ |
-| nvidia | riva-tts | audio | per 1k chars | | | ☐ |
-| nvidia | nemotron | chat | per 1k tokens | | | ☐ |
-| google | gemini | chat/vision | per 1k tokens | | | ☐ |
-| replicate | flux-schnell | image | per image | | | ☐ |
-| elevenlabs | eleven_v3 | audio | per 1k chars | | | ☐ |
+| openai | gpt-image-2 | image | per image | pending registry | 29.369s | ☑ one low-quality 1024² run |
+| openai | gpt-image-1-mini | image | per image | | | ☐ |
+| openai | sora-2 | video | per second | | | ☐ |
+| openai | gpt-4o-mini-tts | audio | per 1k chars | | | ☐ |
+| openai | vision QA model TBD | chat/vision | per 1k tokens | | | ☐ |
+| provider-diverse fallback | TBD | image/video | TBD | | | ☐ |
 
 Register these via `ModelRegistry.fork()` + `register_pricing()`. Where a model has no
 published price, register a conservative estimate and flag it `UNPRICED_MODEL` in the UI
@@ -99,7 +87,7 @@ Model identifiers drift, and a wrong id fails at runtime on demo day. Before bui
 pipeline:
 
 ```bash
-python -m dara.tools.probe_models --provider nvidia --modality image
+python -m dara.tools.probe_models --provider openai --modality image
 ```
 
 Write this probe as task T-09. It should attempt a minimal generation against each
@@ -111,8 +99,8 @@ exposes it rather than writing your own.
 
 ## Rate limits and 429s
 
-NVIDIA's free tier is rate-limited and the per-model ceiling is not published — you
-discover your own limit in your account. Assume you will hit it during seeding.
+Treat rate limits and available spend as runtime constraints. Assume seeding can hit
+either even when individual smoke tests succeed.
 
 - Exponential backoff with jitter on 429, capped at 3 retries.
 - On 402 (credits exhausted), do not retry — fail over to the next provider in the chain
