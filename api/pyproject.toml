@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dara-api"
+version = "0.1.0"
+description = "Governance and provenance API for Dara."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.116,<1",
+  "genblaze==0.4.3",
+  "genblaze-core[parquet,testing]>=0.3.8,<0.4",
+  "pydantic>=2.11,<3",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.hatch.build.targets.wheel]
+packages = ["dara"]

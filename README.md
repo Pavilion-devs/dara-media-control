@@ -1,14 +1,33 @@
-# vinext-starter
+# Dara
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Dara is the control plane for AI-generated media: governed pipelines, verifiable
+provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 
-## Prerequisites
+**Live app:** https://dara-media-control.asaborodaniel.chatgpt.site
 
-- Node.js `>=22.13.0`
+## What works now
 
-## Quick Start
+- Populated Studio with live cost estimation and a guaranteed pre-spend policy block
+- Visible fallback and agentic QA revision events
+- Ledger with cost per approved asset, prevented spend, and waste ratio
+- Public verification UI with a whole-file SHA-256 signature and lineage
+- Asset detail with separate source and published hashes
+- Redacted client disclosure view
+- Exact-decimal policy engine with atomic per-tenant budget reservations
+- No-key Genblaze pipeline proof that emits and verifies a provenance manifest
+
+## Repository
+
+```text
+app/          Dara web application
+api/dara/     FastAPI and policy execution foundation
+api/tests/    Zero-network policy and Genblaze spike tests
+docs/         Product, architecture, pipeline, provider, and submission specs
+```
+
+## Run the web app
+
+Requires Node.js 22.13 or newer.
 
 ```bash
 npm install
@@ -16,83 +35,22 @@ npm run dev
 npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+## Run the API foundation
 
-## Included Shape
-
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+python3 -m venv api/.venv
+api/.venv/bin/pip install -e api
+api/.venv/bin/python -m unittest discover -s api/tests -v
+api/.venv/bin/uvicorn dara.main:app --app-dir api --reload
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+The current policy tests prove that a blocked job is persisted, costs zero, and makes
+zero provider calls. They also cover worst-case retry estimates, unpriced-model warnings,
+successful settlement, and concurrent budget admission.
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+## Trust boundary
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
-
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Dara provides tamper-evident accountability within an organisation that controls its
+trusted storage, plus a good-faith disclosure record for clients. It does not claim
+adversarial authenticity. See [docs/PRD.md](docs/PRD.md) and
+[docs/SDK_SURFACE.md](docs/SDK_SURFACE.md) for the precise model.
