@@ -4,9 +4,9 @@ Deadline **Aug 3 2026, 5:00pm EDT**. Judging Aug 5–11. Winners on or around Au
 
 ## Required by the rules
 
-- [ ] Working app URL a judge can access, test, and evaluate
-- [ ] Public repo, or private with access granted to the Backblaze testing account
-- [ ] Setup instructions in the README
+- [x] Working app URL a judge can access, test, and evaluate
+- [x] Public repo, or private with access granted to the Backblaze testing account
+- [x] Setup instructions in the README
 - [x] Text description: features, how B2 is used, how Genblaze is used
 - [x] **Explicit list of AI providers and models** — generated in
       `docs/MODELS_USED.md` and incorporated into `docs/DEVPOST.md`

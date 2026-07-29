@@ -222,7 +222,7 @@ Work top to bottom. Each task is one commit.
       Under 3:00. Upload public to YouTube.
 - [x] **T-47** Write the Devpost description: features, B2 usage, Genblaze usage,
       explicit provider and model list.
-- [ ] **T-48** Grant judge access if the repo is private. Verify the working URL from a
+- [x] **T-48** Grant judge access if the repo is private. Verify the working URL from a
       clean browser with no session.
 - [ ] **T-49** Submit. Then stop touching the deploy.
 

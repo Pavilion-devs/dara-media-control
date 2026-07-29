@@ -85,7 +85,7 @@ See `docs/MODELS_USED.md`, generated from the live model registry.
 ## Setup
 
 ```bash
-git clone <repo> && cd dara
+git clone https://github.com/Pavilion-devs/dara-media-control.git && cd dara
 cp .env.example .env          # fill in B2 and provider keys
 
 cd api && pip install -e . && uvicorn dara.main:app --reload

@@ -1,6 +1,7 @@
 # Dara — Devpost submission copy
 
 Live application: https://diamonds-jessica-accidents-icq.trycloudflare.com
+Public source: https://github.com/Pavilion-devs/dara-media-control
 
 ## What it does
 
@@ -106,13 +107,15 @@ During the build, Dara produced three reproduced Genblaze SDK reports:
 
 ## Providers and models
 
-OpenAI is Dara's currently configured AI provider. Genblaze is the orchestration and
-provenance SDK.
+OpenAI is Dara's primary AI provider. Replicate's official FLUX route is implemented as
+the provider-diverse image fallback, with its production token and live probe still
+pending. Genblaze is the orchestration and provenance SDK.
 
 | Provider | Model | Modality | Dara role | Evidence |
 |---|---|---|---|---|
 | OpenAI | `gpt-image-2` | Image | Primary generation | Production calls persisted and verified in B2 |
 | OpenAI | `gpt-image-2-2026-04-21` | Image | Same-provider snapshot fallback | Configured and verified in the account catalog |
+| Replicate | `black-forest-labs/flux-1.1-pro` | Image | Provider-diverse fallback | Adapter and deterministic contract tests; live probe pending |
 | OpenAI | `gpt-4.1-mini` | Text and vision | Prompt expansion and visual QA | Production prompt-expansion and QA calls |
 | OpenAI | `sora-2` | Video | Primary motion generation | Implemented pipeline and deterministic integration proof |
 | OpenAI | `sora-2-pro` | Video | Motion fallback | Configured pipeline fallback and deterministic integration proof |
@@ -124,8 +127,8 @@ recorded failure—and three successful `gpt-4.1-mini` visual-QA calls. Failed w
 in the ledger instead of disappearing from cost-per-approved-asset calculations.
 
 Committed demo fixtures use visibly named mock providers and are never presented as live
-provider execution. The image chain has model fallback today, but it is not claimed as
-provider-diverse until a second media-provider credential is configured and measured.
+provider execution. Dara does not claim the Replicate route as production-probed until
+its server-side credential is configured and a real call is measured.
 
 ## What we'd build next
 

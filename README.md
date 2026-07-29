@@ -113,17 +113,19 @@ pretends those two hashes should match.
 
 ## Providers and models
 
-OpenAI is the only configured AI provider. Genblaze is the orchestration and provenance
-SDK, not a provider. The inventory is generated from
+OpenAI is Dara's primary AI provider. Replicate's official FLUX 1.1 Pro route is the
+provider-diverse image fallback; its production credential and live probe are still
+pending. Genblaze is the orchestration and provenance SDK, not a provider. The inventory is generated from
 [`api/dara/providers.py`](api/dara/providers.py):
 
-| Model | Use | Evidence |
-|---|---|---|
-| `gpt-image-2` | Primary image generation | Production calls persisted and verified in B2 |
-| `gpt-image-2-2026-04-21` | Image fallback | Configured and account-catalog verified |
-| `gpt-4.1-mini` | Prompt expansion and vision QA | Production calls recorded |
-| `sora-2` → `sora-2-pro` | Motion generation | Pipeline and deterministic integration proof |
-| `tts-1` → `tts-1-hd` | Voice generation | Parallel pipeline and deterministic integration proof |
+| Provider | Model | Use | Evidence |
+|---|---|---|---|
+| OpenAI | `gpt-image-2` | Primary image generation | Production calls persisted and verified in B2 |
+| OpenAI | `gpt-image-2-2026-04-21` | Same-provider image fallback | Configured and account-catalog verified |
+| Replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse image fallback | Adapter and deterministic contract tests; live probe pending |
+| OpenAI | `gpt-4.1-mini` | Prompt expansion and vision QA | Production calls recorded |
+| OpenAI | `sora-2` → `sora-2-pro` | Motion generation | Pipeline and deterministic integration proof |
+| OpenAI | `tts-1` → `tts-1-hd` | Voice generation | Parallel pipeline and deterministic integration proof |
 
 See [`docs/MODELS_USED.md`](docs/MODELS_USED.md) for the generated submission table and
 [`docs/PROVIDERS.md`](docs/PROVIDERS.md) for measurement and cost-basis details.
@@ -133,7 +135,7 @@ See [`docs/MODELS_USED.md`](docs/MODELS_USED.md) for the generated submission ta
 Requirements: Python 3.12+, Node.js 22.13+, and FFmpeg for the motion regression.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Pavilion-devs/dara-media-control.git
 cd dara
 cp .env.example .env
 
@@ -192,8 +194,9 @@ PYTHONPATH=api api/.venv/bin/python -m dara.tools.list_models
   non-deterministic. Regeneration replays canonical parameters and records lineage.
 - **One writer per job.** B2 has no compare-and-swap transaction for these JSON records;
   concurrent updates to the same job are last-write-wins.
-- **One real AI provider today.** Every generative step has a model fallback, but the
-  image chain is not provider-diverse until a second media-provider credential is added.
+- **One production-probed AI provider today.** The Replicate FLUX image fallback is
+  implemented and contract-tested, but it remains unavailable until a server-side
+  `REPLICATE_API_TOKEN` is added and its live probe is recorded.
 - **Temporary HTTPS transport.** The current account-less Cloudflare tunnel survives API
   deployments but changes after a VPS or tunnel restart. The named-tunnel/custom-domain
   upgrade and recovery procedure are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
