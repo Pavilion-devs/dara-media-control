@@ -8,6 +8,12 @@ import {
   verificationResponseSchema,
 } from "./verification-schema";
 import { liveRunSchema, type LiveRun } from "./run-schema";
+import {
+  ledgerQuerySchema,
+  ledgerSummarySchema,
+  type LedgerQuery,
+  type LedgerSummary,
+} from "./ledger-schema";
 
 type EventItem = {
   seq: number;
@@ -701,6 +707,55 @@ const ledgerRows = [
 ];
 
 export function Ledger() {
+  const [live, setLive] = useState<{
+    summary: LedgerSummary;
+    models: LedgerQuery;
+    projects: LedgerQuery;
+    months: LedgerQuery;
+  } | null>(null);
+  const [ledgerState, setLedgerState] = useState<"loading" | "live" | "fallback">(
+    "loading",
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadLedger() {
+      try {
+        const [summaryResponse, modelsResponse, projectsResponse, monthsResponse] =
+          await Promise.all([
+            fetch("/api/ledger/summary", { signal: controller.signal }),
+            fetch("/api/ledger/query?q=spend_by_model", { signal: controller.signal }),
+            fetch("/api/ledger/query?q=spend_by_project", { signal: controller.signal }),
+            fetch("/api/ledger/query?q=spend_by_month", { signal: controller.signal }),
+          ]);
+        if (
+          !summaryResponse.ok
+          || !modelsResponse.ok
+          || !projectsResponse.ok
+          || !monthsResponse.ok
+        ) {
+          throw new Error("Ledger unavailable");
+        }
+        setLive({
+          summary: ledgerSummarySchema.parse(await summaryResponse.json()),
+          models: ledgerQuerySchema.parse(await modelsResponse.json()),
+          projects: ledgerQuerySchema.parse(await projectsResponse.json()),
+          months: ledgerQuerySchema.parse(await monthsResponse.json()),
+        });
+        setLedgerState("live");
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") setLedgerState("fallback");
+      }
+    }
+    void loadLedger();
+    return () => controller.abort();
+  }, []);
+
+  const summary = live?.summary;
+  const modelRows = live?.models.rows ?? [];
+  const projectRows = live?.projects.rows ?? [];
+  const monthRows = live?.months.rows ?? [];
+
   return (
     <Shell current="/ledger">
       <section className="page">
@@ -710,45 +765,71 @@ export function Ledger() {
             <h1 className="page-title display">The honest numbers.</h1>
             <p className="page-lede">Every attempt counts—including the work that never shipped.</p>
           </div>
-          <span className="mono hash-short">JUL 01 — JUL 29, 2026</span>
+          <span className="mono hash-short">
+            {ledgerState === "live" ? "LIVE · DUCKDB OVER B2" : "RECORDED PROOF"}
+          </span>
         </div>
         <div className="headline-metrics">
           <div className="headline-metric">
             <span>Published assets</span>
-            <strong className="mono">1</strong>
-            <small>Real OpenAI → Genblaze → B2 proof</small>
+            <strong className="mono">{summary?.approved_assets ?? 1}</strong>
+            <small>{summary ? `${summary.run_count} accounted runs` : "Real OpenAI → Genblaze → B2 proof"}</small>
           </div>
           <div className="headline-metric">
             <span>Spend prevented</span>
-            <strong className="mono">$0.09</strong>
-            <small>Locked-policy proof · zero provider calls</small>
+            <strong className="mono">${summary?.spend_prevented_usd ?? "0.090000"}</strong>
+            <small>Policy-blocked work · zero provider calls</small>
           </div>
           <div className="headline-metric">
-            <span>Provenance coverage</span>
-            <strong className="mono">100%</strong>
-            <small>Source, manifest, published hash indexed</small>
+            <span>Cost / approved asset</span>
+            <strong className="mono">${summary?.cost_per_approved_asset_usd ?? "0.010000"}</strong>
+            <small>{summary ? `Waste ratio ${(Number(summary.waste_ratio) * 100).toFixed(1)}%` : "Includes discarded attempts"}</small>
           </div>
         </div>
         <div className="filterbar" aria-label="Ledger filters">
-          <select aria-label="Date range" defaultValue="30"><option value="30">Last 30 days</option><option value="7">Last 7 days</option></select>
-          <select aria-label="Project" defaultValue="all"><option value="all">All projects</option><option>Northwind — Q3</option></select>
-          <select aria-label="Model" defaultValue="all"><option value="all">All models</option><option>gpt-image-2</option></select>
+          <span className="mono ledger-source">
+            {ledgerState === "loading"
+              ? "Opening B2 ledger…"
+              : ledgerState === "live"
+                ? `Generated ${new Date(summary?.generated_at ?? "").toLocaleTimeString()}`
+                : "Live ledger unavailable · showing recorded proof"}
+          </span>
         </div>
         <div className="data-panel">
           <table>
-            <thead><tr><th>Run</th><th>Project</th><th>Model</th><th>Mode</th><th>Cost</th><th>QA</th><th>Status</th><th>Relative spend</th></tr></thead>
+            <thead><tr><th>Model</th><th>Provider</th><th>Runs</th><th>Total spend</th><th>Mean / run</th></tr></thead>
             <tbody>
-              {ledgerRows.map((row) => (
-                <tr key={row[0]}>
-                  <td><Link className="run-link mono" href="/assets/ast_nw_003">{row[0]}</Link></td>
-                  <td>{row[1]}</td><td className="mono">{row[2]}</td><td>{row[3]}</td>
-                  <td className="mono">{row[4]}</td><td className="mono">{row[5]}</td>
-                  <td><Badge type={row[6] === "Approved" ? "allow" : "warn"}>{row[6]}</Badge></td>
-                  <td className="bar-cell mono">{row[4]}<div className="inline-bar"><span style={{ width: `${row[7]}%` }} /></div></td>
+              {modelRows.length ? modelRows.map((row) => (
+                <tr key={`${row[0]}-${row[1]}`}>
+                  <td className="mono">{row[0]}</td><td>{row[1]}</td>
+                  <td className="mono">{row[2]}</td>
+                  <td className="mono">${row[3]}</td><td className="mono">${row[4]}</td>
                 </tr>
+              )) : ledgerRows.map((row) => (
+                <tr key={row[0]}><td className="mono">{row[2]}</td><td>openai</td><td>1</td><td className="mono">{row[4]}</td><td className="mono">{row[4]}</td></tr>
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="ledger-split">
+          <div className="data-panel">
+            <div className="panel-head"><h2 className="panel-title">Spend by project</h2></div>
+            <table>
+              <thead><tr><th>Project</th><th>Runs</th><th>Approved</th><th>Spend</th></tr></thead>
+              <tbody>{projectRows.map((row) => (
+                <tr key={String(row[0])}><td className="mono">{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td className="mono">${row[3]}</td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div className="data-panel">
+            <div className="panel-head"><h2 className="panel-title">Spend by month</h2></div>
+            <table>
+              <thead><tr><th>Month</th><th>Runs</th><th>Spend</th></tr></thead>
+              <tbody>{monthRows.map((row) => (
+                <tr key={String(row[0])}><td className="mono">{row[0]}</td><td>{row[1]}</td><td className="mono">${row[2]}</td></tr>
+              ))}</tbody>
+            </table>
+          </div>
         </div>
         <p className="trust-note">* Conservative low-quality policy reservation. The provider did not return settled cost in the recorded manifest.</p>
       </section>

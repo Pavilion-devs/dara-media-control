@@ -111,11 +111,15 @@ class LiveRunEndpointTests(unittest.TestCase):
                 qa_issues=(),
             )
 
+        async def fake_accounting(_: LiveRunRecord) -> None:
+            return None
+
         with (
             patch.object(main_module, "live_run_store", run_store),
             patch.object(main_module, "store", policy_store),
             patch.object(main_module, "engine", policy_engine),
             patch.object(main_module, "run_still_pipeline", fake_pipeline),
+            patch.object(main_module, "persist_accounting", fake_accounting),
             patch.dict(
                 "os.environ",
                 {

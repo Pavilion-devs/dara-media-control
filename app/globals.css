@@ -603,6 +603,19 @@ select:focus-visible {
   padding: 12px;
 }
 
+.ledger-source {
+  color: var(--graphite);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.ledger-split {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 18px;
+}
+
 .filterbar select {
   background: #fafbfa;
   border: 1px solid var(--rule);
@@ -1022,6 +1035,10 @@ td {
   }
 
   .headline-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .ledger-split {
     grid-template-columns: 1fr;
   }
 

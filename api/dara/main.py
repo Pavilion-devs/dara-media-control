@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from functools import lru_cache
 from importlib.metadata import version
@@ -18,7 +18,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -42,6 +42,7 @@ from .jobs import (
     LiveRunStore,
     MemoryLiveRunStore,
 )
+from .ledger import QUERY_SQL, AccountingRecord, get_ledger, write_accounting_record
 from .pipelines.still import QARejectedError, run_still_pipeline
 from .storage import DaraStorage, StorageUnavailableError
 from .verify import (
@@ -394,6 +395,29 @@ async def reconcile_orphaned_runs() -> int:
     return orphaned
 
 
+async def persist_accounting(run: LiveRunRecord) -> None:
+    await asyncio.to_thread(
+        write_accounting_record,
+        DaraStorage.from_env(),
+        AccountingRecord(
+            job_id=run.job_id,
+            genblaze_run_id=run.genblaze_run_id,
+            tenant_id=run.tenant_id,
+            project_id=run.project_id,
+            policy_id=run.policy_id,
+            status=run.status,
+            cost_usd=run.actual_cost_usd,
+            saved_cost_usd=money("0"),
+            cost_basis=run.cost_basis,
+            approved=run.status == "succeeded",
+            qa_score=run.qa_score,
+            qa_attempts=run.qa_attempts,
+            asset_id=run.asset_id,
+            created_at=run.created_at,
+        ),
+    )
+
+
 async def execute_live_still(job_id: str) -> None:
     tenant_id = os.getenv("KILN_TENANT_ID", "demo")
     run = await live_run_store.get(tenant_id, job_id)
@@ -460,6 +484,7 @@ async def execute_live_still(job_id: str) -> None:
             provider="dara",
             model="still-campaign/v1",
         )
+        await persist_accounting(run)
         engine.reservations.settle(run.job_id, output.actual_cost_usd)
         policy_job = await store.get_job(run.tenant_id, run.job_id)
         if policy_job is not None:
@@ -488,6 +513,7 @@ async def execute_live_still(job_id: str) -> None:
             provider="dara",
             model="qa/v1",
         )
+        await persist_accounting(run)
         policy_job = await store.get_job(run.tenant_id, run.job_id)
         if policy_job is not None:
             policy_job.status = "failed"
@@ -511,6 +537,7 @@ async def execute_live_still(job_id: str) -> None:
             provider="dara",
             model="still-campaign/v1",
         )
+        await persist_accounting(run)
         policy_job = await store.get_job(run.tenant_id, run.job_id)
         if policy_job is not None:
             policy_job.status = "failed"
@@ -592,6 +619,74 @@ async def read_policy(policy_id: str) -> dict[str, object]:
     return policy_payload(get_policy(policy_id))
 
 
+@app.get("/v1/ledger/summary")
+async def ledger_summary(
+    _: Annotated[None, Depends(require_workspace_token)],
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+) -> dict[str, object]:
+    resolved_to = to_date or datetime.now(UTC).date()
+    resolved_from = from_date or resolved_to - timedelta(days=29)
+    if resolved_from > resolved_to:
+        raise DaraApiError(400, "INVALID_DATE_RANGE", "`from` must not follow `to`.")
+    try:
+        return await asyncio.to_thread(
+            lambda: get_ledger().summary(
+                from_date=resolved_from,
+                to_date=resolved_to,
+            )
+        )
+    except Exception as exc:
+        logger.exception("Ledger summary query failed")
+        raise DaraApiError(
+            503,
+            "LEDGER_UNAVAILABLE",
+            "Dara's B2 ledger is temporarily unavailable.",
+        ) from exc
+
+
+@app.get("/v1/ledger/query")
+async def ledger_query(
+    _: Annotated[None, Depends(require_workspace_token)],
+    q: str,
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    project_id: str | None = None,
+) -> dict[str, object]:
+    resolved_to = to_date or datetime.now(UTC).date()
+    resolved_from = from_date or resolved_to - timedelta(days=29)
+    if resolved_from > resolved_to:
+        raise DaraApiError(400, "INVALID_DATE_RANGE", "`from` must not follow `to`.")
+    if q not in QUERY_SQL:
+        raise DaraApiError(
+            400,
+            "UNKNOWN_LEDGER_QUERY",
+            "The requested ledger query is not allowlisted.",
+        )
+    try:
+        return await asyncio.to_thread(
+            lambda: get_ledger().query(
+                q,
+                from_date=resolved_from,
+                to_date=resolved_to,
+                project_id=project_id,
+            )
+        )
+    except ValueError as exc:
+        raise DaraApiError(
+            400,
+            "UNKNOWN_LEDGER_QUERY",
+            "The requested ledger query is not allowlisted.",
+        ) from exc
+    except Exception as exc:
+        logger.exception("Ledger query %s failed", q)
+        raise DaraApiError(
+            503,
+            "LEDGER_UNAVAILABLE",
+            "Dara's B2 ledger is temporarily unavailable.",
+        ) from exc
+
+
 @app.post("/v1/runs", status_code=202)
 async def create_live_run(
     request: LiveRunRequest,
@@ -648,6 +743,22 @@ async def create_live_run(
     await store.put_job(policy_job)
 
     if blocked:
+        await asyncio.to_thread(
+            write_accounting_record,
+            DaraStorage.from_env(),
+            AccountingRecord(
+                job_id=job_id,
+                tenant_id=tenant_id,
+                project_id=request.project_id,
+                policy_id=request.policy_id,
+                status="blocked",
+                cost_usd=money("0"),
+                saved_cost_usd=estimate.expected_usd,
+                cost_basis="known",
+                approved=False,
+                created_at=datetime.now(UTC),
+            ),
+        )
         raise DaraApiError(
             409,
             "POLICY_BLOCKED",

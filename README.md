@@ -29,6 +29,10 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
   persisted reservations, and records a recovery event instead of retrying spend
 - Genblaze `ParquetSink` telemetry staged per job, uploaded as immutable B2
   `runs`/`steps`/`assets` month partitions, then removed with the temporary workspace
+- DuckDB 1.5.5 querying immutable accounting Parquet directly through B2's S3 API,
+  with fixed query ids for model, project, month, QA, waste, and policy savings
+- Live authenticated Ledger screen with total spend, prevented spend, cost per approved
+  asset, waste ratio, and model/project/month tables
 - Structured `409 POLICY_BLOCKED` responses with persisted zero-spend decisions
 - Asset detail with separate source and published hashes
 - Redacted client disclosure view

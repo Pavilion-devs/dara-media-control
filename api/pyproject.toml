@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Governance and provenance API for Dara."
 requires-python = ">=3.12"
 dependencies = [
+  "duckdb>=1.5.5,<2",
   "fastapi>=0.116,<1",
   "genblaze==0.4.3",
   "genblaze-core[parquet,testing]>=0.3.8,<0.4",

@@ -136,11 +136,11 @@ Work top to bottom. Each task is one commit.
       staging directory, then explicitly upload each completed table to an immutable,
       year/month-partitioned B2 key under `ledger/`. Confirm the local staging directory
       is cleaned. `ParquetSink` itself does not upload to B2.
-- [ ] **T-30** `ledger.py`: DuckDB with `httpfs` configured against the B2 S3 endpoint.
+- [x] **T-30** `ledger.py`: DuckDB with `httpfs` configured against the B2 S3 endpoint.
       Query Parquet in place — do not download it first.
-- [ ] **T-31** Ledger endpoints: summary aggregates plus a parameterised query surface.
+- [x] **T-31** Ledger endpoints: summary aggregates plus a parameterised query surface.
       **Allowlist the queries** — never pass raw user SQL to DuckDB.
-- [ ] **T-32** Ledger screen: spend by model, by project, by month; cost per approved
+- [x] **T-32** Ledger screen: spend by model, by project, by month; cost per approved
       asset including failed retries.
 - [ ] **T-33** `POST /v1/regenerate/{job_id}` — resolve the job's
       `genblaze_run_id`, reconstruct params from the manifest, re-run, link Dara jobs via
