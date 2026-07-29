@@ -384,6 +384,39 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
 
 
 class PolicyEndpointTests(unittest.TestCase):
+    def test_live_preview_prices_expansion_image_and_qa(self) -> None:
+        with (
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+            TestClient(app) as client,
+        ):
+            response = client.post(
+                "/v1/policies/pol_standard/simulate",
+                headers={"Authorization": "Bearer test-token"},
+                json={
+                    "tenant_id": "demo",
+                    "job_id": "job_live_preview",
+                    "provider": "openai",
+                    "model": "gpt-image-2",
+                    "modality": "image",
+                    "aspect_ratio": "1:1",
+                    "variants": 1,
+                    "max_attempts": 3,
+                    "step_count": 1,
+                    "qa_enabled": True,
+                    "prompt_expansion": True,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["estimate"]["expected_usd"],
+            "0.020000",
+        )
+        self.assertEqual(
+            response.json()["estimate"]["worst_case_usd"],
+            "0.060000",
+        )
+
     def test_authenticated_policy_crud_persists_updates(self) -> None:
         policies = tuple(main_module.POLICIES.values())
         isolated_store = MemoryPolicyStore(policies)

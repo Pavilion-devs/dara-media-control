@@ -331,9 +331,19 @@ class SimulateRequest(BaseModel):
     max_attempts: int = Field(default=3, ge=1, le=10)
     step_count: int = Field(default=1, ge=1, le=20)
     qa_enabled: bool = False
+    prompt_expansion: bool = False
 
     def to_plan(self) -> RunPlan:
-        steps = tuple(
+        steps: tuple[PlannedStep, ...] = ()
+        if self.prompt_expansion:
+            steps += (
+                PlannedStep(
+                    provider="openai",
+                    model="gpt-4.1-mini",
+                    modality="text",
+                ),
+            )
+        steps += tuple(
             PlannedStep(
                 provider=self.provider,
                 model=self.model,
@@ -570,12 +580,18 @@ async def execute_live_still(job_id: str) -> None:
             prompt=run.prompt,
             aspect_ratio=run.aspect_ratio,
             estimated_cost_usd=run.expected_cost_usd,
+            expansion_cost_usd=(
+                money("0")
+                if run.prompt_is_expanded
+                else unit_reservation("gpt-4.1-mini") or money("0")
+            ),
             generation_cost_usd=(
                 unit_reservation("gpt-image-2") or money("0")
             ),
             qa_cost_usd=(
                 unit_reservation("gpt-4.1-mini") or money("0")
             ),
+            expand_prompt_enabled=not run.prompt_is_expanded,
             policy=get_policy(run.policy_id),
             policy_engine=engine,
             on_event=record_event,
@@ -909,6 +925,7 @@ async def queue_live_run(
     *,
     parent_job_id: str | None = None,
     source_manifest_hash: str | None = None,
+    prompt_is_expanded: bool = False,
 ) -> dict[str, object]:
     if os.getenv("DARA_LIVE_GENERATION_ENABLED", "false").lower() != "true":
         raise DaraApiError(
@@ -927,6 +944,17 @@ async def queue_live_run(
         variants=request.variants,
         max_attempts=3,
         steps=(
+            (
+                PlannedStep(
+                    provider="openai",
+                    model="gpt-4.1-mini",
+                    modality="text",
+                ),
+            )
+            if not prompt_is_expanded
+            else ()
+        )
+        + (
             PlannedStep(
                 provider="openai",
                 model="gpt-image-2",
@@ -966,6 +994,7 @@ async def queue_live_run(
             tenant_id=tenant_id,
             project_id=request.project_id,
             prompt=request.prompt,
+            prompt_is_expanded=prompt_is_expanded,
             aspect_ratio=request.aspect_ratio,
             variants=request.variants,
             policy_id=request.policy_id,
@@ -1032,6 +1061,7 @@ async def queue_live_run(
         tenant_id=tenant_id,
         project_id=request.project_id,
         prompt=request.prompt,
+        prompt_is_expanded=prompt_is_expanded,
         aspect_ratio=request.aspect_ratio,
         variants=request.variants,
         policy_id=request.policy_id,
@@ -1149,6 +1179,7 @@ async def regenerate_live_run(
         request,
         parent_job_id=original.job_id,
         source_manifest_hash=manifest.canonical_hash,
+        prompt_is_expanded=True,
     )
 
 

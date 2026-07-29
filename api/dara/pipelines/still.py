@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
+import re
 import tempfile
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
@@ -22,7 +23,10 @@ from genblaze_core import (
     PipelineResult,
 )
 from genblaze_core.media import SmartEmbedder
+from genblaze_core.providers.retry import RetryPolicy
+from genblaze_openai import chat
 from genblaze_s3 import S3StorageBackend
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..policy import (
     CostEstimate,
@@ -50,6 +54,53 @@ ASPECT_SIZES = {
     "3:2": "1536x1024",
     "2:3": "1024x1536",
 }
+
+
+class ExpandedPrompt(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    visual_prompt: str = Field(min_length=20, max_length=4000)
+    negative_constraints: list[str] = Field(default_factory=list, max_length=12)
+
+
+def _strip_markdown_fence(value: str) -> str:
+    stripped = value.strip()
+    match = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", stripped, re.DOTALL)
+    return match.group(1) if match else stripped
+
+
+def expand_brief(
+    brief: str,
+    *,
+    chat_call: Callable[..., Any] = chat,
+) -> ExpandedPrompt:
+    response = chat_call(
+        "gpt-4.1-mini",
+        prompt=brief,
+        system=(
+            "Expand this creative brief into one production-ready image prompt. "
+            "Preserve every concrete request. Add useful composition, lighting, "
+            "material, lens, color, and finish details without inventing brands, "
+            "logos, text, or extra subjects. Return the requested JSON object."
+        ),
+        response_format=ExpandedPrompt,
+        temperature=0.2,
+        max_tokens=700,
+        timeout=90.0,
+        retry_policy=RetryPolicy(max_attempts=3),
+    )
+    return ExpandedPrompt.model_validate_json(
+        _strip_markdown_fence(response.text)
+    )
+
+
+def render_expanded_prompt(value: ExpandedPrompt) -> str:
+    if not value.negative_constraints:
+        return value.visual_prompt
+    return (
+        f"{value.visual_prompt}\nAvoid: "
+        + "; ".join(value.negative_constraints)
+    )
 
 
 @dataclass(frozen=True)
@@ -326,8 +377,10 @@ async def run_still_pipeline(
     prompt: str,
     aspect_ratio: str,
     estimated_cost_usd: Decimal,
+    expansion_cost_usd: Decimal,
     generation_cost_usd: Decimal,
     qa_cost_usd: Decimal,
+    expand_prompt_enabled: bool,
     policy: Policy,
     policy_engine: PolicyEngine,
     on_event: EventCallback,
@@ -364,6 +417,7 @@ async def run_still_pipeline(
         per_step_usd=(estimated_cost_usd,),
         unpriced_models=(),
     )
+    expanded_prompt = prompt
     with tempfile.TemporaryDirectory(prefix="dara-live-still-") as output_dir:
         storage = DaraStorage.from_env()
         staging_dir = Path(output_dir) / "ledger"
@@ -404,10 +458,65 @@ async def run_still_pipeline(
         def before_qa() -> None:
             pre_step(
                 actual_cost=money(
-                    estimated_cost_usd * (current_attempt - 1)
+                    expansion_cost_usd
+                    + (
+                        generation_cost_usd + qa_cost_usd
+                    )
+                    * (current_attempt - 1)
                     + generation_cost_usd
                 ),
                 step_cost=qa_cost_usd,
+            )
+
+        if expand_prompt_enabled:
+            pre_step(
+                actual_cost=money("0"),
+                step_cost=expansion_cost_usd,
+            )
+            await on_event(
+                {
+                    "type": "prompt.expansion.started",
+                    "at": datetime.now(UTC),
+                    "provider": "openai",
+                    "model": "gpt-4.1-mini",
+                    "message": "Expanding the brief into a production image prompt.",
+                }
+            )
+            try:
+                expansion = await asyncio.to_thread(expand_brief, prompt)
+                expanded_prompt = render_expanded_prompt(expansion)
+                expansion_message = (
+                    "Structured prompt expansion completed and was validated."
+                )
+                expansion_type = "prompt.expansion.completed"
+            except Exception as exc:
+                expanded_prompt = prompt
+                expansion_message = (
+                    "Prompt expansion failed validation; Dara preserved the "
+                    f"original brief and continued safely ({type(exc).__name__})."
+                )
+                expansion_type = "prompt.expansion.fallback"
+            await on_event(
+                {
+                    "type": expansion_type,
+                    "at": datetime.now(UTC),
+                    "provider": "openai",
+                    "model": "gpt-4.1-mini",
+                    "message": expansion_message,
+                }
+            )
+        else:
+            await on_event(
+                {
+                    "type": "prompt.expansion.reused",
+                    "at": datetime.now(UTC),
+                    "provider": "dara",
+                    "model": "manifest/replay",
+                    "message": (
+                        "Reusing the exact expanded prompt from the trusted "
+                        "parent manifest."
+                    ),
+                }
             )
 
         evaluator = OpenAIVisionEvaluator(
@@ -421,7 +530,11 @@ async def run_still_pipeline(
             nonlocal current_attempt, current_prompt
             current_attempt = len(context.prior_results) + 1
             actual_before_attempt = money(
-                estimated_cost_usd * len(context.prior_results)
+                expansion_cost_usd
+                + (
+                    generation_cost_usd + qa_cost_usd
+                )
+                * len(context.prior_results)
             )
             pre_step(
                 actual_cost=actual_before_attempt,
@@ -431,7 +544,7 @@ async def run_still_pipeline(
                 context.last_evaluation.feedback
                 if context.last_evaluation is not None
                 and context.last_evaluation.feedback
-                else prompt
+                else expanded_prompt
             )
             current_prompt = candidate_prompt
             provider = provider_for(
@@ -454,6 +567,10 @@ async def run_still_pipeline(
                 quality="low",
                 output_format="png",
                 n=1,
+                metadata={
+                    "original_brief": prompt,
+                    "prompt_expanded": expand_prompt_enabled,
+                },
             )
             if not context.prior_results and parent_manifest is not None:
                 pipeline.from_result(
@@ -543,7 +660,10 @@ async def run_still_pipeline(
                         raise PolicyGateRejectedError(
                             decisions=tuple(policy_decisions),
                             actual_cost_usd=money(
-                                estimated_cost_usd
+                                expansion_cost_usd
+                                + (
+                                    generation_cost_usd + qa_cost_usd
+                                )
                                 * (int(getattr(event, "iteration", 0)) + 1)
                             ),
                         )
@@ -603,7 +723,13 @@ async def run_still_pipeline(
             score=latest_score.overall if latest_score else None,
             attempts=qa_attempts,
             issues=qa_issues,
-            actual_cost_usd=estimated_cost_usd * max(1, qa_attempts),
+            actual_cost_usd=(
+                expansion_cost_usd
+                + (
+                    generation_cost_usd + qa_cost_usd
+                )
+                * max(1, qa_attempts)
+            ),
             policy_decisions=tuple(policy_decisions),
         )
     await on_event(
@@ -620,7 +746,13 @@ async def run_still_pipeline(
             _publish_result,
             DaraStorage.from_env(),
             result,
-            recorded_cost_usd=estimated_cost_usd * max(1, qa_attempts),
+            recorded_cost_usd=(
+                expansion_cost_usd
+                + (
+                    generation_cost_usd + qa_cost_usd
+                )
+                * max(1, qa_attempts)
+            ),
             cost_basis="estimated",
             qa_score=latest_score.overall,
             qa_attempts=qa_attempts,

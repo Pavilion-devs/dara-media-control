@@ -58,6 +58,7 @@ class LiveRunRecord(BaseModel):
     mode: Literal["live"] = "live"
     status: RunStatus = "queued"
     prompt: str
+    prompt_is_expanded: bool = False
     aspect_ratio: str
     variants: int = 1
     policy_id: str

@@ -12,6 +12,9 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Asynchronous `gpt-image-2` still generation with its verified dated snapshot fallback,
   durable B2 job events, authenticated SSE streaming, polling fallback, and a signed
   result preview
+- Structured `gpt-4.1-mini` brief expansion before generation, with validated JSON,
+  policy-priced execution, an original-brief fallback, and exact prompt reuse on
+  regeneration
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - A persisted version tree for every QA attempt, including rejected and failed runs,

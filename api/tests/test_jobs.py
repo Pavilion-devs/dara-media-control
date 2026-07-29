@@ -315,11 +315,13 @@ class LiveRunEndpointTests(unittest.TestCase):
             *,
             parent_job_id: str | None = None,
             source_manifest_hash: str | None = None,
+            prompt_is_expanded: bool = False,
         ) -> dict[str, object]:
             captured.update(
                 request=request,
                 parent_job_id=parent_job_id,
                 source_manifest_hash=source_manifest_hash,
+                prompt_is_expanded=prompt_is_expanded,
             )
             return {"job_id": "job_regenerated"}
 
@@ -345,6 +347,7 @@ class LiveRunEndpointTests(unittest.TestCase):
             captured["source_manifest_hash"],
             manifest.canonical_hash,
         )
+        self.assertIs(captured["prompt_is_expanded"], True)
 
     def test_diff_requires_direct_lineage_and_reports_reproducible_conditions(
         self,

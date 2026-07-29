@@ -12,9 +12,12 @@ from unittest.mock import patch
 
 from dara.pipelines.qa import OpenAIVisionEvaluator
 from dara.pipelines.still import (
+    ExpandedPrompt,
     PolicyGateRejectedError,
     _publish_result,
     _upload_parquet_ledger,
+    expand_brief,
+    render_expanded_prompt,
 )
 from dara.policy import (
     EnforcementPoint,
@@ -49,6 +52,42 @@ def result() -> SimpleNamespace:
 
 
 class VisionEvaluatorTests(unittest.TestCase):
+    def test_prompt_expansion_is_structured_and_rendered(self) -> None:
+        calls: list[dict[str, object]] = []
+
+        def fake_chat(model: str, **kwargs: object) -> SimpleNamespace:
+            calls.append({"model": model, **kwargs})
+            return SimpleNamespace(
+                text=json.dumps(
+                    {
+                        "visual_prompt": (
+                            "A cobalt ceramic cube centered on warm gray linen, "
+                            "soft north-window light, restrained editorial finish."
+                        ),
+                        "negative_constraints": [
+                            "no text",
+                            "no extra objects",
+                        ],
+                    }
+                )
+            )
+
+        expanded = expand_brief(
+            "A cobalt cube on a warm gray surface",
+            chat_call=fake_chat,
+        )
+
+        self.assertIsInstance(expanded, ExpandedPrompt)
+        self.assertEqual(calls[0]["model"], "gpt-4.1-mini")
+        self.assertIs(calls[0]["response_format"], ExpandedPrompt)
+        self.assertEqual(
+            render_expanded_prompt(expanded),
+            (
+                f"{expanded.visual_prompt}\n"
+                "Avoid: no text; no extra objects"
+            ),
+        )
+
     def test_pre_step_hook_runs_before_the_qa_provider_call(self) -> None:
         calls = 0
 

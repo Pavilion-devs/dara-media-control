@@ -294,7 +294,7 @@ export function Studio() {
   const eventSource = useRef<EventSource | null>(null);
 
   const localEstimate = useMemo(
-    () => (runMode === "live" ? 0.015 : 0.01 * variants),
+    () => (runMode === "live" ? 0.02 : 0.01 * variants),
     [runMode, variants],
   );
   const estimate = simulation
@@ -331,6 +331,7 @@ export function Studio() {
               max_attempts: 3,
               step_count: 1,
               qa_enabled: runMode === "live",
+              prompt_expansion: runMode === "live",
             }),
             signal: controller.signal,
           },
