@@ -55,8 +55,10 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 0 — foundations
 
-- [ ] **T-01** Create B2 bucket `dara-media`. Generate an application key scoped to it.
-      Record `B2_KEY_ID`, `B2_APP_KEY`, `B2_BUCKET`, `B2_REGION`, `B2_ENDPOINT`.
+- [x] **T-01** Create private B2 bucket `dara-media-control-2026` with default
+      encryption. Generate a read/write application key scoped only to that bucket.
+      Record `B2_KEY_ID`, `B2_APP_KEY`, `B2_BUCKET`, `B2_REGION`, `B2_ENDPOINT`
+      in the ignored local environment file.
 - [ ] **T-02** Join the NVIDIA Developer Program at build.nvidia.com and generate an
       `nvapi-` key. Use a business-style email address — a personal address caps you at
       1,000 credits, a business address unlocks the additional 4,000 via the free 90-day
@@ -73,7 +75,10 @@ Work top to bottom. Each task is one commit.
       manifest construction and verification with zero external calls.
 - [ ] **T-08** **Spike (M0):** one image generation through `Pipeline` → NVIDIA provider
       → `ObjectStorageSink` → B2. Print the asset URL, SHA-256, manifest URI, and
-      `verify()` result. Do not proceed until this prints clean.
+      `verify()` result. Do not proceed until this prints clean. **Storage proof is
+      green:** a local image passed through a real Genblaze pipeline and
+      `ObjectStorageSink` into B2 with both verification checks true. The remaining
+      work is replacing the local provider with the selected live media provider.
 - [ ] **T-09** Record real latency and cost per model in `docs/PROVIDERS.md`. Mark any
       model that fails or exceeds 90s. These become your fallback ordering.
 

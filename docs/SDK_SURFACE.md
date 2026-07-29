@@ -58,6 +58,18 @@ The no-key pipeline currently produces one mock video step, a 64-character canon
 hash, `verify_hash: true`, and `verify: true`. The run id and hash change per run and
 must not be hard-coded.
 
+For the real B2 storage proof, run:
+
+```bash
+cd api
+.venv/bin/python -m dara.tools.b2_spike
+```
+
+This exercises `Pipeline` → `ObjectStorageSink` →
+`S3StorageBackend.for_backblaze()` against Dara's private scoped bucket. The first
+verified run is recorded in `docs/B2_SPIKE.md`. It deliberately uses a local provider
+so storage can be validated independently of the live media-provider decision.
+
 ## Important corrections from the original plan
 
 - `Pipeline.run()` returns `PipelineResult`; use `result.run` and `result.manifest`.
