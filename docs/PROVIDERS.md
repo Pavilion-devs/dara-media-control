@@ -32,8 +32,8 @@ reorder — measured latency beats assumption.
 |---|---|---|---|
 | 1 | openai | `gpt-image-2` | Active primary; four production successes, one recorded failure |
 | 2 | openai | `gpt-image-2-2026-04-21` | Active snapshot fallback; confirmed present in the deployed account catalog without spending |
-| 3 | openai | `gpt-image-1.5` / `gpt-image-1-mini` | Deprecated and removed from Dara's live chain |
-| 4 | second provider | Not selected | T-03 remains open until a real provider-diverse probe succeeds |
+| 3 | replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse fallback implemented and contract-tested; production token and live probe pending |
+| 4 | openai | `gpt-image-1.5` / `gpt-image-1-mini` | Deprecated and removed from Dara's live chain |
 
 The current OpenAI catalog calls GPT Image 2 the state-of-the-art image model and
 marks both GPT Image 1.5 and `gpt-image-1-mini` deprecated. Dara therefore does not
@@ -41,6 +41,21 @@ claim that a same-provider deprecated alias satisfies provider diversity.
 [GPT Image 2 model card](https://developers.openai.com/api/docs/models/gpt-image-2) ·
 [GPT Image 1.5 model card](https://developers.openai.com/api/docs/models/gpt-image-1.5) ·
 [`gpt-image-1-mini` model card](https://developers.openai.com/api/docs/models/gpt-image-1-mini)
+
+Replicate's FLUX 1.1 Pro route uses the official-model endpoint, which Replicate
+documents as warm, stable, and predictably priced. Its current listed price is $0.04
+per output image. The token stays server-side in `REPLICATE_API_TOKEN`.
+[Official-model contract](https://replicate.com/docs/topics/models/official-models/) ·
+[FLUX 1.1 Pro API](https://replicate.com/black-forest-labs/flux-1.1-pro/api)
+
+After configuring the token, run the paid production probe once:
+
+```bash
+python -m dara.tools.replicate_b2_probe
+```
+
+The probe must report `provider=replicate`, both manifest checks true, a B2 asset URL,
+measured duration, and the registered $0.04 cost before T-03 is checked.
 
 ### Video
 
@@ -84,8 +99,8 @@ installed Genblaze OpenAI adapter does not preserve settled image-token usage.
 
 No active measured model exceeded 90 seconds. The single image failure remains in the
 sample count and ledger rather than being silently discarded. Video, speech, deprecated
-image models, and the future second provider are not active Dara models yet and are
-therefore not presented as measured.
+image models, and the Replicate fallback are not presented as measured until a live
+production probe exists.
 
 The current Genblaze/OpenAI adapter does not return a provider-reported image cost, so
 Dara settles these runs from its conservative registry estimate and labels the basis

@@ -18,7 +18,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Annotated, Literal
 
-from genblaze_core import Manifest
+from genblaze_core import Manifest, Modality
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -44,7 +44,13 @@ from .policy import (
     job_to_json,
     money,
 )
-from .providers import POLICY_REGISTRY, ROUTES, unit_reservation
+from .providers import (
+    POLICY_REGISTRY,
+    ROUTES,
+    provider_name_for_model,
+    route_reservation,
+    unit_reservation,
+)
 from .jobs import (
     B2LiveRunStore,
     LiveRunRecord,
@@ -266,7 +272,7 @@ def policy(
         policy_id=policy_id,
         name=name,
         description=description,
-        allowed_providers=frozenset({"openai"}),
+        allowed_providers=frozenset({"openai", "replicate"}),
         denied_models=frozenset(),
         allowed_modalities=allowed_modalities,
         allowed_aspect_ratios=allowed_ratios,
@@ -332,6 +338,11 @@ async def seed_and_hydrate_policies() -> None:
         if persisted is None:
             await policy_store.put_policy(seeded)
             persisted = seeded
+        elif persisted.allowed_providers == frozenset({"openai"}):
+            persisted = persisted.model_copy(
+                update={"allowed_providers": seeded.allowed_providers}
+            )
+            await policy_store.put_policy(persisted)
         resolved[persisted.policy_id] = persisted
     for persisted in await policy_store.list_policies(tenant_id):
         resolved[persisted.policy_id] = persisted
@@ -659,7 +670,7 @@ async def execute_live_still(job_id: str) -> None:
                 else unit_reservation("gpt-4.1-mini") or money("0")
             ),
             generation_cost_usd=(
-                unit_reservation("gpt-image-2") or money("0")
+                route_reservation(Modality.IMAGE)
             ),
             qa_cost_usd=(
                 unit_reservation("gpt-4.1-mini") or money("0")
@@ -811,7 +822,14 @@ async def healthz() -> dict[str, object]:
         "b2": "configured" if os.getenv("B2_BUCKET") else "unconfigured",
         "genblaze_core": version("genblaze-core"),
         "providers": {
-            "openai": "configured" if os.getenv("OPENAI_API_KEY") else "unconfigured"
+            "openai": (
+                "configured" if os.getenv("OPENAI_API_KEY") else "unconfigured"
+            ),
+            "replicate": (
+                "configured"
+                if os.getenv("REPLICATE_API_TOKEN")
+                else "unconfigured"
+            ),
         },
         "demo_mode_available": True,
     }
@@ -1009,6 +1027,7 @@ async def queue_live_run(
 
     tenant_id = os.getenv("KILN_TENANT_ID", "demo")
     job_id = f"job_{secrets.token_hex(10)}"
+    image_route = ROUTES[Modality.IMAGE]
     plan = RunPlan(
         tenant_id=tenant_id,
         job_id=job_id,
@@ -1029,9 +1048,17 @@ async def queue_live_run(
         )
         + (
             PlannedStep(
-                provider="openai",
-                model="gpt-image-2",
+                provider=provider_name_for_model(image_route.primary_model),
+                model=image_route.primary_model,
                 modality="image",
+            ),
+            *(
+                PlannedStep(
+                    provider=provider_name_for_model(model),
+                    model=model,
+                    modality="image",
+                )
+                for model in image_route.fallback_models
             ),
             PlannedStep(
                 provider="openai",

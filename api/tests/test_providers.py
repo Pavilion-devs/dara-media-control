@@ -8,6 +8,7 @@ from genblaze_openai import DalleProvider, OpenAITTSProvider, SoraProvider
 
 from dara.policy import PlannedStep, RunPlan, estimate_run_cost
 from dara.providers import (
+    ImageProviderRouter,
     POLICY_REGISTRY,
     provider_for,
     registry_for,
@@ -17,7 +18,7 @@ from dara.providers import (
 
 class ProviderFactoryTests(unittest.TestCase):
     def test_factory_builds_installed_provider_for_each_media_modality(self) -> None:
-        self.assertIsInstance(provider_for(Modality.IMAGE), DalleProvider)
+        self.assertIsInstance(provider_for(Modality.IMAGE), ImageProviderRouter)
         self.assertIsInstance(provider_for(Modality.VIDEO), SoraProvider)
         self.assertIsInstance(provider_for(Modality.AUDIO), OpenAITTSProvider)
 

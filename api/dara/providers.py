@@ -4,7 +4,15 @@ from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 
-from genblaze_core import ModelRegistry, ModelSpec, Modality
+from genblaze_core import (
+    ModelRegistry,
+    ModelSpec,
+    Modality,
+    ProviderError,
+    ProviderErrorCode,
+    Step,
+    SyncProvider,
+)
 from genblaze_core.providers import BaseProvider
 from genblaze_core.providers.pricing import (
     per_input_chars,
@@ -12,6 +20,12 @@ from genblaze_core.providers.pricing import (
     per_unit,
 )
 from genblaze_openai import DalleProvider, OpenAITTSProvider, SoraProvider
+
+from .replicate_provider import (
+    REPLICATE_IMAGE_MODEL,
+    REPLICATE_IMAGE_PRICE_USD,
+    ReplicateImageProvider,
+)
 
 
 @dataclass(frozen=True)
@@ -30,7 +44,10 @@ ROUTES = {
         modality=Modality.IMAGE,
         provider="openai",
         primary_model="gpt-image-2",
-        fallback_models=("gpt-image-2-2026-04-21",),
+        fallback_models=(
+            "gpt-image-2-2026-04-21",
+            REPLICATE_IMAGE_MODEL,
+        ),
         price_usd=Decimal("0.010000"),
         price_unit="image",
         pricing_basis="conservative low-quality image reservation",
@@ -53,6 +70,17 @@ ROUTES = {
         price_unit="1000_input_characters",
         pricing_basis="input-character pricing",
     ),
+}
+
+UNIT_RESERVATIONS = {
+    "gpt-image-2": Decimal("0.010000"),
+    "gpt-image-2-2026-04-21": Decimal("0.010000"),
+    REPLICATE_IMAGE_MODEL: Decimal("0.040000"),
+    "sora-2": Decimal("0.100000"),
+    "sora-2-pro": Decimal("0.300000"),
+    "tts-1": Decimal("0.015000"),
+    "tts-1-hd": Decimal("0.030000"),
+    "gpt-4.1-mini": Decimal("0.005000"),
 }
 
 
@@ -78,6 +106,13 @@ def registry_for(modality: Modality) -> ModelRegistry:
         registry.register_pricing(
             "gpt-image-2-2026-04-21",
             per_unit(0.01),
+        )
+        registry.register(
+            ModelSpec(
+                model_id=REPLICATE_IMAGE_MODEL,
+                modality=Modality.IMAGE,
+                pricing=per_unit(REPLICATE_IMAGE_PRICE_USD),
+            )
         )
         return registry
     if modality is Modality.VIDEO:
@@ -129,7 +164,7 @@ def provider_for(
 ) -> BaseProvider:
     registry = registry_for(modality)
     if modality is Modality.IMAGE:
-        return DalleProvider(
+        return ImageProviderRouter(
             output_dir=output_dir,
             http_timeout=http_timeout,
             models=registry,
@@ -152,11 +187,69 @@ def provider_for(
 
 
 def unit_reservation(model: str) -> Decimal | None:
-    for route in ROUTES.values():
-        if model == route.primary_model:
-            return route.price_usd
-        if model in route.fallback_models and route.modality is Modality.IMAGE:
-            return route.price_usd
-    if model == "gpt-4.1-mini":
-        return Decimal("0.005000")
-    return None
+    return UNIT_RESERVATIONS.get(model)
+
+
+def route_reservation(modality: Modality) -> Decimal:
+    route = route_for(modality)
+    return sum(
+        (
+            unit_reservation(model) or Decimal("0")
+            for model in (route.primary_model, *route.fallback_models)
+        ),
+        start=Decimal("0"),
+    ).quantize(Decimal("0.000001"))
+
+
+def provider_name_for_model(model: str) -> str:
+    return "replicate" if model == REPLICATE_IMAGE_MODEL else "openai"
+
+
+class ImageProviderRouter(SyncProvider):
+    """Route one Genblaze fallback chain across OpenAI and Replicate."""
+
+    name = "dara-image-router"
+
+    def __init__(
+        self,
+        *,
+        output_dir: str | Path | None = None,
+        http_timeout: float = 180.0,
+        models: ModelRegistry | None = None,
+        openai_provider: BaseProvider | None = None,
+        replicate_provider: BaseProvider | None = None,
+    ) -> None:
+        super().__init__(models=models)
+        self._http_timeout = http_timeout
+        self._openai = openai_provider or DalleProvider(
+            output_dir=output_dir,
+            http_timeout=http_timeout,
+            models=registry_for(Modality.IMAGE),
+        )
+        self._replicate = replicate_provider or ReplicateImageProvider(
+            output_dir=output_dir,
+            http_timeout=http_timeout,
+        )
+
+    def generate(self, step: Step, config: object | None = None) -> Step:
+        del config
+        is_replicate = step.model == REPLICATE_IMAGE_MODEL
+        delegate = self._replicate if is_replicate else self._openai
+        step.provider = provider_name_for_model(step.model)
+        result = delegate.invoke(
+            step,
+            {
+                "timeout": self._http_timeout,
+                "max_retries": 2,
+            },
+        )
+        if result.status.value == "succeeded":
+            result.provider = provider_name_for_model(result.model)
+            return result
+        error_code = result.error_code or ProviderErrorCode.UNKNOWN
+        if not is_replicate:
+            error_code = ProviderErrorCode.MODEL_ERROR
+        raise ProviderError(
+            result.error or f"{result.provider} image generation failed.",
+            error_code=error_code,
+        )

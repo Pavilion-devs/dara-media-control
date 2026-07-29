@@ -552,7 +552,10 @@ class PolicyEndpointTests(unittest.TestCase):
         policies = response.json()["items"]
         self.assertEqual(len(policies), 3)
         self.assertTrue(
-            all(policy["allowed_providers"] == ["openai"] for policy in policies)
+            all(
+                policy["allowed_providers"] == ["openai", "replicate"]
+                for policy in policies
+            )
         )
         self.assertIn(
             "3:2",

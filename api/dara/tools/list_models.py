@@ -4,7 +4,8 @@ from dataclasses import dataclass
 
 from genblaze_core import Modality
 
-from dara.providers import ROUTES
+from dara.providers import ROUTES, provider_name_for_model
+from dara.replicate_provider import REPLICATE_IMAGE_MODEL
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,9 @@ class ModelUsage:
 EVIDENCE = {
     "gpt-image-2": "Production calls persisted and verified in B2",
     "gpt-image-2-2026-04-21": "Configured fallback; account catalog verified",
+    REPLICATE_IMAGE_MODEL: (
+        "Provider adapter and deterministic contract tests; live probe pending"
+    ),
     "sora-2": "Pipeline implemented; deterministic integration proof",
     "sora-2-pro": "Configured fallback; deterministic integration proof",
     "tts-1": "Pipeline implemented; deterministic integration proof",
@@ -42,7 +46,11 @@ def model_usages() -> list[ModelUsage]:
         )
         values.extend(
             ModelUsage(
-                provider="OpenAI",
+                provider=(
+                    "OpenAI"
+                    if provider_name_for_model(model) == "openai"
+                    else "Replicate"
+                ),
                 model=model,
                 modality=modality.value,
                 role="Fallback",
@@ -66,8 +74,9 @@ def render_markdown() -> str:
     rows = [
         "# Providers and models",
         "",
-        "Generated from `api/dara/providers.py`. OpenAI is Dara's only configured AI",
-        "provider. Genblaze is the orchestration and provenance SDK, not a model provider.",
+        "Generated from `api/dara/providers.py`. OpenAI is Dara's primary AI provider;",
+        "Replicate is the provider-diverse image fallback. Genblaze is the orchestration",
+        "and provenance SDK, not a model provider.",
         "",
         "| Provider | Model | Modality | Role | Evidence |",
         "|---|---|---|---|---|",
