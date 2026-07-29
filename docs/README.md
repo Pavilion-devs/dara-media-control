@@ -5,7 +5,7 @@ and a queryable spend ledger — built on [Genblaze](https://github.com/backblaz
 and Backblaze B2.
 
 > Built for the Backblaze Generative Media Hackathon.
-> **Live app:** https://diamonds-jessica-accidents-icq.trycloudflare.com · **Demo video:** `TODO` · **Test account:** Not required
+> **Live app:** https://diamonds-jessica-accidents-icq.trycloudflare.com · **Demo video:** pending final T-46 render and public YouTube upload · **Test account:** Not required
 
 ---
 
@@ -121,7 +121,11 @@ Stated plainly because the trust model matters more than the marketing.
 
 ## Feedback on Genblaze
 
-Issues filed during this build: `TODO — links`. Notes in `docs/SDK_FEEDBACK.md`.
+Issues filed during this build:
+[pointer-mode output-path integrity #238](https://github.com/backblaze-labs/genblaze/issues/238),
+[fallback-attempt provenance/accounting #239](https://github.com/backblaze-labs/genblaze/issues/239),
+and [missing GPT Image response usage #240](https://github.com/backblaze-labs/genblaze/issues/240).
+Reproduction notes and proposed fixes are in `docs/SDK_FEEDBACK.md`.
 
 ## License
 
