@@ -28,11 +28,19 @@ reorder — measured latency beats assumption.
 
 ### Image
 
-| Rank | Provider | Model | Notes |
+| Rank | Provider | Model | Status |
 |---|---|---|---|
-| 1 | openai | `gpt-image-2` | Primary; live B2 proof is green |
-| 2 | openai | `gpt-image-1-mini` | Lower-cost same-provider degradation |
-| 3 | replicate or google | To be measured | Provider-diverse fallback, added only after a real probe |
+| 1 | openai | `gpt-image-2` | Active primary; four production successes, one recorded failure |
+| 2 | openai | `gpt-image-1.5` | Deprecated legacy model; not an acceptable long-term fallback |
+| 3 | openai | `gpt-image-1-mini` | Deprecated legacy model; remove from the live chain before submission |
+| 4 | second provider | Not selected | T-03 remains open until a real provider-diverse probe succeeds |
+
+The current OpenAI catalog calls GPT Image 2 the state-of-the-art image model and
+marks both GPT Image 1.5 and `gpt-image-1-mini` deprecated. Dara therefore does not
+claim that a same-provider deprecated alias satisfies provider diversity.
+[GPT Image 2 model card](https://developers.openai.com/api/docs/models/gpt-image-2) ·
+[GPT Image 1.5 model card](https://developers.openai.com/api/docs/models/gpt-image-1.5) ·
+[`gpt-image-1-mini` model card](https://developers.openai.com/api/docs/models/gpt-image-1-mini)
 
 ### Video
 
@@ -61,29 +69,31 @@ not an error state — graceful degradation is a production-readiness signal.
 | 2 | anthropic | Claude, optional custom evaluator | QA only; not a Genblaze media provider |
 | 3 | — | deterministic checks | Dimensions, format, file integrity, and manifest verification |
 
-## Cost table
+## Production measurement
 
-**Fill this in from measurement, not from documentation.** These feed `ModelRegistry`
-pricing and therefore every estimate, every budget check, and every ledger figure. Wrong
-numbers here make the whole governance layer wrong.
+Generated on 2026-07-29 by `python -m dara.tools.provider_report` from the durable
+B2 live-run records and trusted Genblaze manifests. Latency covers the actual provider
+step only. Cost is explicitly labelled as a conservative Dara estimate because the
+installed Genblaze OpenAI adapter does not preserve settled image-token usage.
 
-| Provider | Model | Modality | Unit | Price USD | p50 latency | Measured |
-|---|---|---|---|---|---|---|
-| openai | gpt-image-2 | image | per image | $0.01 estimated reservation | 25.2s | ☑ two low-quality 1024² runs (21.1s, 29.4s) |
-| openai | gpt-image-1-mini | image | per image | | | ☐ |
-| openai | sora-2 | video | per second | | | ☐ |
-| openai | gpt-4o-mini-tts | audio | per 1k chars | | | ☐ |
-| openai | gpt-4.1-mini | chat/vision | per evaluation | $0.005 conservative reservation | 5.3s | ☑ one structured low-detail evaluation |
-| provider-diverse fallback | TBD | image/video | TBD | | | ☐ |
+| Provider | Model | Modality | Samples | Success / fail | Unit cost | p50 / max latency | >90s |
+|---|---|---|---|---|---|---|---|
+| openai-dalle | `gpt-image-2` | image | 5 | 4 / 1 | $0.010000 estimated | 20.758s / 21.972s | no |
+| openai | `gpt-4.1-mini` | vision QA | 3 | 3 / 0 | $0.005000 estimated | 8.234s / 9.100s | no |
 
-Register these via `ModelRegistry.fork()` + `register_pricing()`. Where a model has no
-published price, register a conservative estimate and flag it `UNPRICED_MODEL` in the UI
-rather than silently reporting zero. A ledger that quietly under-reports is worse than one
-that admits uncertainty.
+No active measured model exceeded 90 seconds. The single image failure remains in the
+sample count and ledger rather than being silently discarded. Video, speech, deprecated
+image models, and the future second provider are not active Dara models yet and are
+therefore not presented as measured.
 
 The current Genblaze/OpenAI adapter does not return a provider-reported image cost, so
 Dara settles these runs from its conservative registry estimate and labels the basis
 `estimated`.
+
+OpenAI prices GPT Image models by input/output image tokens and directs image-generation
+users to its calculator for estimates. Dara's registry reservation is therefore an
+operational cap, not a claim about a provider-settled invoice amount.
+[Official API pricing](https://developers.openai.com/api/docs/pricing)
 
 ## Model id verification
 
@@ -94,9 +104,9 @@ pipeline:
 python -m dara.tools.probe_models --provider openai --modality image
 ```
 
-Write this probe as task T-09. It should attempt a minimal generation against each
-candidate id, record success, latency, and cost, and emit a table. Run it again on Day 5
-before recording the video — catalogs change.
+`dara.tools.provider_report` derives the evidence from real production calls rather than
+spending again merely to probe a model that already has live records. Run it again on
+Day 5 before recording the video — catalogs change.
 
 Genblaze ships `probe_models` for conformance checking; use it if the installed version
 exposes it rather than writing your own.

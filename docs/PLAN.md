@@ -77,7 +77,7 @@ Work top to bottom. Each task is one commit.
       Genblaze's OpenAI provider → `ObjectStorageSink` → B2. The stored asset was
       downloaded and rehashed; its bytes match the manifest SHA-256, and
       `verify_hash()` plus `verify()` both return true.
-- [ ] **T-09** Record real latency and cost per model in `docs/PROVIDERS.md`. Mark any
+- [x] **T-09** Record real latency and cost per model in `docs/PROVIDERS.md`. Mark any
       model that fails or exceeds 90s. These become your fallback ordering.
 
 ### Phase 1 — verify (M1)
