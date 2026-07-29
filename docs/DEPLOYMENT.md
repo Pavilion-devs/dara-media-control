@@ -59,10 +59,11 @@ The following checks passed against production:
 7. A fresh browser tab rendered the deterministic Studio fixture, then loaded the live
    DuckDB-over-B2 Ledger with 9 runs and 6 published assets, the trusted Verify proof,
    and the seeded asset lineage without a sign-in redirect.
-8. On 2026-07-30, a new anonymous browser context loaded Studio, Ledger, Verify, and
-   `/assets/ast_nw_003` without a sign-in wall, horizontal overflow, or browser-console
-   errors. The temporary B2 cap was still active, so Ledger correctly rendered its
-   dated `RECORDED PROOF` continuity state rather than labelling the snapshot live.
+8. On 2026-07-30, a new anonymous 390×844 browser context loaded Studio, Ledger,
+   Verify, and `/assets/ast_nw_003` without a sign-in wall, horizontal overflow,
+   browser-console warnings, or errors. The temporary B2 cap was still active, so
+   Ledger correctly rendered its dated `RECORDED PROOF` continuity state rather than
+   labelling the snapshot live.
 
 ### B2 cap continuity check
 
