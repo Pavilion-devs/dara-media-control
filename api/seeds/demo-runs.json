@@ -1,0 +1,562 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-29T20:15:00Z",
+  "default_seed_id": "seed_still_qa_revision",
+  "runs": [
+    {
+      "seed_id": "seed_still_qa_revision",
+      "pipeline_id": "still-campaign",
+      "title": "Seeded QA loop fixture \u00b7 deterministic",
+      "project_id": "prj_northwind",
+      "policy_id": "pol_standard",
+      "brief": "Hero shot of a ceramic bowl on washed linen, morning light, quiet editorial composition",
+      "provider": "genblaze-testing",
+      "model": "mock-image-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": 0.92,
+      "qa_attempts": 2,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": "/dara-verified-sample.png",
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight allowed with a $0.060000 worst-case reservation."
+        },
+        {
+          "at_ms": 280,
+          "type": "prompt.expansion.completed",
+          "provider": "genblaze-testing",
+          "model": "mock-chat-v1",
+          "message": "Fixture brief expanded into a structured production prompt."
+        },
+        {
+          "at_ms": 900,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-image-v1",
+          "message": "First deterministic image candidate started."
+        },
+        {
+          "at_ms": 23400,
+          "type": "step.completed",
+          "provider": "genblaze-testing",
+          "model": "mock-image-v1",
+          "message": "First deterministic image candidate completed."
+        },
+        {
+          "at_ms": 28900,
+          "type": "agent.iteration.evaluated",
+          "provider": "genblaze-testing",
+          "model": "mock-vision-v1",
+          "message": "Vision QA scored 0.58; linen texture and rim detail needed revision."
+        },
+        {
+          "at_ms": 29500,
+          "type": "qa.revised",
+          "provider": "genblaze",
+          "model": "AgentLoop",
+          "message": "Prompt revised; second attempt linked by parent_run_id."
+        },
+        {
+          "at_ms": 53000,
+          "type": "step.completed",
+          "provider": "genblaze-testing",
+          "model": "mock-image-v1",
+          "message": "Revised deterministic image candidate completed."
+        },
+        {
+          "at_ms": 58500,
+          "type": "agent.iteration.evaluated",
+          "provider": "genblaze-testing",
+          "model": "mock-vision-v1",
+          "message": "Vision QA passed at 0.92."
+        },
+        {
+          "at_ms": 61000,
+          "type": "publish.completed",
+          "provider": "genblaze-testing",
+          "model": "fixture-store/v1",
+          "message": "Fixture source, manifest, and ledger record sealed locally."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_still_product",
+      "pipeline_id": "still-campaign",
+      "title": "Product still \u00b7 first-pass approval",
+      "project_id": "prj_field_notes",
+      "policy_id": "pol_standard",
+      "brief": "Graphite notebook on raw oak with clean directional light.",
+      "provider": "genblaze-testing",
+      "model": "mock-image-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": 0.95,
+      "qa_attempts": 1,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": "/dara-verified-sample.png",
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-image-v1",
+          "message": "still-campaign provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "still-campaign",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_still_portrait",
+      "pipeline_id": "still-campaign",
+      "title": "Portrait crop \u00b7 approved",
+      "project_id": "prj_atlas",
+      "policy_id": "pol_permissive",
+      "brief": "Architectural hotel portrait with warm evening window light.",
+      "provider": "genblaze-testing",
+      "model": "mock-image-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": 0.88,
+      "qa_attempts": 1,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": "/dara-verified-sample.png",
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-image-v1",
+          "message": "still-campaign provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "still-campaign",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_blocked_budget",
+      "pipeline_id": "still-campaign",
+      "title": "Locked policy \u00b7 budget block",
+      "project_id": "prj_northwind",
+      "policy_id": "pol_locked",
+      "brief": "Four landscape campaign variants.",
+      "provider": "dara",
+      "model": "policy/v1",
+      "outcome": "blocked",
+      "approved": false,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.120000",
+      "asset_url": null,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.blocked",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Run budget exceeded; no provider was called and $0.120000 was prevented."
+        }
+      ],
+      "evidence": "production-proof"
+    },
+    {
+      "seed_id": "seed_blocked_shape",
+      "pipeline_id": "motion-spot",
+      "title": "Locked policy \u00b7 modality block",
+      "project_id": "prj_atlas",
+      "policy_id": "pol_locked",
+      "brief": "A four-second architectural motion spot.",
+      "provider": "dara",
+      "model": "policy/v1",
+      "outcome": "blocked",
+      "approved": false,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.430000",
+      "asset_url": null,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.blocked",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Video is not allowed by this policy; no provider was called."
+        }
+      ],
+      "evidence": "production-proof"
+    },
+    {
+      "seed_id": "seed_regeneration",
+      "pipeline_id": "regenerate",
+      "title": "Manifest regeneration \u00b7 lineage linked",
+      "project_id": "prj_northwind",
+      "policy_id": "pol_standard",
+      "brief": "Reproduce the recorded editorial still conditions.",
+      "provider": "openai",
+      "model": "gpt-image-2",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": 0.95,
+      "qa_attempts": 1,
+      "cost_usd": "0.015000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": "/dara-verified-sample.png",
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "openai",
+          "model": "gpt-image-2",
+          "message": "regenerate provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "regenerate",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "production-proof"
+    },
+    {
+      "seed_id": "seed_motion_primary",
+      "pipeline_id": "motion-spot",
+      "title": "Motion spot fixture \u00b7 primary route",
+      "project_id": "prj_atlas",
+      "policy_id": "pol_permissive",
+      "brief": "Slow push through a quiet hotel lobby at dusk.",
+      "provider": "genblaze-testing",
+      "model": "mock-video-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": 0.9,
+      "qa_attempts": 1,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-video-v1",
+          "message": "motion-spot provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "motion-spot",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_motion_fallback",
+      "pipeline_id": "motion-spot",
+      "title": "Motion spot fixture \u00b7 fallback recovered",
+      "project_id": "prj_atlas",
+      "policy_id": "pol_permissive",
+      "brief": "Close tracking shot across a brass room key.",
+      "provider": "genblaze-testing",
+      "model": "mock-video-fallback-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": 0.87,
+      "qa_attempts": 1,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 1100,
+          "type": "step.failover",
+          "provider": "genblaze-testing",
+          "model": "mock-video-v1",
+          "message": "Primary fixture route failed; fallback moved to mock-video-fallback-v1."
+        },
+        {
+          "at_ms": 95000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "motion-spot",
+          "message": "Fallback video, narration, and composite were sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_motion_failed",
+      "pipeline_id": "motion-spot",
+      "title": "Motion spot fixture \u00b7 failed attempt retained",
+      "project_id": "prj_field_notes",
+      "policy_id": "pol_permissive",
+      "brief": "Macro motion across notebook paper grain.",
+      "provider": "genblaze-testing",
+      "model": "mock-video-v1",
+      "outcome": "failed",
+      "approved": false,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-video-v1",
+          "message": "motion-spot provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.failed",
+          "provider": "dara",
+          "model": "motion-spot",
+          "message": "Run stopped with its failed attempt preserved."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_voice_alloy",
+      "pipeline_id": "voiceover-pack",
+      "title": "Voice pack \u00b7 alloy",
+      "project_id": "prj_field_notes",
+      "policy_id": "pol_standard",
+      "brief": "Dara keeps every generation governed and verifiable.",
+      "provider": "genblaze-testing",
+      "model": "mock-audio-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "voice": "alloy",
+      "batch_index": 0,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-audio-v1",
+          "message": "voiceover-pack provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "voiceover-pack",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_voice_coral",
+      "pipeline_id": "voiceover-pack",
+      "title": "Voice pack \u00b7 coral",
+      "project_id": "prj_field_notes",
+      "policy_id": "pol_standard",
+      "brief": "Dara keeps every generation governed and verifiable.",
+      "provider": "genblaze-testing",
+      "model": "mock-audio-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "voice": "coral",
+      "batch_index": 1,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-audio-v1",
+          "message": "voiceover-pack provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "voiceover-pack",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_voice_onyx",
+      "pipeline_id": "voiceover-pack",
+      "title": "Voice pack \u00b7 onyx",
+      "project_id": "prj_field_notes",
+      "policy_id": "pol_standard",
+      "brief": "Dara keeps every generation governed and verifiable.",
+      "provider": "genblaze-testing",
+      "model": "mock-audio-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "voice": "onyx",
+      "batch_index": 2,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-audio-v1",
+          "message": "voiceover-pack provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "voiceover-pack",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    },
+    {
+      "seed_id": "seed_voice_sage",
+      "pipeline_id": "voiceover-pack",
+      "title": "Voice pack \u00b7 sage",
+      "project_id": "prj_field_notes",
+      "policy_id": "pol_standard",
+      "brief": "Dara keeps every generation governed and verifiable.",
+      "provider": "genblaze-testing",
+      "model": "mock-audio-v1",
+      "outcome": "succeeded",
+      "approved": true,
+      "qa_score": null,
+      "qa_attempts": 0,
+      "cost_usd": "0.000000",
+      "saved_cost_usd": "0.000000",
+      "asset_url": null,
+      "voice": "sage",
+      "batch_index": 3,
+      "events": [
+        {
+          "at_ms": 0,
+          "type": "policy.allowed",
+          "provider": "dara",
+          "model": "policy/v1",
+          "message": "Pre-flight policy allowed."
+        },
+        {
+          "at_ms": 800,
+          "type": "step.started",
+          "provider": "genblaze-testing",
+          "model": "mock-audio-v1",
+          "message": "voiceover-pack provider step started."
+        },
+        {
+          "at_ms": 18000,
+          "type": "run.completed",
+          "provider": "dara",
+          "model": "voiceover-pack",
+          "message": "Run completed and its immutable record was sealed."
+        }
+      ],
+      "evidence": "deterministic-fixture"
+    }
+  ]
+}

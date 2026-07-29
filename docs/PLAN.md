@@ -175,11 +175,17 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 6 — judge-readiness (M6)
 
-- [ ] **T-39** Seed script: generate 12–15 runs across all pipelines, including two
-      policy-blocked runs and one QA-failed-then-passed run. Commit the outputs to
-      `api/seeds/` so demo mode needs no live calls.
-- [ ] **T-40** Demo mode: default landing state replays seeded runs with realistic step
-      timing. Live generation behind an explicit control.
+- [x] **T-39** Seed script: 13 committed run records across still, motion, voice,
+      and regeneration in `api/seeds/demo-runs.json`, including two production
+      policy-block proofs and one deterministic QA-failed-then-passed fixture.
+      Every record carries an explicit `production-proof` or
+      `deterministic-fixture` evidence label; fixture provider names and settled
+      spend never masquerade as live OpenAI execution.
+- [x] **T-40** Demo mode is the default landing state and replays the committed
+      QA-revision fixture using accelerated timers while displaying the realistic
+      61-second event clock. The screen explicitly labels the fixture, shows zero
+      settled spend, and keeps live OpenAI generation behind a separate
+      spend-labelled control.
 - [ ] **T-41** Rate limits: per-IP on verify, global daily spend cap on live generation.
       Cap enforced by the policy engine itself — dogfood it.
 - [ ] **T-42** Deploy `api/` to a US-East region (Fly.io or Railway). Deploy `web/` to

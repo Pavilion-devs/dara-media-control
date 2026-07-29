@@ -27,6 +27,12 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - A live public `/share/{token}` disclosure page that rechecks served bytes and
   shows only allowed provenance fields, the whole-file shared hash, redaction
   notice, and Dara's explicit trust boundary
+- A reproducible 13-run demo corpus spanning still, motion, voice, regeneration,
+  two policy blocks, and a QA revision. Every entry distinguishes production
+  proof from deterministic fixture, and demo mode makes no provider call
+- Default zero-spend replay with the original 61-second event clock accelerated
+  for presentation; live OpenAI generation remains behind an explicit
+  spend-labelled control
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - A persisted version tree for every QA attempt, including rejected and failed runs,
