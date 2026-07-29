@@ -422,7 +422,7 @@ select:focus-visible {
   border-bottom: 1px solid var(--rule);
   display: grid;
   gap: 1px;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .metric {

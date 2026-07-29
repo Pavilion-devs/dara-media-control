@@ -11,14 +11,16 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
   the workspace token and provider key never reach the browser
 - Asynchronous `gpt-image-2` still generation with a `gpt-image-1-mini` fallback,
   durable B2 job events, live status polling, and a signed result preview
+- A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
+  bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
 - Pre-flight policy admission with exact-decimal reservations, a $1 standard daily
   cap, and a guaranteed zero-spend block before any provider call
 - Honest replay of the recorded OpenAI → Genblaze → B2 proof; it is clearly labelled
   and makes no provider call
 - Ledger view grounded in the recorded OpenAI run and durable zero-spend policy proof
 - Public verification UI with a whole-file SHA-256 signature and lineage
-- Two real `gpt-image-2` → Genblaze → Backblaze B2 generation proofs, including an
-  authenticated API smoke run that completed for a recorded $0.01
+- Three real `gpt-image-2` → Genblaze → Backblaze B2 generation proofs, including
+  an authenticated vision-QA run that passed at 0.90 and recorded $0.015 estimated spend
 - Manifest-embedded published derivative with separate source and published hashes
 - Trusted-match and one-byte tamper detection through the public verification API
 - B2-backed policy and live-run records persisted on every state transition

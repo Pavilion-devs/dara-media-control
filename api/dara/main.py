@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import secrets
 import tempfile
@@ -39,7 +40,7 @@ from .jobs import (
     LiveRunStore,
     MemoryLiveRunStore,
 )
-from .pipelines.still import run_still_pipeline
+from .pipelines.still import QARejectedError, run_still_pipeline
 from .storage import DaraStorage, StorageUnavailableError
 from .verify import (
     InvalidHashError,
@@ -53,6 +54,7 @@ app = FastAPI(
     version="0.1.0",
     description="Governance, provenance, and spend control for generated media.",
 )
+logger = logging.getLogger("dara.api")
 
 allowed_origins = [
     origin.strip()
@@ -210,6 +212,9 @@ MODEL_PRICES = {
     # Conservative policy reservation for one low-quality image. OpenAI bills
     # GPT Image 2 by image tokens, so the settled ledger will use actual usage.
     "gpt-image-2": Price("gpt-image-2", money("0.010000")),
+    # Covers one structured low-detail vision evaluation. The adapter exposes
+    # tokens but not a settled USD amount, so live jobs label this estimated.
+    "gpt-4.1-mini": Price("gpt-4.1-mini", money("0.005000")),
 }
 
 
@@ -250,8 +255,15 @@ class SimulateRequest(BaseModel):
     variants: int = Field(default=3, ge=1, le=20)
     max_attempts: int = Field(default=3, ge=1, le=10)
     step_count: int = Field(default=1, ge=1, le=20)
+    qa_enabled: bool = False
 
     def to_plan(self) -> RunPlan:
+        steps = tuple(
+            PlannedStep(self.provider, self.model, self.modality)
+            for _ in range(self.step_count)
+        )
+        if self.qa_enabled:
+            steps += (PlannedStep("openai", "gpt-4.1-mini", "image"),)
         return RunPlan(
             tenant_id=self.tenant_id,
             job_id=self.job_id,
@@ -259,10 +271,7 @@ class SimulateRequest(BaseModel):
             aspect_ratio=self.aspect_ratio,
             variants=self.variants,
             max_attempts=self.max_attempts,
-            steps=tuple(
-                PlannedStep(self.provider, self.model, self.modality)
-                for _ in range(self.step_count)
-            ),
+            steps=steps,
         )
 
 
@@ -393,6 +402,10 @@ async def execute_live_still(job_id: str) -> None:
         run.published_content_address = output.published_content_address
         run.actual_cost_usd = output.actual_cost_usd
         run.cost_basis = output.cost_basis
+        run.qa_status = "passed"
+        run.qa_score = output.qa_score
+        run.qa_attempts = output.qa_attempts
+        run.qa_issues = list(output.qa_issues)
         run.append_event(
             "run.completed",
             "The live asset is approved and its trusted published hash is on record.",
@@ -407,7 +420,36 @@ async def execute_live_still(job_id: str) -> None:
             policy_job.reserved_cost_usd = money("0")
             await store.put_job(policy_job)
         await live_run_store.put(run)
+    except QARejectedError as exc:
+        engine.reservations.settle(run.job_id, exc.actual_cost_usd)
+        run.status = "failed"
+        run.actual_cost_usd = exc.actual_cost_usd
+        run.cost_basis = "estimated"
+        run.qa_status = "failed"
+        run.qa_score = exc.score
+        run.qa_attempts = exc.attempts
+        run.qa_issues = list(exc.issues)
+        run.error_code = "QA_REJECTED"
+        run.error_message = (
+            "No candidate passed Dara's visual QA gate. Every attempt remains "
+            "recorded in B2; the unapproved images were not published."
+        )
+        run.append_event(
+            "run.failed",
+            run.error_message,
+            provider="dara",
+            model="qa/v1",
+        )
+        policy_job = await store.get_job(run.tenant_id, run.job_id)
+        if policy_job is not None:
+            policy_job.status = "failed"
+            policy_job.actual_cost_usd = exc.actual_cost_usd
+            policy_job.reserved_cost_usd = money("0")
+            policy_job.error = run.error_message
+            await store.put_job(policy_job)
+        await live_run_store.put(run)
     except Exception:
+        logger.exception("Live still job %s failed", job_id)
         engine.reservations.release(run.job_id)
         run.status = "failed"
         run.error_code = "PROVIDER_ERROR"
@@ -473,7 +515,21 @@ async def list_models() -> dict[str, object]:
                     MODEL_PRICES["gpt-image-2"].per_unit_usd
                 ),
                 "pricing_basis": "conservative low-quality policy reservation",
-            }
+            },
+            {
+                "provider": "openai",
+                "model": "gpt-4.1-mini",
+                "modality": "vision-qa",
+                "availability": (
+                    "configured"
+                    if os.getenv("OPENAI_API_KEY")
+                    else "unconfigured"
+                ),
+                "reservation_per_evaluation_usd": str(
+                    MODEL_PRICES["gpt-4.1-mini"].per_unit_usd
+                ),
+                "pricing_basis": "conservative structured vision evaluation",
+            },
         ]
     }
 
@@ -513,6 +569,11 @@ async def create_live_run(
             PlannedStep(
                 provider="openai",
                 model="gpt-image-2",
+                modality="image",
+            ),
+            PlannedStep(
+                provider="openai",
+                model="gpt-4.1-mini",
                 modality="image",
             ),
         ),

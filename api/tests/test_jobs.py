@@ -64,6 +64,9 @@ class LiveRunEndpointTests(unittest.TestCase):
                 published_content_address="dara/published/test.png",
                 actual_cost_usd=Decimal("0.010000"),
                 cost_basis="estimated",
+                qa_score=0.91,
+                qa_attempts=1,
+                qa_issues=(),
             )
 
         with (
@@ -106,6 +109,8 @@ class LiveRunEndpointTests(unittest.TestCase):
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["published_sha256"], "c" * 64)
         self.assertEqual(payload["actual_cost_usd"], "0.010000")
+        self.assertEqual(payload["qa_status"], "passed")
+        self.assertEqual(payload["qa_score"], 0.91)
         self.assertGreaterEqual(len(payload["events"]), 4)
 
     def test_live_run_is_disabled_fail_closed(self) -> None:

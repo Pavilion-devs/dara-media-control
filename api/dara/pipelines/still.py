@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
-from genblaze_core import KeyStrategy, Modality, ObjectStorageSink, Pipeline
+from genblaze_core import AgentLoop, KeyStrategy, Modality, ObjectStorageSink, Pipeline
 from genblaze_core.media import SmartEmbedder
 from genblaze_openai import DalleProvider
 from genblaze_s3 import S3StorageBackend
@@ -24,6 +24,7 @@ from ..verify import (
     hash_index_key,
     manifest_key,
 )
+from .qa import OpenAIVisionEvaluator
 
 
 ASPECT_SIZES = {
@@ -43,6 +44,25 @@ class StillPipelineOutput:
     published_content_address: str
     actual_cost_usd: Decimal
     cost_basis: Literal["known", "estimated"]
+    qa_score: float
+    qa_attempts: int
+    qa_issues: tuple[str, ...]
+
+
+class QARejectedError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        score: float | None,
+        attempts: int,
+        issues: tuple[str, ...],
+        actual_cost_usd: Decimal,
+    ) -> None:
+        super().__init__("No generated candidate passed Dara's visual QA gate.")
+        self.score = score
+        self.attempts = attempts
+        self.issues = issues
+        self.actual_cost_usd = actual_cost_usd
 
 
 EventCallback = Callable[[dict[str, object]], Awaitable[None]]
@@ -60,17 +80,38 @@ def _event_payload(event: object) -> dict[str, object]:
     timestamp = values.get("timestamp")
     data = values.get("data")
     status = data.get("status") if isinstance(data, dict) else None
+    iteration = values.get("iteration")
+    total = values.get("total")
+    score = values.get("score")
+    passed = values.get("passed")
+    iterations = values.get("iterations")
     messages = {
         "pipeline.started": "Genblaze pipeline started.",
         "step.started": f"{provider or 'Provider'} / {model or 'model'} started.",
         "step.completed": f"{provider or 'Provider'} / {model or 'model'} completed.",
         "pipeline.completed": "Genblaze manifest sealed.",
         "pipeline.failed": "The Genblaze pipeline failed.",
+        "agent.iteration.started": (
+            f"Visual QA attempt {int(iteration) + 1}/{total} started."
+            if isinstance(iteration, int)
+            else "Visual QA attempt started."
+        ),
+        "agent.iteration.evaluated": (
+            f"Visual QA {'passed' if passed else 'requested a revision'}"
+            + (f" at {float(score):.2f}." if score is not None else ".")
+        ),
+        "agent.completed": (
+            f"Visual QA loop {'passed' if passed else 'stopped without approval'}"
+            + (f" after {iterations} attempt(s)." if iterations is not None else ".")
+        ),
     }
     if event_type == "step.progress" and status:
         message = f"{provider or 'Provider'} reported {status}."
     else:
         message = messages.get(event_type, event_type.replace(".", " ").title())
+    if event_type.startswith("agent."):
+        provider = "openai"
+        model = os.getenv("DARA_QA_MODEL", "gpt-4.1-mini")
     return {
         "type": event_type,
         "at": timestamp if isinstance(timestamp, datetime) else datetime.now(UTC),
@@ -84,7 +125,11 @@ def _publish_result(
     storage: DaraStorage,
     result: Any,
     *,
-    estimated_cost_usd: Decimal,
+    recorded_cost_usd: Decimal,
+    cost_basis: Literal["known", "estimated"],
+    qa_score: float,
+    qa_attempts: int,
+    qa_issues: tuple[str, ...],
 ) -> StillPipelineOutput:
     run = result.run
     manifest = result.manifest
@@ -143,12 +188,7 @@ def _publish_result(
     )
     storage.put_json(manifest_key(run.run_id), manifest)
 
-    known_cost = step.cost_usd is not None
-    actual_cost = (
-        Decimal(str(step.cost_usd)).quantize(Decimal("0.000001"))
-        if known_cost
-        else estimated_cost_usd.quantize(Decimal("0.000001"))
-    )
+    actual_cost = recorded_cost_usd.quantize(Decimal("0.000001"))
     reference = AssetRef(
         asset_id=source_asset.asset_id,
         run_id=run.run_id,
@@ -162,7 +202,7 @@ def _publish_result(
         manifest_embedded=True,
         approved=True,
         cost_usd=f"{actual_cost:.6f}",
-        cost_basis="known" if known_cost else "estimated",
+        cost_basis=cost_basis,
     )
     storage.put_json(asset_ref_key(source_asset.asset_id), reference)
     for sha256, hash_kind in (
@@ -187,7 +227,10 @@ def _publish_result(
         published_sha256=published_sha256,
         published_content_address=published_content_address,
         actual_cost_usd=actual_cost,
-        cost_basis="known" if known_cost else "estimated",
+        cost_basis=cost_basis,
+        qa_score=qa_score,
+        qa_attempts=qa_attempts,
+        qa_issues=qa_issues,
     )
 
 
@@ -230,39 +273,68 @@ async def run_still_pipeline(
         key_strategy=KeyStrategy.HIERARCHICAL,
     )
     result = None
+    qa_passed = False
+    qa_attempts = 0
     with tempfile.TemporaryDirectory(prefix="dara-live-still-") as output_dir:
-        provider = DalleProvider(output_dir=output_dir, http_timeout=180.0)
-        pipeline = (
-            Pipeline(
+        storage = DaraStorage.from_env()
+        evaluator = OpenAIVisionEvaluator(storage=storage, brief=prompt)
+
+        def pipeline_factory(context: Any) -> Pipeline:
+            candidate_prompt = (
+                context.last_evaluation.feedback
+                if context.last_evaluation is not None
+                and context.last_evaluation.feedback
+                else prompt
+            )
+            provider = DalleProvider(output_dir=output_dir, http_timeout=180.0)
+            return Pipeline(
                 "still-campaign",
                 tenant_id=tenant_id,
                 project_id=project_id,
-            )
-            .step(
+            ).step(
                 provider,
                 model="gpt-image-2",
                 fallback_models=["gpt-image-1-mini"],
-                prompt=prompt,
+                prompt=candidate_prompt,
                 modality=Modality.IMAGE,
                 size=size,
                 quality="low",
                 output_format="png",
                 n=1,
             )
+        agent = AgentLoop(
+            pipeline_factory,
+            evaluator,
+            max_iterations=3,
+            stop_on_pipeline_failure=True,
         )
-        async for event in pipeline.astream(
-            heartbeats=False,
-            sink=sink,
-            timeout=180.0,
-            pipeline_timeout=240.0,
-            raise_on_failure=True,
-        ):
-            await on_event(_event_payload(event))
-            if getattr(event, "type", None) == "pipeline.completed":
-                result = getattr(event, "result", None)
+        sink._close_with_run = False
+        try:
+            async for event in agent.astream(
+                sink=sink,
+                timeout=180.0,
+                pipeline_timeout=240.0,
+                raise_on_failure=True,
+            ):
+                await on_event(_event_payload(event))
+                if getattr(event, "type", None) == "agent.completed":
+                    result = getattr(event, "result", None)
+                    qa_passed = bool(getattr(event, "passed", False))
+                    qa_attempts = int(getattr(event, "iterations", 0))
+        finally:
+            await asyncio.to_thread(sink.close)
 
     if result is None:
-        raise RuntimeError("The image pipeline finished without a result.")
+        raise RuntimeError("The image QA pipeline finished without a result.")
+    latest_score = evaluator.evaluations[-1] if evaluator.evaluations else None
+    qa_issues = tuple(latest_score.issues) if latest_score else ()
+    if not qa_passed or latest_score is None:
+        raise QARejectedError(
+            score=latest_score.overall if latest_score else None,
+            attempts=qa_attempts,
+            issues=qa_issues,
+            actual_cost_usd=estimated_cost_usd * max(1, qa_attempts),
+        )
     await on_event(
         {
             "type": "publish.started",
@@ -276,7 +348,11 @@ async def run_still_pipeline(
         _publish_result,
         DaraStorage.from_env(),
         result,
-        estimated_cost_usd=estimated_cost_usd,
+        recorded_cost_usd=estimated_cost_usd * max(1, qa_attempts),
+        cost_basis="estimated",
+        qa_score=latest_score.overall,
+        qa_attempts=qa_attempts,
+        qa_issues=qa_issues,
     )
     await on_event(
         {

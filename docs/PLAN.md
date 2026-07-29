@@ -123,7 +123,7 @@ Work top to bottom. Each task is one commit.
       transition. State survives a process restart; startup reconciliation marks stale
       running jobs failed as `orphaned` and releases their budget reservations.
 - [ ] **T-24** `pipelines/still.py`: prompt expansion → image → QA → publish.
-- [ ] **T-25** `pipelines/qa.py`: `AgentLoop` evaluator. Structured JSON score, revised
+- [x] **T-25** `pipelines/qa.py`: `AgentLoop` evaluator. Structured JSON score, revised
       prompt on failure, retries linked by `parent_run_id`, attempt cap from policy.
 - [ ] **T-26** SSE endpoint streaming pipeline step events via `astream()`.
 - [ ] **T-27** Studio screen: brief form, policy selector, live step stream, result.

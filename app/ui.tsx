@@ -40,6 +40,10 @@ function liveEvents(run: LiveRun): EventItem[] {
       type:
         event.type === "run.failed"
           ? "failover"
+          : event.type === "agent.iteration.evaluated"
+            ? event.message.includes("passed")
+              ? "success"
+              : "revised"
           : event.type === "run.completed" || event.type === "publish.completed"
             ? "success"
             : "normal",
@@ -51,6 +55,10 @@ const hash =
   "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25";
 
 const daraApiUrl = process.env.NEXT_PUBLIC_DARA_API_URL?.replace(/\/$/, "");
+
+function formatSpend(value: number) {
+  return value < 0.1 ? value.toFixed(3) : value.toFixed(2);
+}
 
 type PolicySimulation = {
   estimate: {
@@ -186,7 +194,7 @@ export function Studio() {
   const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
   const [events, setEvents] = useState(fullEvents);
   const [runState, setRunState] = useState<"ready" | "running" | "done">("done");
-  const simulationKey = `${policy}:${aspectRatio}:${variants}`;
+  const simulationKey = `${runMode}:${policy}:${aspectRatio}:${variants}`;
   const [simulationResult, setSimulationResult] = useState<{
     key: string;
     value: PolicySimulation;
@@ -198,7 +206,10 @@ export function Studio() {
   const [toast, setToast] = useState("");
   const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
 
-  const localEstimate = useMemo(() => 0.01 * variants, [variants]);
+  const localEstimate = useMemo(
+    () => (runMode === "live" ? 0.015 : 0.01 * variants),
+    [runMode, variants],
+  );
   const estimate = simulation
     ? Number(simulation.estimate.expected_usd)
     : localEstimate;
@@ -213,7 +224,7 @@ export function Studio() {
 
   useEffect(() => {
     const controller = new AbortController();
-    const requestKey = `${policy}:${aspectRatio}:${variants}`;
+    const requestKey = `${runMode}:${policy}:${aspectRatio}:${variants}`;
     const timer = setTimeout(async () => {
       if (!daraApiUrl) {
         setPolicyStatus("fallback");
@@ -236,6 +247,7 @@ export function Studio() {
               variants,
               max_attempts: 3,
               step_count: 1,
+              qa_enabled: runMode === "live",
             }),
             signal: controller.signal,
           },
@@ -255,7 +267,7 @@ export function Studio() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [aspectRatio, policy, variants]);
+  }, [aspectRatio, policy, runMode, variants]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
@@ -424,7 +436,7 @@ export function Studio() {
                 </div>
                 {runMode === "live" ? (
                   <small className="live-mode-note">
-                    One low-quality image. The policy reserves the worst case before OpenAI is called.
+                    One candidate at a time, scored by OpenAI vision. Dara may revise up to three times inside the reserved cap.
                   </small>
                 ) : null}
               </div>
@@ -495,7 +507,7 @@ export function Studio() {
                       Expected / three-attempt reserve · {policyStatus === "live" ? "from Dara API" : "local preview"}
                     </small>
                   </div>
-                  <strong className="mono">${estimate.toFixed(2)} / ${worstCase.toFixed(2)}</strong>
+                  <strong className="mono">${formatSpend(estimate)} / ${formatSpend(worstCase)}</strong>
                 </div>
                 <div className="estimate-track">
                   <div className="estimate-fill" style={{ width: `${Math.min(100, (worstCase / 0.12) * 100)}%` }} />
@@ -552,9 +564,19 @@ export function Studio() {
               <div className="metric"><span>Provider</span><strong className="mono">OpenAI</strong></div>
               <div className="metric"><span>Model</span><strong className="mono">gpt-image-2</strong></div>
               <div className="metric">
+                <span>Vision QA</span>
+                <strong className="mono">
+                  {liveRun?.qa_score != null
+                    ? `${Math.round(liveRun.qa_score * 100)} / 100`
+                    : runMode === "live"
+                      ? "PENDING"
+                      : "—"}
+                </strong>
+              </div>
+              <div className="metric">
                 <span>{liveRun?.actual_cost_usd ? "Recorded cost" : "Reserve"}</span>
                 <strong className="mono">
-                  ${liveRun?.actual_cost_usd ?? liveRun?.worst_case_cost_usd ?? worstCase.toFixed(2)}
+                  ${liveRun?.actual_cost_usd ?? liveRun?.worst_case_cost_usd ?? formatSpend(worstCase)}
                 </strong>
               </div>
             </div>
@@ -593,7 +615,7 @@ export function Studio() {
                 ) : null}
                 <p>
                   <strong>Live asset published.</strong><br />
-                  Genblaze manifest embedded; source and published hashes recorded in B2.
+                  Vision QA passed in {liveRun.qa_attempts} attempt{liveRun.qa_attempts === 1 ? "" : "s"}; Genblaze manifest embedded and hashes recorded in B2.
                 </p>
                 {liveRun.asset_url ? (
                   <a

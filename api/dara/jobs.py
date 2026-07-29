@@ -58,6 +58,10 @@ class LiveRunRecord(BaseModel):
     source_sha256: str | None = None
     published_sha256: str | None = None
     published_content_address: str | None = None
+    qa_status: Literal["not_run", "passed", "failed"] = "not_run"
+    qa_score: float | None = None
+    qa_attempts: int = 0
+    qa_issues: list[str] = Field(default_factory=list)
     error_code: str | None = None
     error_message: str | None = None
 

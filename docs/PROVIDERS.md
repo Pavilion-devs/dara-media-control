@@ -57,7 +57,7 @@ not an error state — graceful degradation is a production-readiness signal.
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | openai | Vision-capable current model | Reuse the existing key; exact model and price must be registered |
+| 1 | openai | `gpt-4.1-mini` | Live structured vision evaluator; first candidate scored 0.90 |
 | 2 | anthropic | Claude, optional custom evaluator | QA only; not a Genblaze media provider |
 | 3 | — | deterministic checks | Dimensions, format, file integrity, and manifest verification |
 
@@ -73,7 +73,7 @@ numbers here make the whole governance layer wrong.
 | openai | gpt-image-1-mini | image | per image | | | ☐ |
 | openai | sora-2 | video | per second | | | ☐ |
 | openai | gpt-4o-mini-tts | audio | per 1k chars | | | ☐ |
-| openai | vision QA model TBD | chat/vision | per 1k tokens | | | ☐ |
+| openai | gpt-4.1-mini | chat/vision | per evaluation | $0.005 conservative reservation | 5.3s | ☑ one structured low-detail evaluation |
 | provider-diverse fallback | TBD | image/video | TBD | | | ☐ |
 
 Register these via `ModelRegistry.fork()` + `register_pricing()`. Where a model has no
