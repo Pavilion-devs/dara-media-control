@@ -41,6 +41,12 @@ intentional tunnel restart will issue new hostnames. Before the judging window, 
 them with named tunnels/custom domains or update the affected URL and redeploy. This is
 an explicit transport limitation, not hidden application state.
 
+TierHive's HAProxy control plane was inspected on 2026-07-30. It can provide regional
+SSL termination for a user-controlled hostname after its DNS record is pointed at the
+assigned proxy, but no domain is dedicated to Dara yet. Existing unrelated HAProxy
+domains were left untouched; replacing the quick tunnel therefore requires an explicit
+hostname choice and DNS authorization.
+
 ## Verification
 
 The following checks passed against production:
