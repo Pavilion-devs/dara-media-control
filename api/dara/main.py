@@ -969,6 +969,34 @@ async def ledger_summary(
         ) from exc
 
 
+@app.get("/v1/ledger/dashboard")
+async def ledger_dashboard(
+    _: Annotated[None, Depends(require_workspace_token)],
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    project_id: str | None = None,
+) -> dict[str, object]:
+    resolved_to = to_date or datetime.now(UTC).date()
+    resolved_from = from_date or resolved_to - timedelta(days=29)
+    if resolved_from > resolved_to:
+        raise DaraApiError(400, "INVALID_DATE_RANGE", "`from` must not follow `to`.")
+    try:
+        return await asyncio.to_thread(
+            lambda: get_ledger().dashboard(
+                from_date=resolved_from,
+                to_date=resolved_to,
+                project_id=project_id,
+            )
+        )
+    except Exception as exc:
+        logger.exception("Ledger dashboard query failed")
+        raise DaraApiError(
+            503,
+            "LEDGER_UNAVAILABLE",
+            "Dara's B2 ledger is temporarily unavailable.",
+        ) from exc
+
+
 @app.get("/v1/ledger/query")
 async def ledger_query(
     _: Annotated[None, Depends(require_workspace_token)],

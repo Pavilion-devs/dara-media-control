@@ -65,7 +65,9 @@ The following checks passed against production:
 On 2026-07-29, Backblaze returned HTTP 403 with `AccessDenied: download bandwidth or
 transaction (Class B) cap exceeded` while DuckDB opened the remote Parquet objects. The
 API correctly returned `LEDGER_UNAVAILABLE`; Studio, Verify, Assets, and the Ledger page
-remained reachable.
+remained reachable. The Backblaze console showed 2,572 Class B transactions against the
+2,500 daily cap. Raising that cap requires a payment method; no billing information was
+entered during deployment.
 
 The web client now falls back to a committed snapshot of the last verified live
 DuckDB-over-B2 result: 9 runs, 6 approved assets, `$0.095000` spend, `$0.015000`
@@ -73,6 +75,12 @@ prevented spend, the exact model aggregate, month aggregate, and six observed pr
 groups. It labels this state **RECORDED PROOF**, dates the snapshot, and leaves
 per-project spend blank because that value was not preserved in the verification
 screenshot. It never labels the snapshot live or invents missing numbers.
+
+The read path was hardened after the incident. The browser now requests one combined
+dashboard endpoint instead of four concurrent ledger endpoints. DuckDB produces the
+summary, model, project, and month views in one `GROUPING SETS` query over Parquet in B2;
+the API reuses that result for 60 seconds and serializes cold singleton initialization.
+The allowlisted query endpoints remain available for focused analysis.
 
 This continuity path does not supersede the live ledger requirement. The operator must
 restore the Backblaze download/Class B allowance before recording the final demo and

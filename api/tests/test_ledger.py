@@ -164,12 +164,67 @@ class LedgerQueryTests(unittest.TestCase):
         )
         self.assertEqual(result["rows"], [["2026-07", 3, "0.030000"]])
 
+    def test_dashboard_returns_all_views_from_one_grouped_result(self) -> None:
+        dashboard = self.ledger.dashboard(
+            from_date=date(2026, 7, 1),
+            to_date=date(2026, 7, 31),
+        )
+        self.assertEqual(
+            dashboard["summary"],
+            {
+                "run_count": 3,
+                "approved_assets": 1,
+                "total_spend_usd": "0.030000",
+                "cost_per_approved_asset_usd": "0.030000",
+                "waste_ratio": "0.500000",
+                "spend_prevented_usd": "0.015000",
+                "generated_at": dashboard["summary"]["generated_at"],
+            },
+        )
+        self.assertEqual(
+            dashboard["models"]["rows"],
+            [["gpt-image-2", "openai", 3, "0.030000", "0.010000"]],
+        )
+        self.assertEqual(
+            dashboard["projects"]["rows"],
+            [
+                ["prj_a", 2, 1, "0.030000"],
+                ["prj_b", 1, 0, "0.000000"],
+            ],
+        )
+        self.assertEqual(
+            dashboard["months"]["rows"],
+            [["2026-07", 3, "0.030000"]],
+        )
+
+    def test_dashboard_cache_is_scoped_by_project(self) -> None:
+        all_projects = self.ledger.dashboard(
+            from_date=date(2026, 7, 1),
+            to_date=date(2026, 7, 31),
+        )
+        cached = self.ledger.dashboard(
+            from_date=date(2026, 7, 1),
+            to_date=date(2026, 7, 31),
+        )
+        project = self.ledger.dashboard(
+            from_date=date(2026, 7, 1),
+            to_date=date(2026, 7, 31),
+            project_id="prj_a",
+        )
+        self.assertEqual(
+            cached["summary"]["generated_at"],
+            all_projects["summary"]["generated_at"],
+        )
+        self.assertEqual(project["summary"]["run_count"], 2)
+        self.assertEqual(project["projects"]["rows"], [["prj_a", 2, 1, "0.030000"]])
+
 
 class LedgerEndpointTests(unittest.TestCase):
     def test_ledger_requires_auth_and_rejects_raw_sql(self) -> None:
         with patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}):
             with TestClient(main_module.app) as client:
                 unauthorized = client.get("/v1/ledger/summary")
+                unauthorized_dashboard = client.get("/v1/ledger/dashboard")
                 rejected = client.get(
                     "/v1/ledger/query",
                     params={"q": "SELECT * FROM accounting"},
@@ -177,6 +232,7 @@ class LedgerEndpointTests(unittest.TestCase):
                 )
 
         self.assertEqual(unauthorized.status_code, 401)
+        self.assertEqual(unauthorized_dashboard.status_code, 401)
         self.assertEqual(rejected.status_code, 400)
         self.assertEqual(
             rejected.json()["error"]["code"],

@@ -14,8 +14,7 @@ import {
   type RegenerationDiff,
 } from "./run-schema";
 import {
-  ledgerQuerySchema,
-  ledgerSummarySchema,
+  ledgerDashboardSchema,
   type LedgerQuery,
   type LedgerSummary,
 } from "./ledger-schema";
@@ -1006,27 +1005,13 @@ export function Ledger() {
     const controller = new AbortController();
     async function loadLedger() {
       try {
-        const [summaryResponse, modelsResponse, projectsResponse, monthsResponse] =
-          await Promise.all([
-            fetch("/api/ledger/summary", { signal: controller.signal }),
-            fetch("/api/ledger/query?q=spend_by_model", { signal: controller.signal }),
-            fetch("/api/ledger/query?q=spend_by_project", { signal: controller.signal }),
-            fetch("/api/ledger/query?q=spend_by_month", { signal: controller.signal }),
-          ]);
-        if (
-          !summaryResponse.ok
-          || !modelsResponse.ok
-          || !projectsResponse.ok
-          || !monthsResponse.ok
-        ) {
+        const response = await fetch("/api/ledger/dashboard", {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
           throw new Error("Ledger unavailable");
         }
-        setLive({
-          summary: ledgerSummarySchema.parse(await summaryResponse.json()),
-          models: ledgerQuerySchema.parse(await modelsResponse.json()),
-          projects: ledgerQuerySchema.parse(await projectsResponse.json()),
-          months: ledgerQuerySchema.parse(await monthsResponse.json()),
-        });
+        setLive(ledgerDashboardSchema.parse(await response.json()));
         setLedgerState("live");
       } catch (error) {
         if ((error as Error).name !== "AbortError") {

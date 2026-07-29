@@ -19,5 +19,13 @@ export const ledgerQuerySchema = z.object({
   generated_at: z.string(),
 });
 
+export const ledgerDashboardSchema = z.object({
+  summary: ledgerSummarySchema,
+  models: ledgerQuerySchema,
+  projects: ledgerQuerySchema,
+  months: ledgerQuerySchema,
+});
+
 export type LedgerSummary = z.infer<typeof ledgerSummarySchema>;
 export type LedgerQuery = z.infer<typeof ledgerQuerySchema>;
+export type LedgerDashboard = z.infer<typeof ledgerDashboardSchema>;

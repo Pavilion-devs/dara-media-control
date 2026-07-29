@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import os
 import threading
+import time
+from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from functools import lru_cache
 from io import BytesIO
 from urllib.parse import urlparse
 
@@ -119,11 +120,62 @@ QUERY_SQL = {
     """,
 }
 
+DASHBOARD_SQL = """
+    WITH filtered AS (
+        SELECT *,
+               strftime(created_at, '%Y-%m') AS accounting_month
+        FROM accounting
+        WHERE created_at >= ? AND created_at < ?
+          AND (? IS NULL OR project_id = ?)
+    )
+    SELECT
+        CASE
+            WHEN GROUPING(model) = 0 THEN 'model'
+            WHEN GROUPING(project_id) = 0 THEN 'project'
+            WHEN GROUPING(accounting_month) = 0 THEN 'month'
+            ELSE 'summary'
+        END AS section,
+        model,
+        provider,
+        project_id,
+        accounting_month,
+        COUNT(*) AS runs,
+        COUNT(*) FILTER (approved) AS approved_assets,
+        COUNT(asset_id) AS published_assets,
+        CAST(COALESCE(SUM(cost_usd), 0) AS DECIMAL(18,6)) AS total_usd,
+        CAST(COALESCE(AVG(cost_usd), 0) AS DECIMAL(18,6)) AS mean_usd,
+        CAST(
+            COALESCE(
+                SUM(cost_usd) / NULLIF(COUNT(*) FILTER (approved), 0),
+                0
+            ) AS DECIMAL(18,6)
+        ) AS cost_per_approved_asset_usd,
+        CAST(
+            COALESCE(
+                SUM(cost_usd) FILTER (NOT approved) / NULLIF(SUM(cost_usd), 0),
+                0
+            ) AS DECIMAL(18,6)
+        ) AS waste_ratio,
+        CAST(COALESCE(SUM(saved_cost_usd), 0) AS DECIMAL(18,6)) AS saved_usd
+    FROM filtered
+    GROUP BY GROUPING SETS (
+        (model, provider),
+        (project_id),
+        (accounting_month),
+        ()
+    )
+    ORDER BY section, total_usd DESC, model, project_id, accounting_month
+"""
+
 
 class Ledger:
     def __init__(self) -> None:
         self.connection = duckdb.connect(":memory:")
         self.lock = threading.Lock()
+        self._dashboard_cache: dict[
+            tuple[date, date, str | None],
+            tuple[float, dict[str, object]],
+        ] = {}
         self._configure_b2()
 
     def _configure_b2(self) -> None:
@@ -193,33 +245,136 @@ class Ledger:
         }
 
     def summary(self, *, from_date: date, to_date: date) -> dict[str, object]:
-        cost = self.query(
-            "cost_per_approved_asset",
+        return self.dashboard(
             from_date=from_date,
             to_date=to_date,
-        )["rows"][0]
-        waste = self.query(
-            "waste_ratio",
-            from_date=from_date,
-            to_date=to_date,
-        )["rows"][0]
-        savings_rows = self.query(
-            "policy_savings",
-            from_date=from_date,
-            to_date=to_date,
-        )["rows"]
-        saved = sum(Decimal(row[2]) for row in savings_rows)
-        return {
-            "run_count": cost[0],
-            "approved_assets": cost[1],
-            "total_spend_usd": cost[2],
-            "cost_per_approved_asset_usd": cost[3],
-            "waste_ratio": waste[0],
-            "spend_prevented_usd": f"{saved:.6f}",
-            "generated_at": datetime.now(UTC).isoformat(),
-        }
+        )["summary"]
+
+    def dashboard(
+        self,
+        *,
+        from_date: date,
+        to_date: date,
+        project_id: str | None = None,
+    ) -> dict[str, object]:
+        start = datetime.combine(from_date, datetime.min.time(), tzinfo=UTC)
+        end = datetime.combine(
+            to_date + timedelta(days=1),
+            datetime.min.time(),
+            tzinfo=UTC,
+        )
+        params = [start, end, project_id, project_id]
+        cache_key = (from_date, to_date, project_id)
+        cache_ttl_seconds = max(
+            0,
+            int(os.getenv("DARA_LEDGER_CACHE_SECONDS", "60")),
+        )
+        with self.lock:
+            dashboard_cache = getattr(self, "_dashboard_cache", {})
+            self._dashboard_cache = dashboard_cache
+            cached = dashboard_cache.get(cache_key)
+            if cached and time.monotonic() - cached[0] < cache_ttl_seconds:
+                return deepcopy(cached[1])
+
+            cursor = self.connection.execute(DASHBOARD_SQL, params)
+            rows = cursor.fetchall()
+
+            generated_at = datetime.now(UTC).isoformat()
+            summary: dict[str, object] | None = None
+            model_rows: list[list[object]] = []
+            project_rows: list[list[object]] = []
+            month_rows: list[list[object]] = []
+            for row in rows:
+                (
+                    section,
+                    model,
+                    provider,
+                    row_project_id,
+                    month,
+                    runs,
+                    approved_assets,
+                    published_assets,
+                    total_usd,
+                    mean_usd,
+                    cost_per_approved_asset_usd,
+                    waste_ratio,
+                    saved_usd,
+                ) = row
+                if section == "summary":
+                    summary = {
+                        "run_count": runs,
+                        "approved_assets": approved_assets,
+                        "total_spend_usd": f"{total_usd:.6f}",
+                        "cost_per_approved_asset_usd": (
+                            f"{cost_per_approved_asset_usd:.6f}"
+                        ),
+                        "waste_ratio": f"{waste_ratio:.6f}",
+                        "spend_prevented_usd": f"{saved_usd:.6f}",
+                        "generated_at": generated_at,
+                    }
+                elif section == "model":
+                    model_rows.append(
+                        [
+                            model,
+                            provider,
+                            runs,
+                            f"{total_usd:.6f}",
+                            f"{mean_usd:.6f}",
+                        ]
+                    )
+                elif section == "project":
+                    project_rows.append(
+                        [
+                            row_project_id,
+                            runs,
+                            published_assets,
+                            f"{total_usd:.6f}",
+                        ]
+                    )
+                elif section == "month":
+                    month_rows.append([month, runs, f"{total_usd:.6f}"])
+
+            if summary is None:
+                raise RuntimeError("Ledger dashboard summary was not produced.")
+
+            result: dict[str, object] = {
+                "summary": summary,
+                "models": {
+                    "query": "spend_by_model",
+                    "columns": ["model", "provider", "runs", "total_usd", "mean_usd"],
+                    "rows": model_rows,
+                    "generated_at": generated_at,
+                },
+                "projects": {
+                    "query": "spend_by_project",
+                    "columns": [
+                        "project_id",
+                        "runs",
+                        "approved_assets",
+                        "total_usd",
+                    ],
+                    "rows": project_rows,
+                    "generated_at": generated_at,
+                },
+                "months": {
+                    "query": "spend_by_month",
+                    "columns": ["month", "runs", "total_usd"],
+                    "rows": month_rows,
+                    "generated_at": generated_at,
+                },
+            }
+            dashboard_cache[cache_key] = (time.monotonic(), deepcopy(result))
+            return result
 
 
-@lru_cache(maxsize=1)
+_ledger_instance: Ledger | None = None
+_ledger_init_lock = threading.Lock()
+
+
 def get_ledger() -> Ledger:
-    return Ledger()
+    global _ledger_instance
+    if _ledger_instance is None:
+        with _ledger_init_lock:
+            if _ledger_instance is None:
+                _ledger_instance = Ledger()
+    return _ledger_instance

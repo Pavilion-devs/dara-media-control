@@ -95,10 +95,11 @@ test("ships product assets and response validation without starter files", async
 });
 
 test("ships the verified ledger continuity snapshot without invented spend", async () => {
-  const proof = await readFile(
-    new URL("../app/ledger-proof.ts", import.meta.url),
-    "utf8",
-  );
+  const [proof, ledgerUi, dashboardRoute] = await Promise.all([
+    readFile(new URL("../app/ledger-proof.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/ui.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/ledger/dashboard/route.ts", import.meta.url), "utf8"),
+  ]);
 
   assert.match(proof, /run_count: 9/);
   assert.match(proof, /approved_assets: 6/);
@@ -106,4 +107,7 @@ test("ships the verified ledger continuity snapshot without invented spend", asy
   assert.match(proof, /spend_prevented_usd: "0\.015000"/);
   assert.match(proof, /\["gpt-image-2", "openai", 9, "0\.095000", "0\.013571"\]/);
   assert.match(proof, /\["prj_t24_proof", 2, 2, null\]/);
+  assert.match(ledgerUi, /fetch\("\/api\/ledger\/dashboard"/);
+  assert.doesNotMatch(ledgerUi, /Promise\.all\(\[\s*fetch\("\/api\/ledger/);
+  assert.match(dashboardRoute, /\/v1\/ledger\/dashboard/);
 });
