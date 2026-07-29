@@ -6,7 +6,7 @@ import unittest
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import duckdb
 import pyarrow as pa
@@ -275,6 +275,40 @@ class LedgerInitializationTests(unittest.TestCase):
             self.assertIs(ledger_module.get_ledger(), recovered)
 
         self.assertEqual(ledger_constructor.call_count, 2)
+
+
+class LedgerQueryCooldownTests(unittest.TestCase):
+    def test_failed_remote_query_cools_down_before_touching_b2_again(self) -> None:
+        ledger = Ledger.__new__(Ledger)
+        ledger.connection = Mock()
+        ledger.connection.execute.side_effect = OSError("B2 cap exceeded")
+        ledger.lock = threading.Lock()
+        ledger._dashboard_cache = {}
+        ledger._query_retry_after = 0.0
+
+        with (
+            patch.dict(
+                "os.environ",
+                {"DARA_LEDGER_QUERY_RETRY_SECONDS": "5"},
+            ),
+            patch.object(
+                ledger_module.time,
+                "monotonic",
+                side_effect=[100.0, 101.0],
+            ),
+        ):
+            with self.assertRaisesRegex(OSError, "B2 cap exceeded"):
+                ledger.dashboard(
+                    from_date=date(2026, 7, 1),
+                    to_date=date(2026, 7, 31),
+                )
+            with self.assertRaisesRegex(RuntimeError, "cooling down"):
+                ledger.dashboard(
+                    from_date=date(2026, 7, 1),
+                    to_date=date(2026, 7, 31),
+                )
+
+        self.assertEqual(ledger.connection.execute.call_count, 1)
 
 
 if __name__ == "__main__":

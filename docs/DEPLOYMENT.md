@@ -76,8 +76,8 @@ groups. It labels this state **RECORDED PROOF**, dates the snapshot, and leaves
 per-project spend blank because that value was not preserved in the verification
 screenshot. It never labels the snapshot live or invents missing numbers.
 
-The API also applies a five-minute cold-start retry cooldown after a ledger
-initialization failure. One request records the authoritative B2 error; repeated
+The API also applies five-minute retry cooldowns after a ledger initialization or
+query-execution failure. One request records the authoritative B2 error; repeated
 public polling during the cap window returns the same honest unavailable state without
 reopening DuckDB or issuing another remote Parquet scan.
 

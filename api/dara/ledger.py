@@ -172,11 +172,25 @@ class Ledger:
     def __init__(self) -> None:
         self.connection = duckdb.connect(":memory:")
         self.lock = threading.Lock()
+        self._query_retry_after = 0.0
         self._dashboard_cache: dict[
             tuple[date, date, str | None],
             tuple[float, dict[str, object]],
         ] = {}
         self._configure_b2()
+
+    def _begin_remote_query(self) -> float:
+        now = time.monotonic()
+        if now < getattr(self, "_query_retry_after", 0.0):
+            raise RuntimeError("Ledger queries are cooling down after a B2 failure.")
+        return now
+
+    def _record_remote_query_failure(self, failed_at: float) -> None:
+        retry_seconds = max(
+            1,
+            int(os.getenv("DARA_LEDGER_QUERY_RETRY_SECONDS", "300")),
+        )
+        self._query_retry_after = failed_at + retry_seconds
 
     def _configure_b2(self) -> None:
         endpoint_value = os.getenv("B2_ENDPOINT") or (
@@ -228,15 +242,20 @@ class Ledger:
         )
         params = [start, end, project_id, project_id]
         with self.lock:
-            cursor = self.connection.execute(sql, params)
-            columns = [item[0] for item in cursor.description]
-            rows = [
-                [
-                    f"{value:.6f}" if isinstance(value, Decimal) else value
-                    for value in row
+            query_started_at = self._begin_remote_query()
+            try:
+                cursor = self.connection.execute(sql, params)
+                columns = [item[0] for item in cursor.description]
+                rows = [
+                    [
+                        f"{value:.6f}" if isinstance(value, Decimal) else value
+                        for value in row
+                    ]
+                    for row in cursor.fetchall()
                 ]
-                for row in cursor.fetchall()
-            ]
+            except Exception:
+                self._record_remote_query_failure(query_started_at)
+                raise
         return {
             "query": query_id,
             "columns": columns,
@@ -276,8 +295,13 @@ class Ledger:
             if cached and time.monotonic() - cached[0] < cache_ttl_seconds:
                 return deepcopy(cached[1])
 
-            cursor = self.connection.execute(DASHBOARD_SQL, params)
-            rows = cursor.fetchall()
+            query_started_at = self._begin_remote_query()
+            try:
+                cursor = self.connection.execute(DASHBOARD_SQL, params)
+                rows = cursor.fetchall()
+            except Exception:
+                self._record_remote_query_failure(query_started_at)
+                raise
 
             generated_at = datetime.now(UTC).isoformat()
             summary: dict[str, object] | None = None
