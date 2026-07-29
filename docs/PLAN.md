@@ -219,7 +219,7 @@ Work top to bottom. Each task is one commit.
 
 - [ ] **T-46** Record the demo video to the beat sheet in `docs/SUBMISSION.md`.
       Under 3:00. Upload public to YouTube.
-- [ ] **T-47** Write the Devpost description: features, B2 usage, Genblaze usage,
+- [x] **T-47** Write the Devpost description: features, B2 usage, Genblaze usage,
       explicit provider and model list.
 - [ ] **T-48** Grant judge access if the repo is private. Verify the working URL from a
       clean browser with no session.

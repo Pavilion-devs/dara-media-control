@@ -7,14 +7,15 @@ Deadline **Aug 3 2026, 5:00pm EDT**. Judging Aug 5–11. Winners on or around Au
 - [ ] Working app URL a judge can access, test, and evaluate
 - [ ] Public repo, or private with access granted to the Backblaze testing account
 - [ ] Setup instructions in the README
-- [ ] Text description: features, how B2 is used, how Genblaze is used
-- [ ] **Explicit list of AI providers and models** — generate it from the registry
+- [x] Text description: features, how B2 is used, how Genblaze is used
+- [x] **Explicit list of AI providers and models** — generated in
+      `docs/MODELS_USED.md` and incorporated into `docs/DEVPOST.md`
 - [ ] Demo video under 3 minutes, public on YouTube, no third-party trademarks or
       copyrighted music
 - [x] No test account required for the judge path. Exact route-by-route instructions
       are in `docs/JUDGE_ACCESS.md`; only optional live-spend mutations request
       ChatGPT sign-in.
-- [ ] Optional but do it: SDK feedback as GitHub issues on the Genblaze repo
+- [x] Optional but do it: SDK feedback as GitHub issues on the Genblaze repo
 
 The app must stay free, unrestricted, and reachable until judging ends on Aug 11. Do not
 redeploy after submitting.
