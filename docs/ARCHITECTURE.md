@@ -12,8 +12,8 @@ FastAPI + Genblaze (TierHive VPS, London)
         │                                    │
         │ provider APIs                      │ S3 API
         ▼                                    ▼
-NVIDIA NIM · Google · Replicate      Backblaze B2 (single bucket)
-ElevenLabs                             assets · manifests · ledger · state
+OpenAI · Replicate fallback           Backblaze B2 (single bucket)
+                                       assets · manifests · ledger · state
 ```
 
 Two deployables, one bucket, no other infrastructure.

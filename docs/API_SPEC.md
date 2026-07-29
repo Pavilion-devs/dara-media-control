@@ -138,8 +138,8 @@ whole. Rate limit 10/min/IP.
     "run_id": "run_...",
     "created_at": "...",
     "steps": [
-      { "provider": "nvidia", "model": "flux.1-dev", "modality": "image",
-        "prompt": "...", "params": { "...": "..." }, "cost_usd": "0.060000" }
+      { "provider": "openai", "model": "gpt-image-2", "modality": "image",
+        "prompt": "...", "params": { "...": "..." }, "cost_usd": "0.010000" }
     ],
     "parent_run_id": null,
     "redacted": false
@@ -183,7 +183,7 @@ waste ratio, run count, failover count. Cache 60s.
 {
   "query": "spend_by_model",
   "columns": ["model", "provider", "runs", "total_usd", "mean_usd"],
-  "rows": [ ["flux.1-dev", "nvidia", 42, 2.52, 0.06] ],
+  "rows": [ ["gpt-image-2", "openai", 9, "0.095000", "0.010556"] ],
   "generated_at": "..."
 }
 ```
@@ -226,8 +226,9 @@ probe. Backs the studio's model picker and shows the registry customisation is r
 
 ### `GET /healthz`
 ```jsonc
-{ "ok": true, "b2": "reachable", "genblaze_core": "x.y.z",
-  "providers": { "nvidia": "ok", "google": "ok" }, "demo_mode_available": true }
+{ "ok": true, "b2": "configured", "genblaze_core": "0.3.8",
+  "providers": { "openai": "configured", "replicate": "unconfigured" },
+  "demo_mode_available": true }
 ```
 
 ## Conventions

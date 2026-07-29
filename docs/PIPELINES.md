@@ -44,12 +44,13 @@ Genblaze feature set and it costs one line.
 
 Track these. Breadth is scored, and each is small.
 
-- [ ] `Pipeline(chain=True)` multi-step chaining
+- [x] `Pipeline(chain=False)` explicit multi-step DAG with `input_from` dependencies
 - [x] `input_from` fan-in (audio + video → composite)
 - [x] `fallback_models=[...]` on every generative step
 - [x] `AgentLoop` for QA refinement
 - [x] `from_result()` / `parent_run_id` lineage
-- [ ] `ObjectStorageSink` with both key strategies
+- [x] `ObjectStorageSink` hierarchical run output plus verified Dara-managed
+      content-addressed source and published copies
 - [x] `ParquetSink`
 - [x] `EmbedPolicy` for redacted shares
 - [x] `Mp4Handler` / image handler `embed()` and `extract()`
@@ -71,9 +72,9 @@ chat(expand)  →  image × variants  →  qa.score  →  [revise → image]*  �
 
 | Step | Provider chain | Notes |
 |---|---|---|
-| expand | google gemini → nvidia nemotron | Turns a one-line brief into a full prompt with style, lighting, composition. Returns JSON. |
-| image | nvidia `flux.1-dev` → nvidia `sd3.5-large` → replicate `flux-schnell` | `fallback_models` in this order. Confirm real model ids in T-09. |
-| qa | google gemini (vision) → nvidia nemotron | See QA loop below |
+| expand | OpenAI `gpt-4.1-mini` | Turns a one-line brief into a structured full prompt. |
+| image | OpenAI `gpt-image-2` → dated `gpt-image-2` snapshot → Replicate `black-forest-labs/flux-1.1-pro` | One Genblaze fallback chain crosses the provider boundary; the Replicate live probe remains T-03's final gate. |
+| qa | OpenAI `gpt-4.1-mini` vision | Structured evaluator used in the production still pipeline; Claude remains an optional custom evaluator, not a media provider. |
 | publish | — | Embed and validate a local candidate, run `PRE_PUBLISH`, then store under `published/` and index both hashes |
 
 Variants run through `abatch_run()` where the SDK supports it — parallel variants are both

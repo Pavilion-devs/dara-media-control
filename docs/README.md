@@ -49,17 +49,17 @@ attempts.**
 | **Real-world utility** | `docs/PRD.md` | A named buyer with five concrete questions they currently cannot answer. Verify and ledger deliver value without any generation happening. |
 | **Production readiness** | `api/dara/policy/`, `api/dara/jobs.py`, `api/dara/providers.py` | Policy enforced before spend; fallback chains on every generative step; orphaned-run reconciler; typed error model; rate limits and spend caps; a test asserting that a blocked run makes **zero** provider calls. |
 | **B2 storage + data orchestration** | `api/dara/storage.py`, `api/dara/ledger.py`, `docs/DATA_MODEL.md` | One bucket is the entire persistence layer — source assets, published deliverables, manifests, job state, policies, projects, and analytics. Hierarchical keys aid navigation; content-addressed source and published keys provide dedupe and exact verification. Locally staged Parquet is uploaded as immutable partitions and queried in place by DuckDB. **There is no database.** |
-| **Use of Genblaze** | `api/dara/pipelines/`, `api/dara/verify.py`, `api/dara/share.py` | Multi-step chaining, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id` lineage, `ObjectStorageSink` + `ParquetSink`, `EmbedPolicy` redaction, manifest embed/extract/verify, `ModelRegistry` pricing customisation, `astream()` streaming, replay-based regeneration, `LoggingTracer`. |
+| **Use of Genblaze** | `api/dara/pipelines/`, `api/dara/verify.py`, `api/dara/share.py` | Multi-step DAG execution, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id` lineage, `ObjectStorageSink` + `ParquetSink`, `EmbedPolicy` redaction, manifest embed/extract/verify, `ModelRegistry` pricing customisation, `astream()` streaming, replay-based regeneration, `LoggingTracer`. |
 
 ## Architecture
 
 ```
-Next.js (Vercel, US-East)  ──HTTPS + SSE──▶  FastAPI + Genblaze (US-East)
-                                                   │              │
-                                          provider APIs       S3 API
-                                                   ▼              ▼
-                                   NVIDIA NIM · Google      Backblaze B2
-                                   Replicate · ElevenLabs   (single bucket)
+Next.js / Vinext (TierHive VPS)  ──HTTPS + SSE──▶  FastAPI + Genblaze (TierHive VPS)
+                                                        │              │
+                                               provider APIs       S3 API
+                                                        ▼              ▼
+                                         OpenAI · Replicate      Backblaze B2
+                                         fallback                (single bucket)
 ```
 
 Two deployables, one bucket, no other infrastructure. Full detail in

@@ -126,10 +126,10 @@ serves both, deliberately.
   // step.succeeded | step.failed | qa.scored | qa.revised |
   // policy.evaluated | policy.blocked | run.succeeded | run.failed
   "step_index": 1,
-  "provider": "nvidia",
-  "model": "flux.1-dev",
+  "provider": "openai",
+  "model": "gpt-image-2-2026-04-21",
   "message": "primary model unavailable, falling back",
-  "data": { "from_model": "sd3.5-large", "error_code": "MODEL_ERROR" }
+  "data": { "from_model": "gpt-image-2", "error_code": "MODEL_ERROR" }
 }
 ```
 

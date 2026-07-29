@@ -69,7 +69,7 @@ Put this near the top. Fill in real paths and line numbers before submitting.
 | **Real-world utility** | `docs/PRD.md` | Named buyer, five concrete unanswerable questions Dara answers. Verify and ledger work without any generation happening. |
 | **Production readiness** | `api/dara/policy/`, `api/dara/jobs.py`, `api/dara/providers.py` | Pre-spend policy enforcement, fallback chains on every step, orphaned-run reconciler, typed error model, rate limits, spend caps, tests asserting a blocked run makes zero provider calls |
 | **B2 storage + data orchestration** | `api/dara/storage.py`, `api/dara/ledger.py`, `docs/DATA_MODEL.md` | Single bucket as the entire persistence layer. Source and published content-addressed objects preserve both Genblaze binding and exact delivered bytes. Locally staged `ParquetSink` telemetry is uploaded as immutable B2 partitions and queried in place by DuckDB. Job state, policies, projects, shares all live as objects. |
-| **Use of Genblaze** | `api/dara/pipelines/`, `api/dara/verify.py`, `api/dara/share.py` | Multi-step chaining, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id` lineage, `ObjectStorageSink` + `ParquetSink`, `EmbedPolicy` redaction, manifest embed/extract/verify, `ModelRegistry` pricing customisation, `astream()`, replay-based regeneration, `LoggingTracer` |
+| **Use of Genblaze** | `api/dara/pipelines/`, `api/dara/verify.py`, `api/dara/share.py` | Multi-step DAG execution, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id` lineage, `ObjectStorageSink` + `ParquetSink`, `EmbedPolicy` redaction, manifest embed/extract/verify, `ModelRegistry` pricing customisation, `astream()`, replay-based regeneration, `LoggingTracer` |
 
 ## Devpost description
 
@@ -78,7 +78,8 @@ Sections, in this order:
 **What it does** — the problem paragraph, then the four pillars, one sentence each.
 
 **How it uses Backblaze B2** — be specific and quantitative. Name the source and published
-asset roles, both key strategies, manifests and app state, and the
+asset roles, hierarchical Genblaze writes plus Dara's content-addressed copies, manifests
+and app state, and the
 local-Parquet → immutable-B2-upload → DuckDB query path. Say plainly that there is no
 other datastore. Include the bucket layout.
 
