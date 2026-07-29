@@ -135,7 +135,7 @@ See [`docs/MODELS_USED.md`](docs/MODELS_USED.md) for the generated submission ta
 Requirements: Python 3.12+, Node.js 22.13+, and FFmpeg for the motion regression.
 
 ```bash
-git clone https://github.com/Pavilion-devs/dara-media-control.git
+git clone https://github.com/Pavilion-devs/dara-media-control.git dara
 cd dara
 cp .env.example .env
 
