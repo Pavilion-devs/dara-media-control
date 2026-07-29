@@ -84,7 +84,7 @@ QUERY_SQL = {
                CAST(COALESCE(SUM(cost_usd), 0) AS DECIMAL(18,6)) AS total_usd
         FROM accounting
         WHERE created_at >= ? AND created_at < ? AND (? IS NULL OR project_id = ?)
-        GROUP BY month ORDER BY month
+        GROUP BY 1 ORDER BY 1
     """,
     "cost_per_approved_asset": """
         SELECT COUNT(*) AS runs, COUNT(*) FILTER (approved) AS approved_assets,

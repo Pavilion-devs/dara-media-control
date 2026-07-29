@@ -3,11 +3,11 @@
 ## Components
 
 ```
-Next.js 15 (Vercel, US-East)
+Next.js 15 (OpenAI Sites)
   studio · ledger · verify · share
         │  HTTPS + SSE
         ▼
-FastAPI + Genblaze (Fly.io or Railway, US-East)
+FastAPI + Genblaze (TierHive VPS, London)
   policy engine · pipeline registry · job registry · ledger query · verify
         │                                    │
         │ provider APIs                      │ S3 API
@@ -133,19 +133,24 @@ the revision passed, one multi-provider fallback event, and one run per pipeline
 
 | Concern | Choice |
 |---|---|
-| Frontend | Vercel, `iad1` |
-| API | Fly.io `iad` or Railway US-East, single instance, 1GB RAM |
-| Region rationale | Judges and providers are US-based; co-locate with both |
+| Frontend | OpenAI Sites, owner-only during build |
+| API | TierHive VPS, London, single instance, 2 vCPU / 3GB RAM |
+| Region rationale | User-selected existing VPS provider; measured rather than represented as US-East |
+| HTTPS | Cloudflare tunnel to a loopback-only API listener |
+| Persistence | Backblaze B2, `us-east-005` |
 | Secrets | Platform secret store only. Never in the repo, never in `web/` |
-| CORS | Allowlist the Vercel domain and localhost only |
+| Browser boundary | The Sites server-side proxy holds the workspace token; the browser never receives it |
 | Rate limits | Per-IP on `/v1/verify`; global daily cap on live generation |
+| Health | `GET /healthz` reports B2 configuration and SDK/provider readiness |
 
 The verify limiter derives the public client address from Cloudflare forwarding headers
 only when the TCP peer is the local tunnel process; direct callers cannot spoof another
 address. The daily cap survives a process restart: startup rebuilds settled spend from
 today's B2-backed live-run records and charges the full reservation for any failed run
 that reached provider execution without a known settled cost.
-| Health | `GET /healthz` checks B2 reachability and returns SDK versions |
+
+Measured deployment and latency evidence, including the explicitly documented quick-
+tunnel lifecycle limit, lives in `docs/DEPLOYMENT.md`.
 
 ## Failure modes and responses
 

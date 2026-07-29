@@ -193,8 +193,12 @@ Work top to bottom. Each task is one commit.
       today's committed amount from durable B2 live-run records and pessimistically
       charges the full reservation for failed runs whose provider execution began
       but whose settled cost is unknown.
-- [ ] **T-42** Deploy `api/` to a US-East region (Fly.io or Railway). Deploy `web/` to
-      Vercel, US-East. Confirm cold-start latency is acceptable from a non-US connection.
+- [x] **T-42** Deployment target superseded by the user-selected stack and verified in
+      `docs/DEPLOYMENT.md`: the API runs as an always-on service on a TierHive VPS in
+      London, the web app runs on OpenAI Sites, and B2 remains in `us-east-005`.
+      Production health, an API-restart/tunnel-stability check, live DuckDB-over-B2
+      ledger data, and eight non-US latency samples passed. Median health latency was
+      486 ms, p95 was 506 ms, and controlled API restart-to-ready time was 13 seconds.
 - [ ] **T-43** Test account and login instructions in the submission. Judges must not
       have to think.
 - [ ] **T-44** README rewrite per `docs/SUBMISSION.md`, including the criteria mapping

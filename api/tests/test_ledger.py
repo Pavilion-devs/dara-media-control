@@ -156,6 +156,14 @@ class LedgerQueryTests(unittest.TestCase):
                 to_date=date(2026, 7, 31),
             )
 
+    def test_spend_by_month_groups_timestamp_rows(self) -> None:
+        result = self.ledger.query(
+            "spend_by_month",
+            from_date=date(2026, 7, 1),
+            to_date=date(2026, 7, 31),
+        )
+        self.assertEqual(result["rows"], [["2026-07", 3, "0.030000"]])
+
 
 class LedgerEndpointTests(unittest.TestCase):
     def test_ledger_requires_auth_and_rejects_raw_sql(self) -> None:

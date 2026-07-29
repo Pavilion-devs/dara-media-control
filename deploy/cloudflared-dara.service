@@ -2,7 +2,6 @@
 Description=Cloudflare HTTPS tunnel for Dara API
 After=network-online.target dara-api.service
 Wants=network-online.target
-Requires=dara-api.service
 
 [Service]
 Type=simple
