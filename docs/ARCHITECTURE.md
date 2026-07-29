@@ -159,7 +159,7 @@ tunnel lifecycle limit, lives in `docs/DEPLOYMENT.md`.
 | Provider returns `MODEL_ERROR` | Genblaze `fallback_models` retries the next model in the chain; the failover is recorded as a step event and shown in the UI |
 | Every model in a chain fails | Job → `failed`, structured error; every attempt remains in the ledger with known, estimated, or unknown cost because providers may charge for failed work |
 | Provider hangs | Per-step timeout from the pipeline spec; treated as a model error and failed over |
-| B2 unreachable | Mutating routes and hash-only verify return `503`; embedded verify may return `self-consistent` with `storage_status=unavailable`, never a trusted result |
+| B2 unreachable or capped | Mutating routes and hash-only verify return `503`; embedded verify may return `self-consistent` with `storage_status=unavailable`, never a trusted result. A failed ledger cold start enters a configurable retry cooldown so public polling cannot multiply B2 transactions. |
 | DuckDB cold start slow | Connection cached at module scope; ledger summary served from a cached aggregate refreshed every 60s |
 | Judge exhausts credits | Live generation blocked by the spend-cap policy with a clear message; demo mode remains fully functional |
 | Process restart mid-run | Startup reconciler marks orphaned runs `failed`; the ledger stays consistent |

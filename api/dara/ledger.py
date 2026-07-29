@@ -369,12 +369,28 @@ class Ledger:
 
 _ledger_instance: Ledger | None = None
 _ledger_init_lock = threading.Lock()
+_ledger_retry_after = 0.0
 
 
 def get_ledger() -> Ledger:
-    global _ledger_instance
+    global _ledger_instance, _ledger_retry_after
     if _ledger_instance is None:
         with _ledger_init_lock:
             if _ledger_instance is None:
-                _ledger_instance = Ledger()
+                now = time.monotonic()
+                if now < _ledger_retry_after:
+                    raise RuntimeError(
+                        "Ledger initialization is cooling down after a B2 failure."
+                    )
+                try:
+                    ledger = Ledger()
+                except Exception:
+                    retry_seconds = max(
+                        1,
+                        int(os.getenv("DARA_LEDGER_INIT_RETRY_SECONDS", "300")),
+                    )
+                    _ledger_retry_after = now + retry_seconds
+                    raise
+                _ledger_instance = ledger
+                _ledger_retry_after = 0.0
     return _ledger_instance

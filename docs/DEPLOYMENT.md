@@ -76,6 +76,11 @@ groups. It labels this state **RECORDED PROOF**, dates the snapshot, and leaves
 per-project spend blank because that value was not preserved in the verification
 screenshot. It never labels the snapshot live or invents missing numbers.
 
+The API also applies a five-minute cold-start retry cooldown after a ledger
+initialization failure. One request records the authoritative B2 error; repeated
+public polling during the cap window returns the same honest unavailable state without
+reopening DuckDB or issuing another remote Parquet scan.
+
 The read path was hardened after the incident. The browser now requests one combined
 dashboard endpoint instead of four concurrent ledger endpoints. DuckDB produces the
 summary, model, project, and month views in one `GROUPING SETS` query over Parquet in B2;

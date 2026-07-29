@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 from fastapi.testclient import TestClient
 
 import dara.main as main_module
+import dara.ledger as ledger_module
 from dara.ledger import AccountingRecord, Ledger, write_accounting_record
 
 
@@ -238,6 +239,42 @@ class LedgerEndpointTests(unittest.TestCase):
             rejected.json()["error"]["code"],
             "UNKNOWN_LEDGER_QUERY",
         )
+
+
+class LedgerInitializationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        ledger_module._ledger_instance = None
+        ledger_module._ledger_retry_after = 0.0
+
+    def tearDown(self) -> None:
+        ledger_module._ledger_instance = None
+        ledger_module._ledger_retry_after = 0.0
+
+    def test_failed_initialization_cools_down_before_retrying_b2(self) -> None:
+        recovered = object()
+        with (
+            patch.dict(
+                "os.environ",
+                {"DARA_LEDGER_INIT_RETRY_SECONDS": "5"},
+            ),
+            patch.object(
+                ledger_module.time,
+                "monotonic",
+                side_effect=[100.0, 101.0, 106.0],
+            ),
+            patch.object(
+                ledger_module,
+                "Ledger",
+                side_effect=[OSError("B2 cap exceeded"), recovered],
+            ) as ledger_constructor,
+        ):
+            with self.assertRaisesRegex(OSError, "B2 cap exceeded"):
+                ledger_module.get_ledger()
+            with self.assertRaisesRegex(RuntimeError, "cooling down"):
+                ledger_module.get_ledger()
+            self.assertIs(ledger_module.get_ledger(), recovered)
+
+        self.assertEqual(ledger_constructor.call_count, 2)
 
 
 if __name__ == "__main__":
