@@ -19,6 +19,7 @@ import {
   type LedgerQuery,
   type LedgerSummary,
 } from "./ledger-schema";
+import { recordedLedgerProof } from "./ledger-proof";
 import { publicShareSchema, type PublicShare } from "./share-schema";
 import demoSeedData from "../api/seeds/demo-runs.json";
 import {
@@ -1028,7 +1029,10 @@ export function Ledger() {
         });
         setLedgerState("live");
       } catch (error) {
-        if ((error as Error).name !== "AbortError") setLedgerState("fallback");
+        if ((error as Error).name !== "AbortError") {
+          setLive(recordedLedgerProof);
+          setLedgerState("fallback");
+        }
       }
     }
     void loadLedger();
@@ -1076,7 +1080,7 @@ export function Ledger() {
               ? "Opening B2 ledger…"
               : ledgerState === "live"
                 ? `Generated ${new Date(summary?.generated_at ?? "").toLocaleTimeString()}`
-                : "Live ledger unavailable · showing recorded proof"}
+                : "Live ledger unavailable · verified B2 snapshot from 29 Jul 2026"}
           </span>
         </div>
         <div className="data-panel">
@@ -1101,7 +1105,12 @@ export function Ledger() {
             <table>
               <thead><tr><th>Project</th><th>Runs</th><th>Approved</th><th>Spend</th></tr></thead>
               <tbody>{projectRows.map((row) => (
-                <tr key={String(row[0])}><td className="mono">{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td className="mono">${row[3]}</td></tr>
+                <tr key={String(row[0])}>
+                  <td className="mono">{row[0]}</td>
+                  <td>{row[1]}</td>
+                  <td>{row[2]}</td>
+                  <td className="mono">{row[3] == null ? "—" : `$${row[3]}`}</td>
+                </tr>
               ))}</tbody>
             </table>
           </div>

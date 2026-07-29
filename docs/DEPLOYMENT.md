@@ -60,6 +60,24 @@ The following checks passed against production:
    DuckDB-over-B2 Ledger with 9 runs and 6 published assets, the trusted Verify proof,
    and the seeded asset lineage without a sign-in redirect.
 
+### B2 cap continuity check
+
+On 2026-07-29, Backblaze returned HTTP 403 with `AccessDenied: download bandwidth or
+transaction (Class B) cap exceeded` while DuckDB opened the remote Parquet objects. The
+API correctly returned `LEDGER_UNAVAILABLE`; Studio, Verify, Assets, and the Ledger page
+remained reachable.
+
+The web client now falls back to a committed snapshot of the last verified live
+DuckDB-over-B2 result: 9 runs, 6 approved assets, `$0.095000` spend, `$0.015000`
+prevented spend, the exact model aggregate, month aggregate, and six observed project
+groups. It labels this state **RECORDED PROOF**, dates the snapshot, and leaves
+per-project spend blank because that value was not preserved in the verification
+screenshot. It never labels the snapshot live or invents missing numbers.
+
+This continuity path does not supersede the live ledger requirement. The operator must
+restore the Backblaze download/Class B allowance before recording the final demo and
+before submission, then reconfirm the `LIVE · DUCKDB OVER B2` state in a clean browser.
+
 ## Latency
 
 Eight HTTPS health samples from the build workstation configured for Africa/Lagos:

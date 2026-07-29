@@ -93,3 +93,17 @@ test("ships product assets and response validation without starter files", async
     access(new URL("../app/_sites-preview", import.meta.url)),
   );
 });
+
+test("ships the verified ledger continuity snapshot without invented spend", async () => {
+  const proof = await readFile(
+    new URL("../app/ledger-proof.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(proof, /run_count: 9/);
+  assert.match(proof, /approved_assets: 6/);
+  assert.match(proof, /total_spend_usd: "0\.095000"/);
+  assert.match(proof, /spend_prevented_usd: "0\.015000"/);
+  assert.match(proof, /\["gpt-image-2", "openai", 9, "0\.095000", "0\.013571"\]/);
+  assert.match(proof, /\["prj_t24_proof", 2, 2, null\]/);
+});
