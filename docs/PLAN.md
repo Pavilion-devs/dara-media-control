@@ -199,13 +199,21 @@ Work top to bottom. Each task is one commit.
       Production health, an API-restart/tunnel-stability check, live DuckDB-over-B2
       ledger data, and eight non-US latency samples passed. Median health latency was
       486 ms, p95 was 506 ms, and controlled API restart-to-ready time was 13 seconds.
-- [ ] **T-43** Test account and login instructions in the submission. Judges must not
-      have to think.
-- [ ] **T-44** README rewrite per `docs/SUBMISSION.md`, including the criteria mapping
-      table with file paths.
-- [ ] **T-45** File 3–5 substantive issues on the Genblaze repo from
-      `docs/SDK_FEEDBACK.md`. Qualifies for the Feedback Prize, which stacks with an
-      overall prize.
+- [x] **T-43** No test account is required for the judge path. Demo replay, verification,
+      asset viewing, and aggregate DuckDB-over-B2 ledger reads are anonymous; only
+      optional live-spend mutations request ChatGPT sign-in. Exact route-by-route
+      instructions live in `docs/JUDGE_ACCESS.md`.
+- [x] **T-44** README rewritten per `docs/SUBMISSION.md` with real production
+      screenshots, the four-criteria mapping, the deployed architecture, the B2
+      object layout, exact local setup and verification commands, an honest limitations
+      section, and a generated provider/model inventory.
+- [x] **T-45** Filed three substantive, reproduced Genblaze issues from
+      `docs/SDK_FEEDBACK.md`: pointer-mode output-path integrity
+      ([#238](https://github.com/backblaze-labs/genblaze/issues/238)), fallback-attempt
+      provenance/accounting
+      ([#239](https://github.com/backblaze-labs/genblaze/issues/239)), and missing GPT
+      Image response usage
+      ([#240](https://github.com/backblaze-labs/genblaze/issues/240)).
 
 ### Phase 7 — submit (M7)
 

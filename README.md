@@ -1,115 +1,211 @@
 # Dara
 
-Dara is the control plane for AI-generated media: governed pipelines, verifiable
-provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
+**Dara is the control plane for AI-generated media: governed pipelines, verifiable
+provenance, and an honest spend ledger built on Genblaze and Backblaze B2.**
 
-**Live app:** https://dara-media-control.asaborodaniel.chatgpt.site
+[Live application](https://dara-media-control.asaborodaniel.chatgpt.site) ·
+[Deployment evidence](docs/DEPLOYMENT.md) ·
+[Trust model](docs/PRD.md#the-trust-model)
 
-## What works now
+> Access during the active build is owner-only. T-48 changes the final deployment to
+> public access and verifies it from a clean browser before submission. No test account
+> is required for Studio demo replay, Verify, Assets, or the aggregate live Ledger;
+> signing in with ChatGPT is only for actions that can start live provider spend.
 
-- Private Studio with an explicit **Live OpenAI** mode, authenticated server-side so
-  the workspace token and provider key never reach the browser
-- Asynchronous `gpt-image-2` still generation with its verified dated snapshot fallback,
-  durable B2 job events, authenticated SSE streaming, polling fallback, and a signed
-  result preview
-- Structured `gpt-4.1-mini` brief expansion before generation, with validated JSON,
-  policy-priced execution, an original-brief fallback, and exact prompt reuse on
-  regeneration
-- A four-step motion pipeline: `gpt-image-2` keyframe → Sora image-to-video →
-  OpenAI narration → Genblaze `FFmpegCompositor`, with real video/audio fan-in,
-  declared fallback routes, and a verified composite MP4 regression
-- Bounded parallel voice packs through Genblaze `abatch_run()`, with strict
-  OpenAI voice validation, `tts-1` → `tts-1-hd` fallback, ordered variant
-  metadata, and a verified manifest for every narration
-- Authenticated creation of opaque, expiring client shares backed by separate
-  token-scoped B2 objects, exact shared-file hashes, and Genblaze `EmbedPolicy`
-  pointer redaction that exposes no prompt, params, job id, or run id
-- A live public `/share/{token}` disclosure page that rechecks served bytes and
-  shows only allowed provenance fields, the whole-file shared hash, redaction
-  notice, and Dara's explicit trust boundary
-- A reproducible 13-run demo corpus spanning still, motion, voice, regeneration,
-  two policy blocks, and a QA revision. Every entry distinguishes production
-  proof from deterministic fixture, and demo mode makes no provider call
-- Default zero-spend replay with the original 61-second event clock accelerated
-  for presentation; live OpenAI generation remains behind an explicit
-  spend-labelled control
-- Per-client verification throttling behind the Cloudflare tunnel, plus a
-  per-tenant daily live-spend cap with atomic admission, worst-case reservation,
-  and B2-backed restart hydration that fails closed on uncertain provider spend
-- A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
-  bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
-- A persisted version tree for every QA attempt, including rejected and failed runs,
-  with native Genblaze `parent_run_id` links rather than reconstructed UI-only history
-- Manifest-based regeneration that re-applies policy, links both Dara jobs and
-  Genblaze runs, then compares the original and regenerated assets side by side
-- A live regeneration proof whose eight canonical conditions matched, whose native
-  lineage verified, and whose regenerated asset passed visual QA at 0.95
-- Typed policy enforcement at pre-flight, before each provider step, after visual QA,
-  and after local manifest embedding but before B2 publication
-- Exact-decimal reservations, a $1 standard daily cap, and a guaranteed zero-spend
-  block before any provider call
-- Authenticated B2-backed policy create, list, read, update, and simulation endpoints
-  with permissive, standard, and locked-down policies seeded durably
-- Durable policy decisions embedded in each live run record and rendered in Studio
-  with their enforcement point, outcome, reservation, and human-readable violations
-- Honest replay of the recorded OpenAI → Genblaze → B2 proof; it is clearly labelled
-  and makes no provider call
-- Ledger view grounded in the recorded OpenAI run and durable zero-spend policy proof
-- Public verification UI with a whole-file SHA-256 signature and lineage
-- Three real `gpt-image-2` → Genblaze → Backblaze B2 generation proofs, including
-  an authenticated vision-QA run that passed at 0.90 and recorded $0.015 estimated spend
-- Manifest-embedded published derivative with separate source and published hashes
-- Trusted-match and one-byte tamper detection through the public verification API
-- B2-backed policy and live-run records persisted on every state transition
-- Startup reconciliation that fails orphaned nonterminal jobs safely, releases their
-  persisted reservations, and records a recovery event instead of retrying spend
-- Genblaze `ParquetSink` telemetry staged per job, uploaded as immutable B2
-  `runs`/`steps`/`assets` month partitions, then removed with the temporary workspace
-- DuckDB 1.5.5 querying immutable accounting Parquet directly through B2's S3 API,
-  with fixed query ids for model, project, month, QA, waste, and policy savings
-- Live authenticated Ledger screen with total spend, prevented spend, cost per approved
-  asset, waste ratio, and model/project/month tables
-- Structured `409 POLICY_BLOCKED` responses with persisted zero-spend decisions
-- Asset detail with separate source and published hashes
-- Redacted client disclosure view
-- Exact-decimal policy engine with atomic per-tenant budget reservations
-- No-key Genblaze pipeline proof that emits and verifies a provenance manifest
+## The problem
 
-## Repository
+A creative team generating thousands of assets across model providers has no durable
+answer to basic operational questions: What did this asset cost, including discarded
+attempts? Which exact model and parameters produced it? Can the same conditions be
+reconstructed? Did policy approve it before money was spent? What provenance can be
+shared without leaking the prompt library?
+
+Dara makes those answers part of the media supply chain instead of leaving them in
+spreadsheets, chat history, and provider dashboards.
+
+## A 60-second tour
+
+### 1. Generate under policy
+
+![Dara Studio showing a deterministic QA revision, policy reserve, and linked event stream](docs/assets/tour-studio.jpg)
+
+Demo replay is the default and costs nothing. The committed 13-run corpus includes still,
+motion, voice, regeneration, two zero-spend policy blocks, and a deterministic QA
+fail-revise-pass path. Live OpenAI generation is a separate, spend-labelled action.
+
+### 2. Verify the delivered bytes
+
+![Dara Verify showing a trusted published-record match and whole-file SHA-256](docs/assets/tour-verify.jpg)
+
+Dara extracts the Genblaze manifest and checks its canonical integrity, then compares the
+uploaded file's whole-file SHA-256 with the trusted `published_sha256` stored in B2. A
+valid foreign manifest is reported only as self-consistent; a changed trusted file fails
+closed as a mismatch.
+
+### 3. Account for every attempt
+
+![Dara Ledger querying live accounting Parquet in Backblaze B2](docs/assets/tour-ledger.jpg)
+
+The live ledger queries immutable accounting Parquet directly in B2 with DuckDB. Failed,
+rejected, and policy-blocked work stays visible, so cost per approved asset includes the
+work that did not ship.
+
+## What Dara does
+
+- **Verify:** public, no-provider-call file verification with embedded-manifest and
+  content-addressed lookup paths.
+- **Govern:** typed policies enforced pre-flight, before every provider step, after QA,
+  and after embedding but before publication.
+- **Generate:** Genblaze still, motion, voice-pack, and regeneration workflows with
+  fallback chains, streaming events, structured prompt expansion, and agentic visual QA.
+- **Account:** immutable per-run Parquet in B2, queried in place by DuckDB for spend,
+  waste, savings, and cost per approved asset.
+- **Disclose:** expiring, token-scoped client shares that expose limited provenance
+  without leaking prompts, parameters, job IDs, or run IDs.
+
+## Judging criteria
+
+| Criterion | Where to look | Evidence |
+|---|---|---|
+| **Real-world utility** | [`docs/PRD.md`](docs/PRD.md), [`app/verify/page.tsx`](app/verify/page.tsx), [`app/ledger/page.tsx`](app/ledger/page.tsx) | A named buyer and five concrete questions; verify and ledger remain useful without starting generation. |
+| **Production readiness** | [`api/dara/policy/`](api/dara/policy/), [`api/dara/jobs.py`](api/dara/jobs.py), [`api/dara/main.py`](api/dara/main.py), [`api/tests/`](api/tests/) | Pre-spend policy blocks, atomic reservations, B2-backed restart recovery, rate limits, typed errors, fallback routes, 66 zero-network regressions, and measured deployment evidence. |
+| **B2 storage and data orchestration** | [`api/dara/storage.py`](api/dara/storage.py), [`api/dara/ledger.py`](api/dara/ledger.py), [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | One B2 bucket holds source assets, delivered derivatives, manifests, job/policy/share state, hash indexes, and immutable Parquet. There is no application database. |
+| **Use of Genblaze** | [`api/dara/pipelines/`](api/dara/pipelines/), [`api/dara/verify.py`](api/dara/verify.py), [`api/dara/share.py`](api/dara/share.py) | Multi-step pipelines, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id`, `ObjectStorageSink`, `ParquetSink`, `EmbedPolicy`, manifest embed/extract/verify, `ModelRegistry`, `astream()`, `abatch_run()`, replay semantics, and `LoggingTracer`. |
+
+## Architecture
 
 ```text
-app/          Dara web application
-api/dara/     FastAPI and policy execution foundation
-api/tests/    Zero-network policy and Genblaze spike tests
-docs/         Product, architecture, pipeline, provider, and submission specs
+Next.js on OpenAI Sites
+  Studio · Ledger · Verify · Share
+            │ HTTPS + SSE
+            ▼
+FastAPI + Genblaze on TierHive, London
+  policy · pipelines · jobs · ledger · verification
+            │                         │
+            │ OpenAI                  │ S3 API
+            ▼                         ▼
+  media + QA providers       Backblaze B2, us-east-005
+                              the only datastore
 ```
 
-## Run the web app
+The Python API is a single always-on instance because admission control and job
+execution use in-process locks. Durable state is still in B2, so restart reconciliation
+can fail orphaned work safely and rebuild the daily spend commitment. A multi-instance
+deployment would require an external transactional coordinator.
 
-Requires Node.js 22.13 or newer.
+### One bucket, distinct byte roles
 
-```bash
-npm install
-npm run dev
-npm run build
+```text
+dara/live/runs/{tenant}/{date}/{run_id}/     Genblaze run grouping
+dara/assets/{aa}/{bb}/{source_sha}.ext       immutable source bytes
+dara/published/{aa}/{bb}/{published_sha}.ext exact delivered bytes
+dara/share-assets/{token}/{asset_id}.ext     redacted client derivatives
+dara/manifests/{run_id}.json                 provenance
+dara/index/sha/{sha}.json                    source/published lookup
+dara/ledger/{table}/year=YYYY/month=MM/*.parquet
+dara/state/{jobs,live-runs,policies,projects,shares}/
 ```
 
-## Run the API foundation
+Genblaze's source hash and Dara's delivered-file hash are deliberately different.
+Embedding changes a file, so Dara never overwrites the Genblaze-bound source and never
+pretends those two hashes should match.
+
+## Providers and models
+
+OpenAI is the only configured AI provider. Genblaze is the orchestration and provenance
+SDK, not a provider. The inventory is generated from
+[`api/dara/providers.py`](api/dara/providers.py):
+
+| Model | Use | Evidence |
+|---|---|---|
+| `gpt-image-2` | Primary image generation | Production calls persisted and verified in B2 |
+| `gpt-image-2-2026-04-21` | Image fallback | Configured and account-catalog verified |
+| `gpt-4.1-mini` | Prompt expansion and vision QA | Production calls recorded |
+| `sora-2` → `sora-2-pro` | Motion generation | Pipeline and deterministic integration proof |
+| `tts-1` → `tts-1-hd` | Voice generation | Parallel pipeline and deterministic integration proof |
+
+See [`docs/MODELS_USED.md`](docs/MODELS_USED.md) for the generated submission table and
+[`docs/PROVIDERS.md`](docs/PROVIDERS.md) for measurement and cost-basis details.
+
+## Run locally
+
+Requirements: Python 3.12+, Node.js 22.13+, and FFmpeg for the motion regression.
 
 ```bash
-python3 -m venv api/.venv
+git clone <repository-url>
+cd dara
+cp .env.example .env
+
+python3.12 -m venv api/.venv
+api/.venv/bin/pip install --upgrade pip
 api/.venv/bin/pip install -e api
-api/.venv/bin/python -m unittest discover -s api/tests -v
-api/.venv/bin/uvicorn dara.main:app --app-dir api --reload
+
+npm ci
 ```
 
-The current policy tests prove that a blocked job is persisted, costs zero, and makes
-zero provider calls. They also cover worst-case retry estimates, unpriced-model warnings,
-successful settlement, and concurrent budget admission.
+For the zero-spend demo, leave `DARA_LIVE_GENERATION_ENABLED=false`. B2 credentials are
+required for durable state and the live ledger; `OPENAI_API_KEY` is required only for
+explicit live generation.
 
-## Trust boundary
+Start the API:
 
-Dara provides tamper-evident accountability within an organisation that controls its
-trusted storage, plus a good-faith disclosure record for clients. It does not claim
-adversarial authenticity. See [docs/PRD.md](docs/PRD.md) and
-[docs/SDK_SURFACE.md](docs/SDK_SURFACE.md) for the precise model.
+```bash
+set -a
+source .env
+set +a
+api/.venv/bin/uvicorn dara.main:app --app-dir api --port 8000
+```
+
+In a second terminal, load the same server-side variables and start the web app:
+
+```bash
+set -a
+source .env
+set +a
+npm run dev
+```
+
+Open `http://localhost:3000`. The committed demo replay is available without making a
+provider call.
+
+## Verify the build
+
+```bash
+PYTHONPATH=api api/.venv/bin/python -m unittest discover -s api/tests -v
+npm run lint
+npm test
+```
+
+The provider/model inventory is reproducible:
+
+```bash
+PYTHONPATH=api api/.venv/bin/python -m dara.tools.list_models
+```
+
+## Honest limitations
+
+- **Tamper-evident, not tamper-proof.** Dara is authoritative within an organisation
+  controlling its trusted B2 records. It is not an adversarial authenticity system;
+  C2PA or an external signer is the appropriate next layer.
+- **Reproducible conditions, not identical bytes.** Media models are generally
+  non-deterministic. Regeneration replays canonical parameters and records lineage.
+- **One writer per job.** B2 has no compare-and-swap transaction for these JSON records;
+  concurrent updates to the same job are last-write-wins.
+- **One real AI provider today.** Every generative step has a model fallback, but the
+  image chain is not provider-diverse until a second media-provider credential is added.
+- **Temporary HTTPS transport.** The current account-less Cloudflare tunnel survives API
+  deployments but changes after a VPS or tunnel restart. The named-tunnel/custom-domain
+  upgrade and recovery procedure are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+## Genblaze feedback
+
+Reproducible SDK findings and workarounds live in
+[`docs/SDK_FEEDBACK.md`](docs/SDK_FEEDBACK.md):
+
+- [`#238` — pointer-mode output path can be nonexistent](https://github.com/backblaze-labs/genblaze/issues/238)
+- [`#239` — successful fallback erases the failed primary attempt](https://github.com/backblaze-labs/genblaze/issues/239)
+- [`#240` — `DalleProvider` drops GPT Image response usage](https://github.com/backblaze-labs/genblaze/issues/240)
+
+## License
+
+MIT
