@@ -45,3 +45,19 @@ The first paid provider run completed on 2026-07-29:
 dara/live/runs/demo/2026-07-29/f1a3332d-5727-4644-976a-2f7c09c74e82/assets/9856ed41-b723-47e7-99b8-4a6fee2663cf.png
 dara/live/runs/demo/2026-07-29/f1a3332d-5727-4644-976a-2f7c09c74e82/manifest.json
 ```
+
+## Published derivative and tamper proof
+
+Dara preserved the Genblaze-bound source object, embedded the manifest into a separate
+published derivative, and recorded both hashes:
+
+| Field | Result |
+|---|---|
+| Source SHA-256 | `97f3532e16f7132ee46af4c581a32b6fb720466dd15c131eef1e7a9b7d5f3164` |
+| Published SHA-256 | `efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25` |
+| Untouched published file | `trusted-match`, `verified: true` |
+| One-byte-changed copy | `trusted-mismatch`, `verified: false` |
+| Changed-copy SHA-256 | `d90b1143fb5392a6fd6eeb7de0c23f2b35a71fe53f76a780c7c4469f45bb8ae5` |
+
+The published object, flat manifest lookup, trusted AssetRef, and source/published
+SHA-index pointers all live in Dara's dedicated B2 prefix.

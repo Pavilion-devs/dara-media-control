@@ -11,6 +11,9 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 - Visible fallback and agentic QA revision events
 - Ledger with cost per approved asset, prevented spend, and waste ratio
 - Public verification UI with a whole-file SHA-256 signature and lineage
+- Real `gpt-image-2` → Genblaze → Backblaze B2 generation proof
+- Manifest-embedded published derivative with separate source and published hashes
+- Trusted-match and one-byte tamper detection through the public verification API
 - Asset detail with separate source and published hashes
 - Redacted client disclosure view
 - Exact-decimal policy engine with atomic per-tenant budget reservations

@@ -1,10 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+import os
+import secrets
+import tempfile
+import time
+from collections import defaultdict, deque
 from dataclasses import asdict
 from decimal import Decimal
+from functools import lru_cache
 from importlib.metadata import version
+from pathlib import Path
+from threading import Lock
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .policy import (
@@ -17,6 +28,13 @@ from .policy import (
     job_to_json,
     money,
 )
+from .storage import DaraStorage, StorageUnavailableError
+from .verify import (
+    InvalidHashError,
+    UnsupportedMediaError,
+    VerificationResponse,
+    Verifier,
+)
 
 app = FastAPI(
     title="Dara API",
@@ -26,6 +44,62 @@ app = FastAPI(
 
 store = MemoryJobStore()
 engine = PolicyEngine(store)
+
+
+class DaraApiError(RuntimeError):
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        details: dict[str, object] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.code = code
+        self.message = message
+        self.details = details or {}
+
+
+class VerifyRateLimiter:
+    def __init__(self) -> None:
+        self._attempts: defaultdict[str, deque[float]] = defaultdict(deque)
+        self._lock = Lock()
+
+    def check(self, client_id: str, *, limit: int, window_seconds: int = 60) -> None:
+        now = time.monotonic()
+        with self._lock:
+            attempts = self._attempts[client_id]
+            while attempts and attempts[0] <= now - window_seconds:
+                attempts.popleft()
+            if len(attempts) >= limit:
+                retry_after = max(1, int(window_seconds - (now - attempts[0])))
+                raise DaraApiError(
+                    429,
+                    "RATE_LIMITED",
+                    "Verification is temporarily rate-limited. Try again shortly.",
+                    {"retry_after_s": retry_after},
+                )
+            attempts.append(now)
+
+
+verify_rate_limiter = VerifyRateLimiter()
+
+
+@lru_cache(maxsize=1)
+def _default_verifier() -> Verifier:
+    return Verifier(DaraStorage.from_env())
+
+
+def get_verifier() -> Verifier:
+    try:
+        return _default_verifier()
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted storage is unavailable. Retry verification shortly.",
+        ) from exc
 
 
 def policy(
@@ -38,7 +112,9 @@ def policy(
 ) -> Policy:
     return Policy(
         policy_id=policy_id,
-        allowed_providers=frozenset({"nvidia", "google", "replicate", "elevenlabs"}),
+        allowed_providers=frozenset(
+            {"openai", "google", "replicate", "elevenlabs"}
+        ),
         denied_models=frozenset({"sora-2", "veo-3"}),
         allowed_modalities=allowed_modalities,
         allowed_aspect_ratios=allowed_ratios,
@@ -72,6 +148,33 @@ MODEL_PRICES = {
     "sd3.5-large": Price("sd3.5-large", money("0.040000")),
     "gemini-2.5-flash": Price("gemini-2.5-flash", money("0.002000")),
 }
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next: object) -> object:
+    request_id = request.headers.get("X-Request-Id") or f"req_{secrets.token_hex(8)}"
+    request.state.request_id = request_id
+    response = await call_next(request)  # type: ignore[operator]
+    response.headers["X-Request-Id"] = request_id
+    return response
+
+
+@app.exception_handler(DaraApiError)
+async def dara_api_error_handler(
+    request: Request,
+    exc: DaraApiError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.code,
+                "message": exc.message,
+                "details": exc.details,
+                "request_id": getattr(request.state, "request_id", None),
+            }
+        },
+    )
 
 
 class SimulateRequest(BaseModel):
@@ -134,6 +237,84 @@ async def health() -> dict[str, object]:
             "genblaze-s3": version("genblaze-s3"),
         },
     }
+
+
+@app.get("/healthz")
+async def healthz() -> dict[str, object]:
+    return {
+        "ok": True,
+        "b2": "configured" if os.getenv("B2_BUCKET") else "unconfigured",
+        "genblaze_core": version("genblaze-core"),
+        "providers": {
+            "openai": "configured" if os.getenv("OPENAI_API_KEY") else "unconfigured"
+        },
+        "demo_mode_available": True,
+    }
+
+
+@app.post("/v1/verify", response_model=VerificationResponse)
+async def verify_upload(
+    request: Request,
+    file: Annotated[UploadFile, File(...)],
+    verifier: Annotated[Verifier, Depends(get_verifier)],
+) -> VerificationResponse:
+    client_id = request.client.host if request.client else "unknown"
+    limit = int(os.getenv("KILN_VERIFY_RATE_LIMIT_PER_MIN", "10"))
+    verify_rate_limiter.check(client_id, limit=limit)
+    max_bytes = int(os.getenv("KILN_MAX_UPLOAD_MB", "100")) * 1024 * 1024
+    suffix = Path(file.filename or "upload").suffix
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix="dara-verify-",
+            suffix=suffix,
+            delete=False,
+        ) as destination:
+            temporary_path = Path(destination.name)
+            size = 0
+            while chunk := await file.read(1024 * 1024):
+                size += len(chunk)
+                if size > max_bytes:
+                    raise DaraApiError(
+                        413,
+                        "FILE_TOO_LARGE",
+                        f"This file exceeds Dara's {max_bytes // (1024 * 1024)} MB verification limit.",
+                    )
+                destination.write(chunk)
+        return await asyncio.to_thread(verifier.verify_path, temporary_path)
+    except UnsupportedMediaError as exc:
+        raise DaraApiError(
+            415,
+            "UNSUPPORTED_MEDIA_TYPE",
+            str(exc),
+        ) from exc
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted storage is unavailable. Retry verification shortly.",
+        ) from exc
+    finally:
+        await file.close()
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
+@app.get("/v1/verify/{sha256}", response_model=VerificationResponse)
+async def verify_hash(
+    sha256: str,
+    verifier: Annotated[Verifier, Depends(get_verifier)],
+) -> VerificationResponse:
+    try:
+        return await asyncio.to_thread(verifier.lookup_hash, sha256)
+    except InvalidHashError as exc:
+        raise DaraApiError(400, "INVALID_REQUEST", str(exc)) from exc
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted storage is unavailable. Retry verification shortly.",
+        ) from exc
 
 
 @app.post("/v1/policies/{policy_id}/simulate")

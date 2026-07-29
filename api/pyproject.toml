@@ -12,6 +12,7 @@ dependencies = [
   "genblaze==0.4.3",
   "genblaze-core[parquet,testing]>=0.3.8,<0.4",
   "genblaze-openai>=0.3.4,<0.4",
+  "python-multipart>=0.0.20,<1",
   "pydantic>=2.11,<3",
   "uvicorn[standard]>=0.35,<1",
 ]

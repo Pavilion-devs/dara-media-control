@@ -640,6 +640,13 @@ td {
   min-height: 220px;
   padding: 32px;
   text-align: center;
+  transition: background 120ms ease, border-color 120ms ease;
+  width: 100%;
+}
+
+.dropzone.is-dragging {
+  background: var(--active-wash);
+  border-color: var(--active);
 }
 
 .drop-icon {
@@ -670,6 +677,22 @@ td {
   padding: 24px;
 }
 
+.verify-message {
+  align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+  padding: 20px;
+}
+
+.verify-message p {
+  color: var(--slate);
+  line-height: 1.55;
+  margin: 0;
+}
+
 .hash-label {
   align-items: center;
   display: flex;
@@ -687,11 +710,65 @@ td {
 .hash-block {
   border-bottom: 1px solid var(--rule);
   border-right: 1px solid var(--rule);
-  color: var(--verified);
+  color: var(--ink);
   font-size: clamp(16px, 2.2vw, 28px);
   letter-spacing: 0.02em;
   padding: 11px 8px;
   text-align: center;
+}
+
+.static-hash .hash-block,
+.verification-hashes.is-verified .hash-block {
+  color: var(--verified);
+}
+
+.hash-character {
+  display: inline;
+}
+
+.hash-character.mismatch {
+  color: var(--blocked);
+}
+
+.expected-hash {
+  margin-top: 16px;
+}
+
+.expected-hash .eyebrow {
+  margin-bottom: 8px;
+}
+
+.verification-warning {
+  background: var(--pending-wash);
+  border-left: 3px solid var(--pending);
+  color: var(--slate);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 18px 0 0;
+  padding: 12px 14px;
+}
+
+.verification-meta {
+  border-bottom: 1px solid var(--rule);
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-top: 24px;
+  padding: 12px 0;
+}
+
+.verification-meta span {
+  color: var(--graphite);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.verification-meta strong {
+  color: var(--ink);
+  font-weight: 500;
+  margin-left: 6px;
+  text-transform: none;
 }
 
 .hash-block:last-child {

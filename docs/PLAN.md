@@ -82,21 +82,21 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 1 — verify (M1)
 
-- [ ] **T-10** `storage.py`: typed helpers for `put_json`, `get_json`, `list_prefix`,
+- [x] **T-10** `storage.py`: typed helpers for `put_json`, `get_json`, `list_prefix`,
       `put_bytes`, `presign`. Everything else goes through these.
-- [ ] **T-11** `verify.py`: accept an uploaded file, detect type, extract the embedded
+- [x] **T-11** `verify.py`: accept an uploaded file, detect type, extract the embedded
       manifest, verify its canonical hash, resolve the trusted AssetRef, and compare the
       uploaded whole-file hash with `published_sha256`. Report `trusted-match`,
       `trusted-mismatch`, or `self-consistent` explicitly. Never compare embedded bytes
       directly with Genblaze's pre-embed `asset.sha256`.
-- [ ] **T-12** Fallback path: if no manifest is embedded, hash the file and fetch
+- [x] **T-12** Fallback path: if no manifest is embedded, hash the file and fetch
       `index/sha/{sha}.json`; do not guess a content-address key without its extension.
       Report `embedded` vs `matched-by-hash` vs `unknown`.
-- [ ] **T-13** `POST /v1/verify` and `GET /v1/verify/{sha256}`. Public, no auth,
+- [x] **T-13** `POST /v1/verify` and `GET /v1/verify/{sha256}`. Public, no auth,
       rate-limited by IP.
-- [ ] **T-14** Verify page in `web/`. Dropzone, hash comparison rendering, lineage
+- [x] **T-14** Verify page in `web/`. Dropzone, hash comparison rendering, lineage
       display. See `docs/FRONTEND_SPEC.md` for the hash-diff treatment.
-- [ ] **T-15** Publish an embedded derivative, persist its `published_sha256`, and test
+- [x] **T-15** Publish an embedded derivative, persist its `published_sha256`, and test
       with a tampered copy. One flipped byte must produce a visible trusted mismatch while
       the untouched embedded file passes. This is the demo money shot — make it look good.
 

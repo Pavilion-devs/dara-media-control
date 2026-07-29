@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  apiErrorSchema,
+  type VerificationResponse,
+  verificationResponseSchema,
+} from "./verification-schema";
 
 type EventItem = {
   seq: number;
@@ -77,12 +82,62 @@ function Badge({
 
 export function HashDisplay({ value = hash }: { value?: string }) {
   return (
-    <div className="hash-display mono" aria-label={`SHA-256 ${value}`}>
+    <div className="hash-display static-hash mono" aria-label={`SHA-256 ${value}`}>
       {value.match(/.{1,8}/g)?.map((part, index) => (
         <span className="hash-block" key={`${part}-${index}`}>
           {part}
         </span>
       ))}
+    </div>
+  );
+}
+
+function VerificationHash({
+  uploaded,
+  expected,
+  verified,
+}: {
+  uploaded: string;
+  expected?: string | null;
+  verified: boolean;
+}) {
+  const firstDifference =
+    expected && uploaded !== expected
+      ? Array.from(uploaded).findIndex((character, index) => character !== expected[index])
+      : -1;
+
+  function blocks(value: string, diff = false) {
+    return value.match(/.{1,8}/g)?.map((part, blockIndex) => (
+      <span className="hash-block" key={`${part}-${blockIndex}`}>
+        {Array.from(part).map((character, characterIndex) => {
+          const index = blockIndex * 8 + characterIndex;
+          const mismatched = diff && firstDifference >= 0 && index >= firstDifference;
+          return (
+            <span
+              className={mismatched ? "hash-character mismatch" : "hash-character"}
+              key={`${character}-${index}`}
+            >
+              {character}
+            </span>
+          );
+        })}
+      </span>
+    ));
+  }
+
+  return (
+    <div className={`verification-hashes ${verified ? "is-verified" : ""}`}>
+      <div className="hash-display mono" aria-label={`Uploaded SHA-256 ${uploaded}`}>
+        {blocks(uploaded, true)}
+      </div>
+      {expected && expected !== uploaded ? (
+        <div className="expected-hash">
+          <span className="eyebrow">Expected published SHA-256</span>
+          <div className="hash-display mono" aria-label={`Expected SHA-256 ${expected}`}>
+            {blocks(expected)}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -354,14 +409,97 @@ function Lineage() {
 }
 
 export function Verify() {
-  const [result, setResult] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState("northwind-hero-03.png");
+  const [fileName, setFileName] = useState("dara-verified-published.png");
+  const [result, setResult] = useState<VerificationResponse>({
+    result: "embedded",
+    verification: "trusted-match",
+    storage_status: "available",
+    verified: true,
+    uploaded_sha256: "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25",
+    expected_published_sha256: "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25",
+    manifest: {
+      canonical_hash: "13dc9b8ae977809a90ffcc5b3971a011dc5cbac8c8505df2e7f131fa8a9e9b28",
+      hash_matches: true,
+      declared_hashes_match: true,
+      run_id: "f1a3332d-5727-4644-976a-2f7c09c74e82",
+      created_at: "2026-07-29T12:31:10Z",
+      steps: [
+        {
+          provider: "openai-dalle",
+          model: "gpt-image-2",
+          modality: "image",
+          prompt: "Dara command center with a visible provenance thread",
+          params: { size: "1024x1024", quality: "low", output_format: "png" },
+          cost_usd: null,
+        },
+      ],
+      parent_run_id: null,
+      redacted: false,
+    },
+    lineage: [
+      {
+        run_id: "f1a3332d-5727-4644-976a-2f7c09c74e82",
+        at: "2026-07-29T12:31:10Z",
+        relationship: "generated",
+        provider: "openai-dalle",
+        model: "gpt-image-2",
+      },
+    ],
+    warning: null,
+    trust_note:
+      "Tamper-evident within the issuing organisation's storage. Not an adversarial authenticity proof.",
+  });
+  const [mode, setMode] = useState<"demo" | "live">("demo");
+  const [state, setState] = useState<"ready" | "checking" | "done" | "error">("ready");
+  const [message, setMessage] = useState("");
+  const [dragging, setDragging] = useState(false);
 
-  function chooseFile(file?: File) {
-    if (file) setFileName(file.name);
-    setResult(true);
+  async function chooseFile(file?: File) {
+    if (!file) return;
+    setFileName(file.name);
+    setMode("live");
+    setState("checking");
+    setMessage("");
+    const body = new FormData();
+    body.set("file", file);
+    try {
+      const response = await fetch("/api/verify", { method: "POST", body });
+      const json: unknown = await response.json();
+      if (!response.ok) {
+        const error = apiErrorSchema.parse(json);
+        throw new Error(error.error.message);
+      }
+      setResult(verificationResponseSchema.parse(json));
+      setState("done");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Dara could not verify this file. Try again.",
+      );
+      setState("error");
+    }
   }
+
+  const badgeType =
+    result.verification === "trusted-match"
+      ? "allow"
+      : result.verification === "trusted-mismatch"
+        ? "block"
+        : "warn";
+  const stateTitle = {
+    "trusted-match": "Trusted published record match",
+    "trusted-mismatch": "Trusted record mismatch",
+    "self-consistent": "Internally consistent",
+    unknown: "No trusted record",
+  }[result.verification];
+  const badgeLabel = {
+    "trusted-match": "Verified",
+    "trusted-mismatch": "Changed",
+    "self-consistent": "Untrusted",
+    unknown: "Unknown",
+  }[result.verification];
 
   return (
     <Shell current="/verify">
@@ -376,26 +514,99 @@ export function Verify() {
         <input
           accept="image/*,video/*,audio/*"
           hidden
-          onChange={(e) => chooseFile(e.target.files?.[0])}
+          onChange={(e) => void chooseFile(e.target.files?.[0])}
           ref={inputRef}
           type="file"
         />
-        <button className="dropzone" onClick={() => inputRef.current?.click()} type="button">
+        <button
+          className={`dropzone ${dragging ? "is-dragging" : ""}`}
+          onClick={() => inputRef.current?.click()}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void chooseFile(event.dataTransfer.files[0]);
+          }}
+          type="button"
+        >
           <span className="drop-icon">↓</span>
-          <h2>Drop a file to check where it came from</h2>
-          <p>or choose a file · PNG, JPG, MP4, WAV up to 50 MB</p>
+          <h2>{state === "checking" ? "Checking the trusted record…" : "Drop a file to check where it came from"}</h2>
+          <p>or choose a file · PNG, JPG, MP4, WAV up to 100 MB</p>
         </button>
-        {result ? (
+        {state === "error" ? (
+          <div className="verify-message" role="alert">
+            <Badge type="warn">Service status</Badge>
+            <p>{message}</p>
+            <button
+              className="secondary-btn"
+              onClick={() => {
+                setMode("demo");
+                setState("ready");
+                setMessage("");
+              }}
+              type="button"
+            >
+              Return to verified demo record
+            </button>
+          </div>
+        ) : null}
+        {state !== "error" ? (
           <section className="verify-result">
             <div className="hash-label">
-              <div><p className="eyebrow">Published SHA-256 · {fileName}</p><h2 className="panel-title">Trusted record match</h2></div>
-              <Badge type="allow">Verified</Badge>
+              <div>
+                <p className="eyebrow">
+                  {mode === "demo" ? "Verified demo record" : "Uploaded file"} · {fileName}
+                </p>
+                <h2 className="panel-title">{stateTitle}</h2>
+              </div>
+              <Badge type={badgeType}>{badgeLabel}</Badge>
             </div>
-            <HashDisplay />
-            <Lineage />
+            <VerificationHash
+              expected={result.expected_published_sha256}
+              uploaded={result.uploaded_sha256}
+              verified={result.verified}
+            />
+            {result.warning ? <p className="verification-warning">{result.warning}</p> : null}
+            <div className="verification-meta">
+              <span>
+                Discovery <strong className="mono">{result.result}</strong>
+              </span>
+              <span>
+                Storage <strong className="mono">{result.storage_status}</strong>
+              </span>
+              {result.manifest ? (
+                <span>
+                  Manifest <strong className="mono">{result.manifest.hash_matches ? "valid" : "invalid"}</strong>
+                </span>
+              ) : null}
+            </div>
+            <div className="lineage">
+              {result.lineage.map((item, index) => (
+                <div className="lineage-node" key={`${item.run_id}-${index}`}>
+                  <span className="lineage-step mono">
+                    {String(index + 1).padStart(2, "0")} · {item.relationship}
+                  </span>
+                  <div className="lineage-main">
+                    <strong>{item.provider ?? "Parent run"} / {item.model ?? "record"}</strong>
+                    <span className="mono">{item.run_id}</span>
+                  </div>
+                  <span className="lineage-cost mono">
+                    {new Date(item.at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "2-digit",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
             <p className="trust-note">
-              Trust boundary: tamper-evident within the issuing organisation&apos;s controlled storage.
-              This is an internal accountability and good-faith disclosure record, not an adversarial authenticity proof.
+              Trust boundary: {result.trust_note}
             </p>
           </section>
         ) : null}
