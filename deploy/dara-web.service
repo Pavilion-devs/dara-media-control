@@ -1,0 +1,20 @@
+[Unit]
+Description=Dara public judge web application
+After=network-online.target dara-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dara
+Group=dara
+WorkingDirectory=/opt/dara-web
+EnvironmentFile=/etc/dara-web.env
+ExecStart=/usr/local/bin/node /opt/dara-web/server.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

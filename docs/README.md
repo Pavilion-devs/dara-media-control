@@ -5,7 +5,7 @@ and a queryable spend ledger — built on [Genblaze](https://github.com/backblaz
 and Backblaze B2.
 
 > Built for the Backblaze Generative Media Hackathon.
-> **Live app:** https://dara-media-control.asaborodaniel.chatgpt.site · **Demo video:** `TODO` · **Test account:** Not required
+> **Live app:** https://diamonds-jessica-accidents-icq.trycloudflare.com · **Demo video:** `TODO` · **Test account:** Not required
 
 ---
 

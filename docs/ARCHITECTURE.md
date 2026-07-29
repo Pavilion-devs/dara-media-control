@@ -3,7 +3,7 @@
 ## Components
 
 ```
-Next.js 15 (OpenAI Sites)
+Next.js 16 / Vinext (TierHive public judge service)
   studio · ledger · verify · share
         │  HTTPS + SSE
         ▼
@@ -133,13 +133,13 @@ the revision passed, one multi-provider fallback event, and one run per pipeline
 
 | Concern | Choice |
 |---|---|
-| Frontend | OpenAI Sites, owner-only during build |
+| Frontend | TierHive VPS, London, separate loopback-only Node service behind HTTPS tunnel |
 | API | TierHive VPS, London, single instance, 2 vCPU / 3GB RAM |
 | Region rationale | User-selected existing VPS provider; measured rather than represented as US-East |
 | HTTPS | Cloudflare tunnel to a loopback-only API listener |
 | Persistence | Backblaze B2, `us-east-005` |
 | Secrets | Platform secret store only. Never in the repo, never in `web/` |
-| Browser boundary | The Sites server-side proxy holds the workspace token; the browser never receives it |
+| Browser boundary | The server-side proxy holds the API token; the browser never receives it |
 | Rate limits | Per-IP on `/v1/verify`; global daily cap on live generation |
 | Health | `GET /healthz` reports B2 configuration and SDK/provider readiness |
 

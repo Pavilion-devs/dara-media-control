@@ -1,0 +1,17 @@
+[Unit]
+Description=Cloudflare HTTPS tunnel for the Dara public judge web application
+After=network-online.target dara-web.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dara
+Group=dara
+ExecStart=/usr/local/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:3000
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

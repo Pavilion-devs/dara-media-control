@@ -2,7 +2,7 @@
 
 ## Working URL
 
-`https://dara-media-control.asaborodaniel.chatgpt.site`
+`https://diamonds-jessica-accidents-icq.trycloudflare.com`
 
 ## Account
 
@@ -26,4 +26,6 @@ from demo replay and may request **Sign in with ChatGPT** before it can spend pr
 credits. Judges should use demo replay for the reliable, zero-cost product tour.
 
 No API key, B2 credential, workspace bearer token, invite code, or supplied username and
-password is needed anywhere in the judge path.
+password is needed anywhere in the judge path. The URL was verified from a fresh browser
+tab and a cookie-free HTTP client across Studio, Ledger, Verify, and the seeded Asset
+route.

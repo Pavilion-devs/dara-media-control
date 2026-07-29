@@ -1,6 +1,6 @@
 # Dara — Devpost submission copy
 
-Live application: https://dara-media-control.asaborodaniel.chatgpt.site
+Live application: https://diamonds-jessica-accidents-icq.trycloudflare.com
 
 ## What it does
 
@@ -139,4 +139,3 @@ provider-diverse until a second media-provider credential is configured and meas
   transactional coordination in addition to object storage.
 - **A measured second media provider:** complete provider-diverse image failover after a
   real credential, production probe, latency sample, and cost model are available.
-

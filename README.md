@@ -3,14 +3,13 @@
 **Dara is the control plane for AI-generated media: governed pipelines, verifiable
 provenance, and an honest spend ledger built on Genblaze and Backblaze B2.**
 
-[Live application](https://dara-media-control.asaborodaniel.chatgpt.site) ·
+[Live application](https://diamonds-jessica-accidents-icq.trycloudflare.com) ·
 [Deployment evidence](docs/DEPLOYMENT.md) ·
 [Trust model](docs/PRD.md#the-trust-model)
 
-> Access during the active build is owner-only. T-48 changes the final deployment to
-> public access and verifies it from a clean browser before submission. No test account
-> is required for Studio demo replay, Verify, Assets, or the aggregate live Ledger;
-> signing in with ChatGPT is only for actions that can start live provider spend.
+> No test account is required. Studio demo replay, Verify, Assets, and the aggregate
+> live Ledger are public; signing in with ChatGPT is only for actions that can start
+> live provider spend.
 
 ## The problem
 
@@ -75,7 +74,7 @@ work that did not ship.
 ## Architecture
 
 ```text
-Next.js on OpenAI Sites
+Next.js public judge server on TierHive
   Studio · Ledger · Verify · Share
             │ HTTPS + SSE
             ▼
@@ -88,10 +87,12 @@ FastAPI + Genblaze on TierHive, London
                               the only datastore
 ```
 
-The Python API is a single always-on instance because admission control and job
-execution use in-process locks. Durable state is still in B2, so restart reconciliation
-can fail orphaned work safely and rebuild the daily spend commitment. A multi-instance
-deployment would require an external transactional coordinator.
+The web server and Python API are separate always-on services on the same VPS and bind
+only to loopback; independent HTTPS tunnels expose them. The API remains a single
+instance because admission control and job execution use in-process locks. Durable state
+is in B2, so restart reconciliation can fail orphaned work safely and rebuild the daily
+spend commitment. A multi-instance API would require an external transactional
+coordinator.
 
 ### One bucket, distinct byte roles
 
