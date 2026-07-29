@@ -60,7 +60,7 @@ class ExpandedPrompt(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     visual_prompt: str = Field(min_length=20, max_length=4000)
-    negative_constraints: list[str] = Field(default_factory=list, max_length=12)
+    negative_constraints: list[str] = Field(max_length=12)
 
 
 def _strip_markdown_fence(value: str) -> str:

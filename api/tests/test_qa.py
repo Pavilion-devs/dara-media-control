@@ -87,6 +87,10 @@ class VisionEvaluatorTests(unittest.TestCase):
                 "Avoid: no text; no extra objects"
             ),
         )
+        self.assertEqual(
+            set(ExpandedPrompt.model_json_schema()["required"]),
+            {"visual_prompt", "negative_constraints"},
+        )
 
     def test_pre_step_hook_runs_before_the_qa_provider_call(self) -> None:
         calls = 0
