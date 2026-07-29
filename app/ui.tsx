@@ -7,7 +7,12 @@ import {
   type VerificationResponse,
   verificationResponseSchema,
 } from "./verification-schema";
-import { liveRunSchema, type LiveRun } from "./run-schema";
+import {
+  liveRunSchema,
+  regenerationDiffSchema,
+  type LiveRun,
+  type RegenerationDiff,
+} from "./run-schema";
 import {
   ledgerQuerySchema,
   ledgerSummarySchema,
@@ -55,6 +60,80 @@ function liveEvents(run: LiveRun): EventItem[] {
             : "normal",
     };
   });
+}
+
+function VersionTree({ runs }: { runs: LiveRun[] }) {
+  const versions = runs.flatMap((run, runIndex) =>
+    run.attempts.length > 0
+      ? run.attempts.map((attempt) => ({
+          key: `${run.job_id}:${attempt.genblaze_run_id}`,
+          index: attempt.attempt,
+          generation: runIndex + 1,
+          label:
+            attempt.status === "rejected"
+              ? "Generated, then rejected by visual QA"
+              : attempt.status === "failed"
+                ? "Provider attempt failed and was preserved"
+                : attempt.status === "approved"
+                  ? "Generated, approved, embedded, and published"
+                  : "Generation attempt in progress",
+          detail: `${attempt.genblaze_run_id.slice(0, 8)} · ${
+            attempt.parent_run_id
+              ? `parent ${attempt.parent_run_id.slice(0, 8)}`
+              : "root"
+          }`,
+          score:
+            attempt.qa_score == null
+              ? "QA —"
+              : `QA ${Math.round(attempt.qa_score * 100)}`,
+          status: attempt.status,
+        }))
+      : [
+          {
+            key: run.job_id,
+            index: 1,
+            generation: runIndex + 1,
+            label:
+              run.status === "succeeded"
+                ? "Recorded run completed before attempt tracking"
+                : "Recorded run preserved",
+            detail: `${run.genblaze_run_id?.slice(0, 8) ?? run.job_id.slice(-8)} · ${
+              run.parent_job_id ? "regeneration" : "root"
+            }`,
+            score:
+              run.qa_score == null ? "QA —" : `QA ${Math.round(run.qa_score * 100)}`,
+            status: run.status === "succeeded" ? "approved" : "failed",
+          },
+        ],
+  );
+
+  return (
+    <div className="version-tree">
+      {versions.map((version) => (
+        <div className="version-row" key={version.key}>
+          <span className="version-index mono">
+            {version.generation}.{version.index}
+          </span>
+          <span>
+            <strong>{version.label}</strong>
+            <small className="mono">{version.detail}</small>
+          </span>
+          <span className="mono">{version.score}</span>
+          <Badge
+            type={
+              version.status === "approved"
+                ? "allow"
+                : version.status === "running"
+                  ? "warn"
+                  : "block"
+            }
+          >
+            {version.status}
+          </Badge>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const hash =
@@ -210,6 +289,9 @@ export function Studio() {
   const [policyStatus, setPolicyStatus] = useState<"checking" | "live" | "fallback">("checking");
   const [runMessage, setRunMessage] = useState("");
   const [toast, setToast] = useState("");
+  const [regenerationBase, setRegenerationBase] = useState<LiveRun | null>(null);
+  const [regenerationDiff, setRegenerationDiff] =
+    useState<RegenerationDiff | null>(null);
   const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const eventSource = useRef<EventSource | null>(null);
 
@@ -289,6 +371,9 @@ export function Studio() {
     setEvents(liveEvents(current));
     if (current.status === "succeeded") {
       setRunState("done");
+      if (current.parent_job_id) {
+        void loadRegenerationDiff(current.job_id, current.parent_job_id);
+      }
       return true;
     }
     if (current.status === "failed" || current.status === "blocked") {
@@ -300,6 +385,31 @@ export function Studio() {
       return true;
     }
     return false;
+  }
+
+  async function loadRegenerationDiff(jobId: string, against: string) {
+    try {
+      const response = await fetch(
+        `/api/runs/${encodeURIComponent(jobId)}/diff?against=${encodeURIComponent(against)}`,
+        { cache: "no-store" },
+      );
+      const json: unknown = await response.json();
+      if (!response.ok) {
+        const parsed = apiErrorSchema.safeParse(json);
+        throw new Error(
+          parsed.success
+            ? parsed.data.error.message
+            : "Dara could not compare the regenerated asset.",
+        );
+      }
+      setRegenerationDiff(regenerationDiffSchema.parse(json));
+    } catch (error) {
+      setRunMessage(
+        error instanceof Error
+          ? error.message
+          : "Dara could not compare the regenerated asset.",
+      );
+    }
   }
 
   async function pollLiveRun(jobId: string) {
@@ -383,6 +493,8 @@ export function Studio() {
     setRunState("running");
     setRunMessage("");
     setLiveRun(null);
+    setRegenerationBase(null);
+    setRegenerationDiff(null);
     if (runMode === "live") {
       try {
         const response = await fetch("/api/runs", {
@@ -431,6 +543,44 @@ export function Studio() {
     });
   }
 
+  async function regenerate() {
+    if (!liveRun || liveRun.status !== "succeeded") return;
+    timers.current.forEach(clearTimeout);
+    eventSource.current?.close();
+    setRegenerationBase(liveRun);
+    setRegenerationDiff(null);
+    setEvents([]);
+    setRunState("running");
+    setRunMessage("Reconstructing the recorded manifest and reapplying policy.");
+    try {
+      const response = await fetch(
+        `/api/runs/${encodeURIComponent(liveRun.job_id)}/regenerate`,
+        { method: "POST" },
+      );
+      const json: unknown = await response.json();
+      if (!response.ok) {
+        const parsed = apiErrorSchema.safeParse(json);
+        throw new Error(
+          parsed.success
+            ? parsed.data.error.message
+            : "Dara could not start the regeneration.",
+        );
+      }
+      const created = liveRunSchema.parse(json);
+      setLiveRun(created);
+      setEvents(liveEvents(created));
+      setRunMessage("");
+      streamLiveRun(created.job_id);
+    } catch (error) {
+      setRunState("done");
+      setRunMessage(
+        error instanceof Error
+          ? error.message
+          : "Dara could not start the regeneration.",
+      );
+    }
+  }
+
   function approve() {
     setToast("Already approved · trusted published hash is on record");
     setTimeout(() => setToast(""), 2200);
@@ -475,6 +625,8 @@ export function Studio() {
                       eventSource.current?.close();
                       setVariants(3);
                       setLiveRun(null);
+                      setRegenerationBase(null);
+                      setRegenerationDiff(null);
                       setEvents(fullEvents);
                       setRunState("done");
                       setRunMessage("");
@@ -490,6 +642,8 @@ export function Studio() {
                       eventSource.current?.close();
                       setVariants(1);
                       setLiveRun(null);
+                      setRegenerationBase(null);
+                      setRegenerationDiff(null);
                       setEvents([]);
                       setRunState("ready");
                       setRunMessage("");
@@ -665,6 +819,24 @@ export function Studio() {
                 </div>
               ))}
             </div>
+            {runMode === "live" && liveRun ? (
+              <>
+                <div className="panel-head">
+                  <h2 className="panel-title">Version history</h2>
+                  <span className="mono hash-short">
+                    {liveRun.attempts.length || 1} ATTEMPT
+                    {(liveRun.attempts.length || 1) === 1 ? "" : "S"}
+                  </span>
+                </div>
+                <VersionTree
+                  runs={
+                    regenerationBase
+                      ? [regenerationBase, liveRun]
+                      : [liveRun]
+                  }
+                />
+              </>
+            ) : null}
             {runMode === "demo" && runState === "done" ? (
               <div className="result-strip">
                 <p><strong>The verified sample is ready.</strong><br />Source and published hashes are recorded separately.</p>
@@ -692,10 +864,74 @@ export function Studio() {
                     Open asset
                   </a>
                 ) : null}
+                <button
+                  className="secondary-btn"
+                  onClick={() => void regenerate()}
+                  type="button"
+                >
+                  Regenerate from manifest
+                </button>
               </div>
             ) : null}
           </section>
         </div>
+        {regenerationDiff ? (
+          <section className="panel regeneration-diff">
+            <div className="panel-head">
+              <h2 className="panel-title">Regeneration diff</h2>
+              <span className="mono hash-short">
+                {regenerationDiff.lineage_verified
+                  ? "LINEAGE VERIFIED"
+                  : "LINEAGE INCOMPLETE"}
+              </span>
+            </div>
+            <div className="diff-assets">
+              {[
+                ["Original", regenerationDiff.original],
+                ["Regenerated", regenerationDiff.regenerated],
+              ].map(([label, run]) => {
+                const comparedRun = run as LiveRun;
+                return (
+                  <article className="diff-asset" key={label as string}>
+                    <span className="eyebrow">{label as string}</span>
+                    {comparedRun.asset_url ? (
+                      // B2 signs these short-lived comparison URLs at request time.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt={`${label as string} Dara asset`}
+                        src={comparedRun.asset_url}
+                      />
+                    ) : (
+                      <div className="diff-asset-missing">Preview unavailable</div>
+                    )}
+                    <span className="mono">
+                      {comparedRun.published_sha256?.slice(0, 16) ?? "hash pending"}…
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="diff-table" role="table" aria-label="Regeneration parameters">
+              <div className="diff-row diff-head" role="row">
+                <span>Parameter</span>
+                <span>Original</span>
+                <span>Regenerated</span>
+                <span>Result</span>
+              </div>
+              {regenerationDiff.parameters.map((parameter) => (
+                <div className="diff-row" role="row" key={parameter.name}>
+                  <strong>{parameter.name}</strong>
+                  <span className="mono">{String(parameter.original ?? "—")}</span>
+                  <span className="mono">{String(parameter.regenerated ?? "—")}</span>
+                  <Badge type={parameter.match ? "allow" : "warn"}>
+                    {parameter.match ? "Matched" : "Drifted"}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            <p className="trust-note">{regenerationDiff.non_deterministic_note}</p>
+          </section>
+        ) : null}
       </section>
       {toast ? <div className="toast" role="status">{toast}</div> : null}
     </Shell>

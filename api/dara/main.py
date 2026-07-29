@@ -18,6 +18,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Annotated, Literal
 
+from genblaze_core import Manifest
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -41,15 +42,17 @@ from .jobs import (
     LiveRunRecord,
     LiveRunStore,
     MemoryLiveRunStore,
+    RunAttempt,
 )
 from .ledger import QUERY_SQL, AccountingRecord, get_ledger, write_accounting_record
-from .pipelines.still import QARejectedError, run_still_pipeline
+from .pipelines.still import ASPECT_SIZES, QARejectedError, run_still_pipeline
 from .storage import DaraStorage, StorageUnavailableError
 from .verify import (
     InvalidHashError,
     UnsupportedMediaError,
     VerificationResponse,
     Verifier,
+    manifest_key,
 )
 
 logger = logging.getLogger("dara.api")
@@ -456,7 +459,27 @@ async def execute_live_still(job_id: str) -> None:
         )
         await live_run_store.put(run)
 
+    async def record_attempt(attempt: dict[str, object]) -> None:
+        run.upsert_attempt(RunAttempt.model_validate(attempt))
+        await live_run_store.put(run)
+
     try:
+        parent_manifest: Manifest | None = None
+        if run.parent_job_id is not None:
+            parent = await live_run_store.get(tenant_id, run.parent_job_id)
+            if parent is None or parent.genblaze_run_id is None:
+                raise RuntimeError(
+                    "The regeneration parent no longer has a trusted run."
+                )
+            parent_manifest = await asyncio.to_thread(
+                DaraStorage.from_env().get_json,
+                manifest_key(parent.genblaze_run_id),
+                Manifest,
+            )
+            if parent_manifest is None:
+                raise RuntimeError(
+                    "The regeneration parent manifest is missing from B2."
+                )
         output = await run_still_pipeline(
             tenant_id=run.tenant_id,
             project_id=run.project_id,
@@ -464,6 +487,8 @@ async def execute_live_still(job_id: str) -> None:
             aspect_ratio=run.aspect_ratio,
             estimated_cost_usd=run.expected_cost_usd,
             on_event=record_event,
+            on_attempt=record_attempt,
+            parent_manifest=parent_manifest,
         )
         run.status = "succeeded"
         run.genblaze_run_id = output.run_id
@@ -687,10 +712,11 @@ async def ledger_query(
         ) from exc
 
 
-@app.post("/v1/runs", status_code=202)
-async def create_live_run(
+async def queue_live_run(
     request: LiveRunRequest,
-    _: Annotated[None, Depends(require_workspace_token)],
+    *,
+    parent_job_id: str | None = None,
+    source_manifest_hash: str | None = None,
 ) -> dict[str, object]:
     if os.getenv("DARA_LIVE_GENERATION_ENABLED", "false").lower() != "true":
         raise DaraApiError(
@@ -743,6 +769,34 @@ async def create_live_run(
     await store.put_job(policy_job)
 
     if blocked:
+        blocked_run = LiveRunRecord(
+            job_id=job_id,
+            tenant_id=tenant_id,
+            project_id=request.project_id,
+            prompt=request.prompt,
+            aspect_ratio=request.aspect_ratio,
+            variants=request.variants,
+            policy_id=request.policy_id,
+            expected_cost_usd=estimate.expected_usd,
+            worst_case_cost_usd=estimate.worst_case_usd,
+            actual_cost_usd=money("0"),
+            cost_basis="known",
+            status="blocked",
+            parent_job_id=parent_job_id,
+            source_manifest_hash=source_manifest_hash,
+            error_code="POLICY_BLOCKED",
+            error_message=policy_job.error,
+        )
+        blocked_run.append_event(
+            "policy.blocked",
+            (
+                policy_job.error
+                or "This run was blocked before any provider call. Nothing was spent."
+            ),
+            provider="dara",
+            model="policy/v1",
+        )
+        await live_run_store.put(blocked_run)
         await asyncio.to_thread(
             write_accounting_record,
             DaraStorage.from_env(),
@@ -789,6 +843,8 @@ async def create_live_run(
         policy_id=request.policy_id,
         expected_cost_usd=estimate.expected_usd,
         worst_case_cost_usd=estimate.worst_case_usd,
+        parent_job_id=parent_job_id,
+        source_manifest_hash=source_manifest_hash,
     )
     live_run.append_event(
         "policy.allowed",
@@ -806,6 +862,14 @@ async def create_live_run(
     return await live_run_payload(live_run)
 
 
+@app.post("/v1/runs", status_code=202)
+async def create_live_run(
+    request: LiveRunRequest,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    return await queue_live_run(request)
+
+
 @app.get("/v1/runs/{job_id}")
 async def read_live_run(
     job_id: str,
@@ -816,6 +880,159 @@ async def read_live_run(
     if run is None:
         raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
     return await live_run_payload(run)
+
+
+async def trusted_manifest_for(run: LiveRunRecord) -> Manifest:
+    if run.genblaze_run_id is None:
+        raise DaraApiError(
+            409,
+            "RUN_NOT_REGENERATABLE",
+            "This job has no completed Genblaze run to regenerate.",
+        )
+    manifest = await asyncio.to_thread(
+        DaraStorage.from_env().get_json,
+        manifest_key(run.genblaze_run_id),
+        Manifest,
+    )
+    if manifest is None or not manifest.verify_hash() or not manifest.verify():
+        raise DaraApiError(
+            409,
+            "MANIFEST_UNTRUSTED",
+            "The trusted manifest is missing or failed its integrity checks.",
+        )
+    return manifest
+
+
+@app.post("/v1/regenerate/{job_id}", status_code=202)
+async def regenerate_live_run(
+    job_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    original = await live_run_store.get(tenant_id, job_id)
+    if original is None:
+        raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
+    if original.pipeline_id != "still-campaign":
+        raise DaraApiError(
+            409,
+            "RUN_NOT_REGENERATABLE",
+            "Only the still-campaign pipeline can be regenerated in this release.",
+        )
+    manifest = await trusted_manifest_for(original)
+    if not manifest.run.steps:
+        raise DaraApiError(
+            409,
+            "MANIFEST_UNSUPPORTED",
+            "The trusted manifest has no generation step to reconstruct.",
+        )
+    step = manifest.run.steps[0]
+    size = step.params.get("size")
+    aspect_ratio = next(
+        (ratio for ratio, candidate in ASPECT_SIZES.items() if candidate == size),
+        None,
+    )
+    if (
+        step.provider not in {"openai", "openai-dalle"}
+        or step.model != "gpt-image-2"
+        or step.prompt is None
+        or aspect_ratio is None
+        or step.params.get("n", 1) != 1
+    ):
+        raise DaraApiError(
+            409,
+            "MANIFEST_UNSUPPORTED",
+            "This manifest cannot be safely reconstructed by the live still pipeline.",
+        )
+    request = LiveRunRequest(
+        project_id=manifest.run.project_id or original.project_id,
+        policy_id=original.policy_id,
+        prompt=step.prompt,
+        aspect_ratio=aspect_ratio,
+        variants=1,
+    )
+    return await queue_live_run(
+        request,
+        parent_job_id=original.job_id,
+        source_manifest_hash=manifest.canonical_hash,
+    )
+
+
+@app.get("/v1/runs/{job_id}/diff")
+async def diff_live_runs(
+    job_id: str,
+    against: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    current, other = await asyncio.gather(
+        live_run_store.get(tenant_id, job_id),
+        live_run_store.get(tenant_id, against),
+    )
+    if current is None or other is None:
+        raise DaraApiError(404, "NOT_FOUND", "One of the requested jobs was not found.")
+    if current.parent_job_id == other.job_id:
+        original, regenerated = other, current
+    elif other.parent_job_id == current.job_id:
+        original, regenerated = current, other
+    else:
+        raise DaraApiError(
+            400,
+            "RUNS_NOT_RELATED",
+            "The requested jobs are not a direct regeneration pair.",
+        )
+
+    original_manifest, regenerated_manifest = await asyncio.gather(
+        trusted_manifest_for(original),
+        trusted_manifest_for(regenerated),
+    )
+    original_step = original_manifest.run.steps[0]
+    regenerated_step = regenerated_manifest.run.steps[0]
+    original_payload, regenerated_payload = await asyncio.gather(
+        live_run_payload(original),
+        live_run_payload(regenerated),
+    )
+    parameter_pairs = (
+        ("Prompt", original_step.prompt, regenerated.prompt),
+        ("Aspect ratio", original.aspect_ratio, regenerated.aspect_ratio),
+        ("Variants", original.variants, regenerated.variants),
+        ("Provider", original_step.provider, regenerated_step.provider),
+        ("Model", original_step.model, regenerated_step.model),
+        ("Size", original_step.params.get("size"), regenerated_step.params.get("size")),
+        (
+            "Quality",
+            original_step.params.get("quality"),
+            regenerated_step.params.get("quality"),
+        ),
+        (
+            "Output format",
+            original_step.params.get("output_format"),
+            regenerated_step.params.get("output_format"),
+        ),
+    )
+    return {
+        "original": original_payload,
+        "regenerated": regenerated_payload,
+        "parameters": [
+            {
+                "name": name,
+                "original": left,
+                "regenerated": right,
+                "match": left == right,
+            }
+            for name, left, right in parameter_pairs
+        ],
+        "source_manifest_hash": regenerated.source_manifest_hash,
+        "lineage_verified": (
+            regenerated.parent_job_id == original.job_id
+            and bool(regenerated.attempts)
+            and regenerated.attempts[0].parent_run_id
+            == original.genblaze_run_id
+        ),
+        "non_deterministic_note": (
+            "Dara reproduces the recorded generation conditions and lineage. "
+            "Media models are not guaranteed to return identical bytes."
+        ),
+    }
 
 
 @app.get("/v1/runs/{job_id}/events")

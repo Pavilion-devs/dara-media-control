@@ -14,6 +14,12 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
   result preview
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,
   bounded prompt revision, parent-run lineage, and publish-only-after-QA behavior
+- A persisted version tree for every QA attempt, including rejected and failed runs,
+  with native Genblaze `parent_run_id` links rather than reconstructed UI-only history
+- Manifest-based regeneration that re-applies policy, links both Dara jobs and
+  Genblaze runs, then compares the original and regenerated assets side by side
+- A live regeneration proof whose eight canonical conditions matched, whose native
+  lineage verified, and whose regenerated asset passed visual QA at 0.95
 - Pre-flight policy admission with exact-decimal reservations, a $1 standard daily
   cap, and a guaranteed zero-spend block before any provider call
 - Honest replay of the recorded OpenAI → Genblaze → B2 proof; it is clearly labelled

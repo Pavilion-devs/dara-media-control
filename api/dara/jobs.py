@@ -31,6 +31,21 @@ class RunEvent(BaseModel):
     message: str
 
 
+class RunAttempt(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    attempt: int = Field(ge=1)
+    genblaze_run_id: str
+    parent_run_id: str | None = None
+    status: Literal["running", "rejected", "approved", "failed"]
+    prompt: str | None = None
+    provider: str | None = None
+    model: str | None = None
+    qa_score: float | None = Field(default=None, ge=0, le=1)
+    asset_id: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
 class LiveRunRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -62,6 +77,9 @@ class LiveRunRecord(BaseModel):
     qa_score: float | None = None
     qa_attempts: int = 0
     qa_issues: list[str] = Field(default_factory=list)
+    parent_job_id: str | None = None
+    source_manifest_hash: str | None = None
+    attempts: list[RunAttempt] = Field(default_factory=list)
     error_code: str | None = None
     error_message: str | None = None
 
@@ -84,6 +102,16 @@ class LiveRunRecord(BaseModel):
                 message=message,
             )
         )
+        self.updated_at = datetime.now(UTC)
+
+    def upsert_attempt(self, attempt: RunAttempt) -> None:
+        for index, current in enumerate(self.attempts):
+            if current.genblaze_run_id == attempt.genblaze_run_id:
+                self.attempts[index] = attempt
+                break
+        else:
+            self.attempts.append(attempt)
+        self.attempts.sort(key=lambda item: item.attempt)
         self.updated_at = datetime.now(UTC)
 
 

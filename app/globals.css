@@ -551,6 +551,90 @@ select:focus-visible {
   text-decoration: none;
 }
 
+.version-tree .version-row > span:nth-child(2) {
+  display: grid;
+  gap: 4px;
+}
+
+.version-tree .version-row strong {
+  font-size: 12px;
+}
+
+.version-tree .version-row small {
+  color: var(--slate);
+  overflow-wrap: anywhere;
+}
+
+.regeneration-diff {
+  margin-top: 24px;
+}
+
+.diff-assets {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.diff-asset {
+  background: white;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.diff-asset:first-child {
+  border-right: 1px solid var(--rule);
+}
+
+.diff-asset img,
+.diff-asset-missing {
+  aspect-ratio: 16 / 10;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  object-fit: cover;
+  width: 100%;
+}
+
+.diff-asset-missing {
+  color: var(--slate);
+  display: grid;
+  font-size: 12px;
+  place-items: center;
+}
+
+.diff-table {
+  overflow-x: auto;
+}
+
+.diff-row {
+  align-items: center;
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  font-size: 12px;
+  gap: 14px;
+  grid-template-columns: 130px minmax(180px, 1fr) minmax(180px, 1fr) 88px;
+  min-width: 700px;
+  padding: 12px 16px;
+}
+
+.diff-row > span {
+  overflow-wrap: anywhere;
+}
+
+.diff-head {
+  background: var(--paper);
+  color: var(--slate);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.regeneration-diff .trust-note {
+  margin: 0;
+}
+
 .hash-short {
   color: var(--slate);
   font-size: 11px;
@@ -1026,8 +1110,13 @@ td {
   }
 
   .studio-grid,
-  .asset-grid {
+  .asset-grid,
+  .diff-assets {
     grid-template-columns: 1fr;
+  }
+
+  .diff-asset:first-child {
+    border-right: 0;
   }
 
   .run-summary {

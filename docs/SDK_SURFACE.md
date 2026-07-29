@@ -37,6 +37,9 @@ Confirmed constructor and method shape:
   fallback_models=None, input_from=None, params=None, **extra_params)`
 - `Pipeline.run(*, sink=None, fail_fast=True, raise_on_failure=None, timeout=None, ...)`
 - `Pipeline.arun(...)` and `Pipeline.astream(...)`
+- `Pipeline.from_result(result: PipelineResult)` sets the next run's
+  `parent_run_id` to `result.run.run_id`; Dara uses this for QA revisions and
+  manifest-based regeneration.
 - `ObjectStorageSink(backend, *, prefix="genblaze",
   key_strategy=KeyStrategy.CONTENT_ADDRESSABLE, parquet_sink=None, ...)`
 - `ParquetSink(base_dir, *, policy=None)` writes to a local directory.

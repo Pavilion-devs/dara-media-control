@@ -14,10 +14,12 @@ from typing import Any, Literal
 from genblaze_core import (
     AgentLoop,
     KeyStrategy,
+    Manifest,
     Modality,
     ObjectStorageSink,
     ParquetSink,
     Pipeline,
+    PipelineResult,
 )
 from genblaze_core.media import SmartEmbedder
 from genblaze_openai import DalleProvider
@@ -73,6 +75,7 @@ class QARejectedError(RuntimeError):
 
 
 EventCallback = Callable[[dict[str, object]], Awaitable[None]]
+AttemptCallback = Callable[[dict[str, object]], Awaitable[None]]
 
 
 def _content_address(kind: str, sha256: str, extension: str) -> str:
@@ -277,6 +280,8 @@ async def run_still_pipeline(
     aspect_ratio: str,
     estimated_cost_usd: Decimal,
     on_event: EventCallback,
+    on_attempt: AttemptCallback | None = None,
+    parent_manifest: Manifest | None = None,
 ) -> StillPipelineOutput:
     required = (
         "OPENAI_API_KEY",
@@ -298,6 +303,9 @@ async def run_still_pipeline(
     result = None
     qa_passed = False
     qa_attempts = 0
+    attempt_number = 0
+    current_run_id: str | None = None
+    current_prompt: str | None = None
     with tempfile.TemporaryDirectory(prefix="dara-live-still-") as output_dir:
         storage = DaraStorage.from_env()
         staging_dir = Path(output_dir) / "ledger"
@@ -317,14 +325,16 @@ async def run_still_pipeline(
         evaluator = OpenAIVisionEvaluator(storage=storage, brief=prompt)
 
         def pipeline_factory(context: Any) -> Pipeline:
+            nonlocal current_prompt
             candidate_prompt = (
                 context.last_evaluation.feedback
                 if context.last_evaluation is not None
                 and context.last_evaluation.feedback
                 else prompt
             )
+            current_prompt = candidate_prompt
             provider = DalleProvider(output_dir=output_dir, http_timeout=180.0)
-            return Pipeline(
+            pipeline = Pipeline(
                 "still-campaign",
                 tenant_id=tenant_id,
                 project_id=project_id,
@@ -339,6 +349,11 @@ async def run_still_pipeline(
                 output_format="png",
                 n=1,
             )
+            if not context.prior_results and parent_manifest is not None:
+                pipeline.from_result(
+                    PipelineResult(parent_manifest.run, parent_manifest)
+                )
+            return pipeline
         agent = AgentLoop(
             pipeline_factory,
             evaluator,
@@ -354,7 +369,84 @@ async def run_still_pipeline(
                 raise_on_failure=True,
             ):
                 await on_event(_event_payload(event))
-                if getattr(event, "type", None) == "agent.completed":
+                event_type = getattr(event, "type", None)
+                if event_type == "pipeline.started":
+                    attempt_number += 1
+                    current_run_id = str(getattr(event, "run_id"))
+                    if on_attempt is not None:
+                        await on_attempt(
+                            {
+                                "attempt": attempt_number,
+                                "genblaze_run_id": current_run_id,
+                                "parent_run_id": (
+                                    parent_manifest.run.run_id
+                                    if attempt_number == 1
+                                    and parent_manifest is not None
+                                    else None
+                                ),
+                                "status": "running",
+                                "prompt": current_prompt,
+                                "provider": "openai",
+                                "model": "gpt-image-2",
+                                "created_at": getattr(
+                                    event,
+                                    "timestamp",
+                                    datetime.now(UTC),
+                                ),
+                            }
+                        )
+                elif event_type == "agent.iteration.evaluated":
+                    attempt_result = getattr(event, "result", None)
+                    if attempt_result is not None and on_attempt is not None:
+                        attempt_run = attempt_result.run
+                        step = attempt_run.steps[0]
+                        await on_attempt(
+                            {
+                                "attempt": int(getattr(event, "iteration", 0)) + 1,
+                                "genblaze_run_id": attempt_run.run_id,
+                                "parent_run_id": attempt_run.parent_run_id,
+                                "status": (
+                                    "approved"
+                                    if bool(getattr(event, "passed", False))
+                                    else "rejected"
+                                ),
+                                "prompt": step.prompt,
+                                "provider": step.provider,
+                                "model": step.model,
+                                "qa_score": getattr(event, "score", None),
+                                "asset_id": (
+                                    step.assets[0].asset_id
+                                    if step.assets
+                                    else None
+                                ),
+                                "created_at": attempt_run.created_at,
+                            }
+                        )
+                elif event_type in {"pipeline.failed", "step.failed"}:
+                    failed_run_id = getattr(event, "run_id", None) or current_run_id
+                    if failed_run_id is not None and on_attempt is not None:
+                        await on_attempt(
+                            {
+                                "attempt": max(1, attempt_number),
+                                "genblaze_run_id": str(failed_run_id),
+                                "parent_run_id": (
+                                    parent_manifest.run.run_id
+                                    if attempt_number == 1
+                                    and parent_manifest is not None
+                                    else None
+                                ),
+                                "status": "failed",
+                                "prompt": current_prompt,
+                                "provider": getattr(event, "provider", "openai"),
+                                "model": getattr(event, "model", "gpt-image-2"),
+                                "created_at": getattr(
+                                    event,
+                                    "timestamp",
+                                    datetime.now(UTC),
+                                ),
+                            }
+                        )
+                if event_type == "agent.completed":
                     result = getattr(event, "result", None)
                     qa_passed = bool(getattr(event, "passed", False))
                     qa_attempts = int(getattr(event, "iterations", 0))

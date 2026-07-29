@@ -8,11 +8,37 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from genblaze_core import Asset, Modality, Pipeline
+from genblaze_core.testing import MockProvider
 
 import dara.main as main_module
-from dara.jobs import LiveRunRecord, MemoryLiveRunStore
+from dara.jobs import LiveRunRecord, MemoryLiveRunStore, RunAttempt
 from dara.pipelines.still import StillPipelineOutput
 from dara.policy import JobRecord, MemoryJobStore, PolicyEngine, money
+
+
+def still_manifest(prompt: str = "A controlled still-image pipeline test"):
+    asset = Asset(
+        url="memory://candidate.png",
+        media_type="image/png",
+        sha256="a" * 64,
+        size_bytes=128,
+    )
+    return (
+        Pipeline("still-campaign", tenant_id="demo", project_id="prj_test")
+        .step(
+            MockProvider(name="openai", assets=[asset]),
+            model="gpt-image-2",
+            prompt=prompt,
+            modality=Modality.IMAGE,
+            size="1024x1024",
+            quality="low",
+            output_format="png",
+            n=1,
+        )
+        .run(raise_on_failure=True)
+        .manifest
+    )
 
 
 class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
@@ -36,6 +62,45 @@ class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(restored.events[0].seq, 1)
         original.events[0].message = "Changed locally."
         self.assertEqual(restored.events[0].message, "Allowed.")
+
+    async def test_attempts_are_upserted_into_a_parent_linked_version_tree(self) -> None:
+        run = LiveRunRecord(
+            job_id="job_versions",
+            project_id="prj_test",
+            prompt="A controlled still-image pipeline test",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.010000"),
+            worst_case_cost_usd=Decimal("0.030000"),
+        )
+        run.upsert_attempt(
+            RunAttempt(
+                attempt=1,
+                genblaze_run_id="run_first",
+                status="running",
+            )
+        )
+        run.upsert_attempt(
+            RunAttempt(
+                attempt=1,
+                genblaze_run_id="run_first",
+                status="rejected",
+                qa_score=0.54,
+            )
+        )
+        run.upsert_attempt(
+            RunAttempt(
+                attempt=2,
+                genblaze_run_id="run_second",
+                parent_run_id="run_first",
+                status="approved",
+                qa_score=0.91,
+            )
+        )
+
+        self.assertEqual(len(run.attempts), 2)
+        self.assertEqual(run.attempts[0].status, "rejected")
+        self.assertEqual(run.attempts[1].parent_run_id, "run_first")
 
     async def test_startup_reconciliation_fails_nonterminal_jobs_safely(self) -> None:
         run_store = MemoryLiveRunStore()
@@ -218,6 +283,126 @@ class LiveRunEndpointTests(unittest.TestCase):
         self.assertIn("event: run.event", body)
         self.assertIn("event: run.snapshot", body)
         self.assertIn('"status":"succeeded"', body)
+
+    def test_regeneration_reconstructs_the_manifest_and_links_the_parent_job(self) -> None:
+        run_store = MemoryLiveRunStore()
+        manifest = still_manifest()
+        original = LiveRunRecord(
+            job_id="job_1234567890abcdef1234",
+            project_id="prj_original",
+            prompt="Editable UI text that must not be replayed",
+            aspect_ratio="3:2",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.015000"),
+            worst_case_cost_usd=Decimal("0.045000"),
+            status="succeeded",
+            genblaze_run_id=manifest.run.run_id,
+            manifest_hash=manifest.canonical_hash,
+        )
+        asyncio.run(run_store.put(original))
+        captured: dict[str, object] = {}
+
+        async def fake_manifest(_: LiveRunRecord):
+            return manifest
+
+        async def fake_queue(
+            request: main_module.LiveRunRequest,
+            *,
+            parent_job_id: str | None = None,
+            source_manifest_hash: str | None = None,
+        ) -> dict[str, object]:
+            captured.update(
+                request=request,
+                parent_job_id=parent_job_id,
+                source_manifest_hash=source_manifest_hash,
+            )
+            return {"job_id": "job_regenerated"}
+
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.object(main_module, "trusted_manifest_for", fake_manifest),
+            patch.object(main_module, "queue_live_run", fake_queue),
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+        ):
+            with TestClient(main_module.app) as client:
+                response = client.post(
+                    f"/v1/regenerate/{original.job_id}",
+                    headers={"Authorization": "Bearer test-token"},
+                )
+
+        self.assertEqual(response.status_code, 202)
+        request = captured["request"]
+        assert isinstance(request, main_module.LiveRunRequest)
+        self.assertEqual(request.prompt, manifest.run.steps[0].prompt)
+        self.assertEqual(request.aspect_ratio, "1:1")
+        self.assertEqual(captured["parent_job_id"], original.job_id)
+        self.assertEqual(
+            captured["source_manifest_hash"],
+            manifest.canonical_hash,
+        )
+
+    def test_diff_requires_direct_lineage_and_reports_reproducible_conditions(
+        self,
+    ) -> None:
+        run_store = MemoryLiveRunStore()
+        original_manifest = still_manifest()
+        regenerated_manifest = still_manifest()
+        original = LiveRunRecord(
+            job_id="job_1234567890abcdef1234",
+            project_id="prj_test",
+            prompt=str(original_manifest.run.steps[0].prompt),
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.015000"),
+            worst_case_cost_usd=Decimal("0.045000"),
+            actual_cost_usd=Decimal("0.015000"),
+            status="succeeded",
+            genblaze_run_id=original_manifest.run.run_id,
+        )
+        regenerated = original.model_copy(
+            update={
+                "job_id": "job_abcdef1234567890abcd",
+                "parent_job_id": original.job_id,
+                "genblaze_run_id": regenerated_manifest.run.run_id,
+                "source_manifest_hash": original_manifest.canonical_hash,
+                "attempts": [
+                    RunAttempt(
+                        attempt=1,
+                        genblaze_run_id=regenerated_manifest.run.run_id,
+                        parent_run_id=original_manifest.run.run_id,
+                        status="approved",
+                    )
+                ],
+            },
+            deep=True,
+        )
+        asyncio.run(run_store.put(original))
+        asyncio.run(run_store.put(regenerated))
+
+        async def fake_manifest(run: LiveRunRecord):
+            return (
+                original_manifest
+                if run.job_id == original.job_id
+                else regenerated_manifest
+            )
+
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.object(main_module, "trusted_manifest_for", fake_manifest),
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+        ):
+            with TestClient(main_module.app) as client:
+                response = client.get(
+                    f"/v1/runs/{regenerated.job_id}/diff",
+                    params={"against": original.job_id},
+                    headers={"Authorization": "Bearer test-token"},
+                )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["lineage_verified"])
+        self.assertTrue(all(item["match"] for item in payload["parameters"]))
+        self.assertIn("not guaranteed", payload["non_deterministic_note"])
 
 
 if __name__ == "__main__":

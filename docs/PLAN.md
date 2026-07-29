@@ -127,7 +127,7 @@ Work top to bottom. Each task is one commit.
       prompt on failure, retries linked by `parent_run_id`, attempt cap from policy.
 - [x] **T-26** SSE endpoint streaming pipeline step events via `astream()`.
 - [x] **T-27** Studio screen: brief form, policy selector, live step stream, result.
-- [ ] **T-28** Version tree component — every attempt including failures, linked by
+- [x] **T-28** Version tree component — every attempt including failures, linked by
       parent run.
 
 ### Phase 4 — ledger and regeneration (M4, M5)
@@ -142,10 +142,10 @@ Work top to bottom. Each task is one commit.
       **Allowlist the queries** — never pass raw user SQL to DuckDB.
 - [x] **T-32** Ledger screen: spend by model, by project, by month; cost per approved
       asset including failed retries.
-- [ ] **T-33** `POST /v1/regenerate/{job_id}` — resolve the job's
+- [x] **T-33** `POST /v1/regenerate/{job_id}` — resolve the job's
       `genblaze_run_id`, reconstruct params from the manifest, re-run, link Dara jobs via
       `parent_job_id` and Genblaze runs via `parent_run_id`.
-- [ ] **T-34** Regeneration diff view: original vs regenerated, side by side, with a
+- [x] **T-34** Regeneration diff view: original vs regenerated, side by side, with a
       parameter diff table.
 
 ### Phase 5 — remaining pipelines and sharing
