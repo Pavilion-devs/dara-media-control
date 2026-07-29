@@ -9,7 +9,7 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 
 - Private Studio with an explicit **Live OpenAI** mode, authenticated server-side so
   the workspace token and provider key never reach the browser
-- Asynchronous `gpt-image-2` still generation with a `gpt-image-1-mini` fallback,
+- Asynchronous `gpt-image-2` still generation with its verified dated snapshot fallback,
   durable B2 job events, authenticated SSE streaming, polling fallback, and a signed
   result preview
 - A real Genblaze `AgentLoop` with structured `gpt-4.1-mini` vision scoring,

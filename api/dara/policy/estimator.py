@@ -29,14 +29,33 @@ def registry_step_cost(
         provider=planned.provider,
         model=planned.model,
         modality=modality,
+        prompt=(
+            "x" * planned.units
+            if modality is Modality.AUDIO
+            else None
+        ),
     )
-    assets = tuple(
-        Asset(
-            url=f"estimate://{planned.model}/{index}",
-            media_type="application/octet-stream",
+    if modality is Modality.VIDEO:
+        assets = tuple(
+            Asset(
+                url=f"estimate://{planned.model}/{index}",
+                media_type="video/mp4",
+                duration=float(planned.units),
+            )
+            for index in range(plan.variants)
         )
-        for index in range(planned.units * plan.variants)
-    )
+    else:
+        assets = tuple(
+            Asset(
+                url=f"estimate://{planned.model}/{index}",
+                media_type="application/octet-stream",
+            )
+            for index in range(
+                plan.variants
+                if modality is Modality.AUDIO
+                else planned.units * plan.variants
+            )
+        )
     value = strategy(PricingContext(step=step, assets=assets))
     return money(value) if value is not None else None
 

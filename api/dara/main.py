@@ -36,12 +36,12 @@ from .policy import (
     Policy,
     PolicyEngine,
     PolicyStore,
-    Price,
     RunPlan,
     StoredDecision,
     job_to_json,
     money,
 )
+from .providers import POLICY_REGISTRY, ROUTES, unit_reservation
 from .jobs import (
     B2LiveRunStore,
     LiveRunRecord,
@@ -291,21 +291,6 @@ async def seed_and_hydrate_policies() -> None:
         resolved[persisted.policy_id] = persisted
     POLICIES.clear()
     POLICIES.update(resolved)
-
-MODEL_PRICES = {
-    # Conservative policy reservation for one low-quality image. OpenAI bills
-    # GPT Image 2 by image tokens, so the settled ledger will use actual usage.
-    "gpt-image-2": Price(
-        model="gpt-image-2",
-        per_unit_usd=money("0.010000"),
-    ),
-    # Covers one structured low-detail vision evaluation. The adapter exposes
-    # tokens but not a settled USD amount, so live jobs label this estimated.
-    "gpt-4.1-mini": Price(
-        model="gpt-4.1-mini",
-        per_unit_usd=money("0.005000"),
-    ),
-}
 
 
 @app.middleware("http")
@@ -586,10 +571,10 @@ async def execute_live_still(job_id: str) -> None:
             aspect_ratio=run.aspect_ratio,
             estimated_cost_usd=run.expected_cost_usd,
             generation_cost_usd=(
-                MODEL_PRICES["gpt-image-2"].per_unit_usd or money("0")
+                unit_reservation("gpt-image-2") or money("0")
             ),
             qa_cost_usd=(
-                MODEL_PRICES["gpt-4.1-mini"].per_unit_usd or money("0")
+                unit_reservation("gpt-4.1-mini") or money("0")
             ),
             policy=get_policy(run.policy_id),
             policy_engine=engine,
@@ -745,38 +730,40 @@ async def healthz() -> dict[str, object]:
 
 @app.get("/v1/models")
 async def list_models() -> dict[str, object]:
-    return {
-        "items": [
-            {
-                "provider": "openai",
-                "model": "gpt-image-2",
-                "modality": "image",
-                "availability": (
-                    "configured"
-                    if os.getenv("OPENAI_API_KEY")
-                    else "unconfigured"
-                ),
-                "reservation_per_image_usd": str(
-                    MODEL_PRICES["gpt-image-2"].per_unit_usd
-                ),
-                "pricing_basis": "conservative low-quality policy reservation",
-            },
-            {
-                "provider": "openai",
-                "model": "gpt-4.1-mini",
-                "modality": "vision-qa",
-                "availability": (
-                    "configured"
-                    if os.getenv("OPENAI_API_KEY")
-                    else "unconfigured"
-                ),
-                "reservation_per_evaluation_usd": str(
-                    MODEL_PRICES["gpt-4.1-mini"].per_unit_usd
-                ),
-                "pricing_basis": "conservative structured vision evaluation",
-            },
-        ]
-    }
+    availability = (
+        "configured"
+        if os.getenv("OPENAI_API_KEY")
+        else "unconfigured"
+    )
+    items: list[dict[str, object]] = []
+    for route in ROUTES.values():
+        item: dict[str, object] = {
+            "provider": route.provider,
+            "model": route.primary_model,
+            "fallback_models": list(route.fallback_models),
+            "modality": route.modality.value,
+            "availability": availability,
+            "reservation_usd": str(route.price_usd),
+            "reservation_unit": route.price_unit,
+            "pricing_basis": route.pricing_basis,
+        }
+        if route.modality.value == "image":
+            item["reservation_per_image_usd"] = str(route.price_usd)
+        items.append(item)
+    items.append(
+        {
+            "provider": "openai",
+            "model": "gpt-4.1-mini",
+            "fallback_models": [],
+            "modality": "vision-qa",
+            "availability": availability,
+            "reservation_per_evaluation_usd": str(
+                unit_reservation("gpt-4.1-mini")
+            ),
+            "pricing_basis": "conservative structured vision evaluation",
+        }
+    )
+    return {"items": items}
 
 
 @app.get("/v1/policies")
@@ -955,7 +942,7 @@ async def queue_live_run(
     estimate, decision = await engine.admit(
         get_policy(request.policy_id),
         plan,
-        MODEL_PRICES,
+        POLICY_REGISTRY,
     )
     blocked = decision.outcome.value == "block"
     policy_job = JobRecord(
@@ -1377,7 +1364,9 @@ async def simulate(
     _: Annotated[None, Depends(require_workspace_token)],
 ) -> dict[str, object]:
     estimate, decision = await engine.simulate(
-        get_policy(policy_id), request.to_plan(), MODEL_PRICES
+        get_policy(policy_id),
+        request.to_plan(),
+        POLICY_REGISTRY,
     )
     return decision_payload(estimate, decision)
 
@@ -1389,13 +1378,20 @@ async def create_demo_job(
     policy_id: str = "pol_standard",
 ) -> dict[str, object]:
     plan = request.to_plan()
-    estimate, _ = await engine.simulate(get_policy(policy_id), plan, MODEL_PRICES)
+    estimate, _ = await engine.simulate(
+        get_policy(policy_id),
+        plan,
+        POLICY_REGISTRY,
+    )
 
     async def demo_provider(_: RunPlan) -> Decimal:
         return estimate.expected_usd
 
     job = await engine.execute(
-        get_policy(policy_id), plan, MODEL_PRICES, demo_provider
+        get_policy(policy_id),
+        plan,
+        POLICY_REGISTRY,
+        demo_provider,
     )
     if job.status == "blocked":
         raise DaraApiError(

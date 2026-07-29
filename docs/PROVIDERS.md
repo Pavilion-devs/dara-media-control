@@ -31,8 +31,8 @@ reorder — measured latency beats assumption.
 | Rank | Provider | Model | Status |
 |---|---|---|---|
 | 1 | openai | `gpt-image-2` | Active primary; four production successes, one recorded failure |
-| 2 | openai | `gpt-image-1.5` | Deprecated legacy model; not an acceptable long-term fallback |
-| 3 | openai | `gpt-image-1-mini` | Deprecated legacy model; remove from the live chain before submission |
+| 2 | openai | `gpt-image-2-2026-04-21` | Active snapshot fallback; confirmed present in the deployed account catalog without spending |
+| 3 | openai | `gpt-image-1.5` / `gpt-image-1-mini` | Deprecated and removed from Dara's live chain |
 | 4 | second provider | Not selected | T-03 remains open until a real provider-diverse probe succeeds |
 
 The current OpenAI catalog calls GPT Image 2 the state-of-the-art image model and
@@ -57,9 +57,10 @@ not an error state — graceful degradation is a production-readiness signal.
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | openai | `gpt-4o-mini-tts` | Primary candidate using the existing key |
-| 2 | elevenlabs | To be measured | Provider-diverse voice fallback |
-| 3 | — | no narration | Graceful degradation for motion output |
+| 1 | openai | `tts-1` | Active primary using the existing key; $0.015 per 1K input characters |
+| 2 | openai | `tts-1-hd` | Same-provider quality fallback; $0.030 per 1K input characters |
+| 3 | elevenlabs | To be measured | Provider-diverse voice fallback |
+| 4 | — | no narration | Graceful degradation for motion output |
 
 ### Chat — prompt expansion and QA scoring
 

@@ -117,7 +117,7 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 3 — generation (M3)
 
-- [ ] **T-22** `providers.py`: provider factory, per-modality fallback chains, custom
+- [x] **T-22** `providers.py`: provider factory, per-modality fallback chains, custom
       `ModelRegistry` with real pricing for cost display.
 - [x] **T-23** `jobs.py`: async job registry. Records persisted to B2 on every state
       transition. State survives a process restart; startup reconciliation marks stale

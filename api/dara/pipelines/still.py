@@ -22,10 +22,8 @@ from genblaze_core import (
     PipelineResult,
 )
 from genblaze_core.media import SmartEmbedder
-from genblaze_openai import DalleProvider
 from genblaze_s3 import S3StorageBackend
 
-from ..storage import DaraStorage
 from ..policy import (
     CostEstimate,
     Decision,
@@ -35,6 +33,8 @@ from ..policy import (
     Severity,
     money,
 )
+from ..providers import provider_for, route_for
+from ..storage import DaraStorage
 from ..verify import (
     AssetRef,
     HashIndexPointer,
@@ -434,15 +434,20 @@ async def run_still_pipeline(
                 else prompt
             )
             current_prompt = candidate_prompt
-            provider = DalleProvider(output_dir=output_dir, http_timeout=180.0)
+            provider = provider_for(
+                Modality.IMAGE,
+                output_dir=output_dir,
+                http_timeout=180.0,
+            )
+            route = route_for(Modality.IMAGE)
             pipeline = Pipeline(
                 "still-campaign",
                 tenant_id=tenant_id,
                 project_id=project_id,
             ).step(
                 provider,
-                model="gpt-image-2",
-                fallback_models=["gpt-image-1-mini"],
+                model=route.primary_model,
+                fallback_models=list(route.fallback_models),
                 prompt=candidate_prompt,
                 modality=Modality.IMAGE,
                 size=size,
