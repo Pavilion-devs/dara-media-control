@@ -7,9 +7,11 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.
 
 ## What works now
 
-- Populated Studio with live cost estimation and a guaranteed pre-spend policy block
-- Visible fallback and agentic QA revision events
-- Ledger with cost per approved asset, prevented spend, and waste ratio
+- Studio backed by the deployed policy API, with live estimates and a guaranteed
+  pre-spend block
+- Honest replay of the recorded OpenAI → Genblaze → B2 proof; it is clearly labelled
+  and makes no provider call
+- Ledger view grounded in the recorded OpenAI run and durable zero-spend policy proof
 - Public verification UI with a whole-file SHA-256 signature and lineage
 - Real `gpt-image-2` → Genblaze → Backblaze B2 generation proof
 - Manifest-embedded published derivative with separate source and published hashes

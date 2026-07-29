@@ -852,9 +852,7 @@ td {
 
 .asset-preview {
   aspect-ratio: 4 / 3;
-  background:
-    radial-gradient(circle at 68% 28%, rgba(255,255,255,.85) 0 7%, transparent 8%),
-    linear-gradient(150deg, #334b55 0 26%, #c3d1cb 26% 45%, #6f8e83 45% 61%, #e6d9c4 61% 100%);
+  background: #111820 url("/dara-verified-sample.png") center / cover no-repeat;
   display: grid;
   overflow: hidden;
   place-items: end start;
@@ -864,7 +862,7 @@ td {
 .asset-preview::after {
   background: rgba(20, 24, 28, 0.84);
   color: white;
-  content: "NORTHWIND / HERO 03";
+  content: "DARA / VERIFIED PROOF";
   font-family: "IBM Plex Mono", monospace;
   font-size: 10px;
   letter-spacing: 0.09em;

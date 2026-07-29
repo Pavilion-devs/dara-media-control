@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import unittest
 from decimal import Decimal
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -200,21 +201,23 @@ class PolicyExecutionTests(unittest.IsolatedAsyncioTestCase):
 
 class PolicyEndpointTests(unittest.TestCase):
     def test_blocked_job_returns_structured_409_and_zero_spend(self) -> None:
-        with TestClient(app) as client:
-            response = client.post(
-                "/v1/jobs?policy_id=pol_locked",
-                json={
-                    "tenant_id": "demo",
-                    "job_id": "job_http_block",
-                    "provider": "replicate",
-                    "model": "flux-1.1-pro",
-                    "modality": "image",
-                    "aspect_ratio": "16:9",
-                    "variants": 3,
-                    "max_attempts": 3,
-                    "step_count": 1,
-                },
-            )
+        with patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}):
+            with TestClient(app) as client:
+                response = client.post(
+                    "/v1/jobs?policy_id=pol_locked",
+                    headers={"Authorization": "Bearer test-token"},
+                    json={
+                        "tenant_id": "demo",
+                        "job_id": "job_http_block",
+                        "provider": "openai",
+                        "model": "gpt-image-2",
+                        "modality": "image",
+                        "aspect_ratio": "1:1",
+                        "variants": 3,
+                        "max_attempts": 3,
+                        "step_count": 1,
+                    },
+                )
         payload = response.json()
         self.assertEqual(response.status_code, 409)
         self.assertEqual(payload["error"]["code"], "POLICY_BLOCKED")
@@ -223,6 +226,36 @@ class PolicyEndpointTests(unittest.TestCase):
             payload["error"]["details"]["job_id"],
             "job_http_block",
         )
+
+    def test_job_mutation_requires_workspace_token(self) -> None:
+        with patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}):
+            with TestClient(app) as client:
+                response = client.post("/v1/jobs", json={})
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["error"]["code"], "UNAUTHORIZED")
+
+    def test_model_registry_reports_deployed_openai_pipeline(self) -> None:
+        with TestClient(app) as client:
+            response = client.get("/v1/models")
+
+        self.assertEqual(response.status_code, 200)
+        item = response.json()["items"][0]
+        self.assertEqual(item["provider"], "openai")
+        self.assertEqual(item["model"], "gpt-image-2")
+        self.assertEqual(item["reservation_per_image_usd"], "0.010000")
+
+    def test_seeded_policies_use_supported_image_shapes(self) -> None:
+        with TestClient(app) as client:
+            response = client.get("/v1/policies")
+
+        self.assertEqual(response.status_code, 200)
+        policies = response.json()["items"]
+        self.assertEqual(len(policies), 3)
+        self.assertTrue(
+            all(policy["allowed_providers"] == ["openai"] for policy in policies)
+        )
+        self.assertIn("3:2", policies[0]["allowed_aspect_ratios"])
 
 
 if __name__ == "__main__":

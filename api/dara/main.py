@@ -14,7 +14,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -128,20 +128,37 @@ def get_verifier() -> Verifier:
         ) from exc
 
 
+def require_workspace_token(
+    authorization: Annotated[str | None, Header()] = None,
+) -> None:
+    expected = os.getenv("DARA_API_TOKEN")
+    if not expected:
+        raise DaraApiError(
+            503,
+            "WORKSPACE_AUTH_UNAVAILABLE",
+            "Dara's private workspace API is not configured.",
+        )
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not secrets.compare_digest(token, expected):
+        raise DaraApiError(
+            401,
+            "UNAUTHORIZED",
+            "A valid Dara workspace token is required.",
+        )
+
+
 def policy(
     policy_id: str,
     *,
     run_limit: str,
     daily_limit: str,
-    allowed_modalities: frozenset[str] = frozenset({"image", "video", "audio"}),
-    allowed_ratios: frozenset[str] = frozenset({"1:1", "16:9", "9:16"}),
+    allowed_modalities: frozenset[str] = frozenset({"image"}),
+    allowed_ratios: frozenset[str] = frozenset({"1:1", "3:2", "2:3"}),
 ) -> Policy:
     return Policy(
         policy_id=policy_id,
-        allowed_providers=frozenset(
-            {"openai", "google", "replicate", "elevenlabs"}
-        ),
-        denied_models=frozenset({"sora-2", "veo-3"}),
+        allowed_providers=frozenset({"openai"}),
+        denied_models=frozenset(),
         allowed_modalities=allowed_modalities,
         allowed_aspect_ratios=allowed_ratios,
         max_steps=6,
@@ -162,7 +179,7 @@ POLICIES = {
     ),
     "pol_locked": policy(
         "pol_locked",
-        run_limit="0.100000",
+        run_limit="0.020000",
         daily_limit="1.000000",
         allowed_modalities=frozenset({"image"}),
         allowed_ratios=frozenset({"1:1"}),
@@ -170,9 +187,9 @@ POLICIES = {
 }
 
 MODEL_PRICES = {
-    "flux-1.1-pro": Price("flux-1.1-pro", money("0.060000")),
-    "sd3.5-large": Price("sd3.5-large", money("0.040000")),
-    "gemini-2.5-flash": Price("gemini-2.5-flash", money("0.002000")),
+    # Conservative policy reservation for one low-quality image. OpenAI bills
+    # GPT Image 2 by image tokens, so the settled ledger will use actual usage.
+    "gpt-image-2": Price("gpt-image-2", money("0.010000")),
 }
 
 
@@ -206,10 +223,10 @@ async def dara_api_error_handler(
 class SimulateRequest(BaseModel):
     tenant_id: str = "demo"
     job_id: str = "job_simulation"
-    provider: str = "replicate"
-    model: str = "flux-1.1-pro"
+    provider: str = "openai"
+    model: str = "gpt-image-2"
     modality: str = "image"
-    aspect_ratio: str = "16:9"
+    aspect_ratio: str = "1:1"
     variants: int = Field(default=3, ge=1, le=20)
     max_attempts: int = Field(default=3, ge=1, le=10)
     step_count: int = Field(default=1, ge=1, le=20)
@@ -252,6 +269,24 @@ def decision_payload(estimate: object, decision: object) -> dict[str, object]:
     return {"estimate": estimate_data, "decision": decision_data}
 
 
+def policy_payload(value: Policy) -> dict[str, object]:
+    payload = asdict(value)
+    for key in (
+        "allowed_providers",
+        "denied_models",
+        "allowed_modalities",
+        "allowed_aspect_ratios",
+    ):
+        payload[key] = sorted(payload[key])
+    for key in (
+        "max_cost_usd_per_step",
+        "max_cost_usd_per_run",
+        "max_cost_usd_per_day",
+    ):
+        payload[key] = str(payload[key])
+    return payload
+
+
 @app.get("/health")
 async def health() -> dict[str, object]:
     return {
@@ -276,6 +311,38 @@ async def healthz() -> dict[str, object]:
         },
         "demo_mode_available": True,
     }
+
+
+@app.get("/v1/models")
+async def list_models() -> dict[str, object]:
+    return {
+        "items": [
+            {
+                "provider": "openai",
+                "model": "gpt-image-2",
+                "modality": "image",
+                "availability": (
+                    "configured"
+                    if os.getenv("OPENAI_API_KEY")
+                    else "unconfigured"
+                ),
+                "reservation_per_image_usd": str(
+                    MODEL_PRICES["gpt-image-2"].per_unit_usd
+                ),
+                "pricing_basis": "conservative low-quality policy reservation",
+            }
+        ]
+    }
+
+
+@app.get("/v1/policies")
+async def list_policies() -> dict[str, object]:
+    return {"items": [policy_payload(value) for value in POLICIES.values()]}
+
+
+@app.get("/v1/policies/{policy_id}")
+async def read_policy(policy_id: str) -> dict[str, object]:
+    return policy_payload(get_policy(policy_id))
 
 
 @app.post("/v1/verify", response_model=VerificationResponse)
@@ -353,7 +420,9 @@ async def simulate(policy_id: str, request: SimulateRequest) -> dict[str, object
 
 @app.post("/v1/jobs")
 async def create_demo_job(
-    request: SimulateRequest, policy_id: str = "pol_standard"
+    request: SimulateRequest,
+    _: Annotated[None, Depends(require_workspace_token)],
+    policy_id: str = "pol_standard",
 ) -> dict[str, object]:
     plan = request.to_plan()
     estimate, _ = await engine.simulate(get_policy(policy_id), plan, MODEL_PRICES)
@@ -390,7 +459,10 @@ async def create_demo_job(
 
 
 @app.get("/v1/jobs/{job_id}")
-async def get_job(job_id: str) -> dict[str, object]:
+async def get_job(
+    job_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
     tenant_id = os.getenv("KILN_TENANT_ID", "demo")
     job = await store.get_job(tenant_id, job_id)
     if job is None:

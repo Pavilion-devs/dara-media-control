@@ -36,8 +36,10 @@ test("server-renders the Dara control plane", async () => {
   assert.match(html, />DARA</);
   assert.match(html, /Make the work\./);
   assert.match(html, /Keep the record\./);
-  assert.match(html, /Policy active/);
+  assert.match(html, /Checking policy/);
   assert.match(html, /B2 connected/);
+  assert.match(html, /Recorded proof · OpenAI to B2/);
+  assert.match(html, /gpt-image-2/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
