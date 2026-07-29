@@ -1,0 +1,176 @@
+[
+  {
+    "id": "w0",
+    "text": "Genblaze",
+    "start": 0.239,
+    "end": 0.799
+  },
+  {
+    "id": "w1",
+    "text": "writes",
+    "start": 0.839,
+    "end": 1.12
+  },
+  {
+    "id": "w2",
+    "text": "Parquet",
+    "start": 1.22,
+    "end": 1.579
+  },
+  {
+    "id": "w3",
+    "text": "telemetry",
+    "start": 1.659,
+    "end": 2.2
+  },
+  {
+    "id": "w4",
+    "text": "locally;",
+    "start": 2.259,
+    "end": 2.639
+  },
+  {
+    "id": "w5",
+    "text": "Dara",
+    "start": 3.22,
+    "end": 3.559
+  },
+  {
+    "id": "w6",
+    "text": "uploads",
+    "start": 3.619,
+    "end": 4.099
+  },
+  {
+    "id": "w7",
+    "text": "each",
+    "start": 4.199,
+    "end": 4.339
+  },
+  {
+    "id": "w8",
+    "text": "closed",
+    "start": 4.46,
+    "end": 4.759
+  },
+  {
+    "id": "w9",
+    "text": "partition",
+    "start": 4.859,
+    "end": 5.359
+  },
+  {
+    "id": "w10",
+    "text": "as",
+    "start": 5.699,
+    "end": 5.779
+  },
+  {
+    "id": "w11",
+    "text": "an",
+    "start": 5.819,
+    "end": 5.859
+  },
+  {
+    "id": "w12",
+    "text": "immutable",
+    "start": 5.92,
+    "end": 6.439
+  },
+  {
+    "id": "w13",
+    "text": "B2",
+    "start": 6.539,
+    "end": 7
+  },
+  {
+    "id": "w14",
+    "text": "object.",
+    "start": 7.099,
+    "end": 7.539
+  },
+  {
+    "id": "w15",
+    "text": "DuckDB",
+    "start": 8.359,
+    "end": 8.96
+  },
+  {
+    "id": "w16",
+    "text": "queries",
+    "start": 9.059,
+    "end": 9.399
+  },
+  {
+    "id": "w17",
+    "text": "those",
+    "start": 9.439,
+    "end": 9.599
+  },
+  {
+    "id": "w18",
+    "text": "objects",
+    "start": 9.719,
+    "end": 10.059
+  },
+  {
+    "id": "w19",
+    "text": "in",
+    "start": 10.099,
+    "end": 10.199
+  },
+  {
+    "id": "w20",
+    "text": "place",
+    "start": 10.26,
+    "end": 10.5
+  },
+  {
+    "id": "w21",
+    "text": "for",
+    "start": 10.559,
+    "end": 10.699
+  },
+  {
+    "id": "w22",
+    "text": "spend",
+    "start": 10.739,
+    "end": 11.119
+  },
+  {
+    "id": "w23",
+    "text": "and",
+    "start": 11.159,
+    "end": 11.219
+  },
+  {
+    "id": "w24",
+    "text": "provenance.",
+    "start": 11.319,
+    "end": 11.859
+  },
+  {
+    "id": "w25",
+    "text": "No",
+    "start": 12.519,
+    "end": 12.679
+  },
+  {
+    "id": "w26",
+    "text": "database.",
+    "start": 12.799,
+    "end": 13.359
+  },
+  {
+    "id": "w27",
+    "text": "One",
+    "start": 13.859,
+    "end": 14.019
+  },
+  {
+    "id": "w28",
+    "text": "bucket.",
+    "start": 14.119,
+    "end": 14.5
+  }
+]

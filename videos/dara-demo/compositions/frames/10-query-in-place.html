@@ -1,0 +1,802 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Archivo";
+      src: url("capture/assets/fonts/Archivo-Variable.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 900;
+    }
+
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/IBM_Plex_Mono-Regular.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #ffffff;
+      font-family: "Archivo", sans-serif;
+    }
+
+    [id="10-query-in-place-bg"] {
+      position: absolute;
+      inset: 0;
+      background: #14181c;
+      overflow: hidden;
+    }
+
+    [id="10-query-in-place-bg-rule-top"],
+    [id="10-query-in-place-bg-rule-bottom"] {
+      position: absolute;
+      left: 5.5cqw;
+      right: 5.5cqw;
+      height: 1px;
+      background: #262827;
+    }
+
+    [id="10-query-in-place-bg-rule-top"] {
+      top: 5.5cqw;
+    }
+
+    [id="10-query-in-place-bg-rule-bottom"] {
+      top: 44.8cqw;
+    }
+
+    [id="10-query-in-place-scene"] {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    [id="10-query-in-place-world"] {
+      position: absolute;
+      inset: 0;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
+    [id^="10-query-in-place-kicker-"],
+    [id="10-query-in-place-local-state-open"],
+    [id="10-query-in-place-local-state-sealed"],
+    [id="10-query-in-place-upload-label"],
+    [id="10-query-in-place-b2-key"],
+    [id="10-query-in-place-b2-receipt"],
+    [id="10-query-in-place-query-prompt"],
+    [id="10-query-in-place-query-text"],
+    [id="10-query-in-place-query-cursor"],
+    [id="10-query-in-place-ledger-label"],
+    [id="10-query-in-place-lockup-one"],
+    [id="10-query-in-place-lockup-two"] {
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    [id^="10-query-in-place-kicker-"] {
+      position: absolute;
+      color: #2e7d5b;
+      font-size: 0.78cqw;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    [id="10-query-in-place-kicker-local"] {
+      left: 180px;
+      top: 98px;
+    }
+
+    [id="10-query-in-place-local-card"] {
+      position: absolute;
+      left: 180px;
+      top: 138px;
+      width: 900px;
+      height: 590px;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #262827;
+    }
+
+    [id="10-query-in-place-local-title"] {
+      position: absolute;
+      left: 0;
+      top: 34px;
+      color: #ffffff;
+      font-size: 3.8cqw;
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+    }
+
+    [id="10-query-in-place-local-file"] {
+      position: absolute;
+      right: 0;
+      top: 48px;
+      color: #c97a16;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78cqw;
+      letter-spacing: 0.1em;
+    }
+
+    [id="10-query-in-place-local-table"] {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 170px;
+      height: 318px;
+      border-top: 1px solid #262827;
+    }
+
+    [id^="10-query-in-place-local-row-"] {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 62px;
+      border-bottom: 1px solid #262827;
+    }
+
+    [id="10-query-in-place-local-row-1"] { top: 0; }
+    [id="10-query-in-place-local-row-2"] { top: 63px; }
+    [id="10-query-in-place-local-row-3"] { top: 126px; }
+    [id="10-query-in-place-local-row-4"] { top: 189px; }
+    [id="10-query-in-place-local-row-final"] {
+      top: 252px;
+      background: #2e7d5b;
+    }
+
+    [id^="10-query-in-place-cell-"] {
+      position: absolute;
+      top: 24px;
+      height: 8px;
+      background: #48504d;
+    }
+
+    [id="10-query-in-place-cell-a1"],
+    [id="10-query-in-place-cell-a2"],
+    [id="10-query-in-place-cell-a3"],
+    [id="10-query-in-place-cell-a4"],
+    [id="10-query-in-place-cell-af"] {
+      left: 24px;
+      width: 180px;
+    }
+
+    [id="10-query-in-place-cell-b1"],
+    [id="10-query-in-place-cell-b2"],
+    [id="10-query-in-place-cell-b3"],
+    [id="10-query-in-place-cell-b4"],
+    [id="10-query-in-place-cell-bf"] {
+      left: 260px;
+      width: 270px;
+    }
+
+    [id="10-query-in-place-cell-c1"],
+    [id="10-query-in-place-cell-c2"],
+    [id="10-query-in-place-cell-c3"],
+    [id="10-query-in-place-cell-c4"],
+    [id="10-query-in-place-cell-cf"] {
+      right: 24px;
+      width: 230px;
+    }
+
+    [id="10-query-in-place-cell-af"],
+    [id="10-query-in-place-cell-bf"],
+    [id="10-query-in-place-cell-cf"] {
+      background: #14181c;
+      opacity: 0.75;
+    }
+
+    [id="10-query-in-place-local-state-open"],
+    [id="10-query-in-place-local-state-sealed"] {
+      position: absolute;
+      left: 0;
+      bottom: 22px;
+      font-size: 0.84cqw;
+      line-height: 1;
+    }
+
+    [id="10-query-in-place-local-state-open"] {
+      color: #c97a16;
+    }
+
+    [id="10-query-in-place-local-state-sealed"] {
+      color: #2e7d5b;
+    }
+
+    [id="10-query-in-place-launch-chip"] {
+      position: absolute;
+      left: 850px;
+      top: 324px;
+      width: 184px;
+      height: 184px;
+      display: grid;
+      place-items: center;
+      background: #2e7d5b;
+      color: #14181c;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8cqw;
+      letter-spacing: 0.12em;
+      text-align: center;
+      line-height: 1.45;
+      z-index: 4;
+    }
+
+    [id="10-query-in-place-upload-path"] {
+      position: absolute;
+      left: 920px;
+      top: 210px;
+      width: 1040px;
+      height: 420px;
+      overflow: visible;
+    }
+
+    [id="10-query-in-place-upload-label"] {
+      position: absolute;
+      left: 1200px;
+      top: 216px;
+      color: #2e7d5b;
+      font-size: 0.74cqw;
+    }
+
+    [id="10-query-in-place-kicker-b2"] {
+      left: 1580px;
+      top: 118px;
+    }
+
+    [id="10-query-in-place-b2-card"] {
+      position: absolute;
+      left: 1580px;
+      top: 160px;
+      width: 760px;
+      height: 510px;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #262827;
+    }
+
+    [id="10-query-in-place-b2-mark"] {
+      position: absolute;
+      left: 0;
+      top: 34px;
+      color: #2e7d5b;
+      font-size: 5.5cqw;
+      font-weight: 900;
+      line-height: 0.84;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+    }
+
+    [id="10-query-in-place-b2-key"] {
+      position: absolute;
+      left: 0;
+      top: 204px;
+      width: 100%;
+      padding: 22px 0;
+      border-top: 1px solid #262827;
+      border-bottom: 1px solid #262827;
+      color: #ffffff;
+      font-size: 0.82cqw;
+      line-height: 1.5;
+      letter-spacing: 0.08em;
+      text-transform: none;
+    }
+
+    [id="10-query-in-place-b2-receipt"] {
+      position: absolute;
+      left: 0;
+      bottom: 32px;
+      color: #14181c;
+      background: #2e7d5b;
+      padding: 18px 22px;
+      font-size: 0.8cqw;
+      line-height: 1;
+    }
+
+    [id="10-query-in-place-query-path"] {
+      position: absolute;
+      left: 2220px;
+      top: 180px;
+      width: 2180px;
+      height: 550px;
+      overflow: visible;
+    }
+
+    [id="10-query-in-place-kicker-query"] {
+      left: 2320px;
+      top: 154px;
+    }
+
+    [id="10-query-in-place-query-terminal"] {
+      position: absolute;
+      left: 2320px;
+      top: 202px;
+      width: 1330px;
+      height: 104px;
+      display: flex;
+      align-items: baseline;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #262827;
+      padding-top: 34px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    [id="10-query-in-place-query-prompt"] {
+      margin-right: 18px;
+      color: #2e7d5b;
+      font-size: 1.5cqw;
+      line-height: 1;
+    }
+
+    [id="10-query-in-place-query-wrap"] {
+      display: inline-flex;
+      align-items: baseline;
+      min-width: 1190px;
+      white-space: nowrap;
+    }
+
+    [id="10-query-in-place-query-text"],
+    [id="10-query-in-place-query-cursor"] {
+      font-size: 1.5cqw;
+      line-height: 1;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    [id="10-query-in-place-query-cursor"] {
+      display: inline-block;
+      width: 18px;
+      margin-left: 5px;
+      color: #2e7d5b;
+    }
+
+    [id="10-query-in-place-result-rows"] {
+      position: absolute;
+      left: 2780px;
+      top: 372px;
+      width: 1040px;
+      height: 340px;
+      border-top: 1px solid #48504d;
+    }
+
+    [id^="10-query-in-place-result-row-"] {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 66px;
+      border-bottom: 1px solid #262827;
+    }
+
+    [id="10-query-in-place-result-row-1"] { top: 0; }
+    [id="10-query-in-place-result-row-2"] { top: 67px; }
+    [id="10-query-in-place-result-row-3"] { top: 134px; }
+    [id="10-query-in-place-result-row-4"] { top: 201px; }
+    [id="10-query-in-place-result-row-5"] { top: 268px; }
+
+    [id^="10-query-in-place-result-bar-"] {
+      position: absolute;
+      left: 0;
+      top: 25px;
+      height: 10px;
+      background: #48504d;
+    }
+
+    [id="10-query-in-place-result-bar-1"] { width: 56%; }
+    [id="10-query-in-place-result-bar-2"] { width: 78%; }
+    [id="10-query-in-place-result-bar-3"] { width: 66%; }
+    [id="10-query-in-place-result-bar-4"] { width: 91%; background: #2e7d5b; }
+    [id="10-query-in-place-result-bar-5"] { width: 72%; }
+
+    [id="10-query-in-place-lockup"] {
+      position: absolute;
+      left: 3360px;
+      top: 220px;
+      width: 780px;
+    }
+
+    [id="10-query-in-place-lockup-rule"] {
+      width: 36px;
+      height: 2px;
+      margin-bottom: 42px;
+      background: #2e7d5b;
+    }
+
+    [id="10-query-in-place-lockup-one"],
+    [id="10-query-in-place-lockup-two"] {
+      font-size: 2.35cqw;
+      line-height: 1.12;
+      letter-spacing: 0.08em;
+    }
+
+    [id="10-query-in-place-lockup-one"] {
+      color: #ffffff;
+    }
+
+    [id="10-query-in-place-lockup-two"] {
+      margin-top: 20px;
+      color: #2e7d5b;
+    }
+
+    [id="10-query-in-place-ledger-wrap"] {
+      position: absolute;
+      left: 4180px;
+      top: 78px;
+      width: 760px;
+      height: 726px;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #262827;
+      overflow: hidden;
+      background: #181a19;
+    }
+
+    [id="10-query-in-place-ledger-image"] {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    [id="10-query-in-place-ledger-label"] {
+      position: absolute;
+      left: 4208px;
+      top: 104px;
+      z-index: 2;
+      padding: 12px 14px;
+      color: #14181c;
+      background: #2e7d5b;
+      font-size: 0.72cqw;
+      line-height: 1;
+    }
+  </style>
+
+  <div id="root" data-composition-id="10-query-in-place" data-width="1920" data-height="1080" data-duration="15.41">
+    <div id="10-query-in-place-bg" class="clip" data-start="0" data-duration="15.41" data-track-index="0">
+      <div id="10-query-in-place-bg-rule-top"></div>
+      <div id="10-query-in-place-bg-rule-bottom"></div>
+    </div>
+
+    <div id="10-query-in-place-scene" class="clip" data-start="0" data-duration="15.41" data-track-index="1">
+      <div
+        id="10-query-in-place-world"
+        data-layout-allow-overlap
+        data-layout-allow-overflow
+        data-layout-allow-occlusion
+      >
+        <div id="10-query-in-place-kicker-local">LOCAL / PARQUET</div>
+        <div id="10-query-in-place-local-card">
+          <div id="10-query-in-place-local-title">telemetry</div>
+          <div id="10-query-in-place-local-file">telemetry.parquet</div>
+          <div id="10-query-in-place-local-table">
+            <div id="10-query-in-place-local-row-1">
+              <i id="10-query-in-place-cell-a1"></i><i id="10-query-in-place-cell-b1"></i><i id="10-query-in-place-cell-c1"></i>
+            </div>
+            <div id="10-query-in-place-local-row-2">
+              <i id="10-query-in-place-cell-a2"></i><i id="10-query-in-place-cell-b2"></i><i id="10-query-in-place-cell-c2"></i>
+            </div>
+            <div id="10-query-in-place-local-row-3">
+              <i id="10-query-in-place-cell-a3"></i><i id="10-query-in-place-cell-b3"></i><i id="10-query-in-place-cell-c3"></i>
+            </div>
+            <div id="10-query-in-place-local-row-4">
+              <i id="10-query-in-place-cell-a4"></i><i id="10-query-in-place-cell-b4"></i><i id="10-query-in-place-cell-c4"></i>
+            </div>
+            <div id="10-query-in-place-local-row-final">
+              <i id="10-query-in-place-cell-af"></i><i id="10-query-in-place-cell-bf"></i><i id="10-query-in-place-cell-cf"></i>
+            </div>
+          </div>
+          <div id="10-query-in-place-local-state-open">STATE / OPEN</div>
+          <div id="10-query-in-place-local-state-sealed">STATE / IMMUTABLE</div>
+        </div>
+
+        <div id="10-query-in-place-launch-chip">PARQUET<br>SEALED</div>
+        <svg id="10-query-in-place-upload-path" viewBox="0 0 1040 420" aria-hidden="true">
+          <path id="10-query-in-place-upload-path-base" d="M20 260 C250 20 560 40 1000 210" fill="none" stroke="#262827" stroke-width="2"/>
+          <path id="10-query-in-place-upload-path-live" d="M20 260 C250 20 560 40 1000 210" fill="none" stroke="#2E7D5B" stroke-width="5" stroke-dasharray="1200" stroke-dashoffset="1200"/>
+        </svg>
+        <div id="10-query-in-place-upload-label">UPLOAD / CLOSED PARTITION</div>
+
+        <div id="10-query-in-place-kicker-b2">REMOTE / OBJECT STORAGE</div>
+        <div id="10-query-in-place-b2-card">
+          <div id="10-query-in-place-b2-mark">b2</div>
+          <div id="10-query-in-place-b2-key">dara/telemetry/{partition}.parquet</div>
+          <div id="10-query-in-place-b2-receipt">IMMUTABLE OBJECT / RECEIVED</div>
+        </div>
+
+        <svg id="10-query-in-place-query-path" viewBox="0 0 2180 550" aria-hidden="true">
+          <path id="10-query-in-place-query-path-base" d="M20 90 C460 20 840 110 1110 270 C1370 430 1680 430 2140 210" fill="none" stroke="#262827" stroke-width="2"/>
+          <path id="10-query-in-place-query-path-live" d="M20 90 C460 20 840 110 1110 270 C1370 430 1680 430 2140 210" fill="none" stroke="#2E7D5B" stroke-width="5" stroke-dasharray="2600" stroke-dashoffset="2600"/>
+        </svg>
+        <div id="10-query-in-place-kicker-query">DUCKDB / IN-PLACE QUERY</div>
+        <div id="10-query-in-place-query-terminal">
+          <span id="10-query-in-place-query-prompt">›</span>
+          <span id="10-query-in-place-query-wrap">
+            <span id="10-query-in-place-query-text"></span><span id="10-query-in-place-query-cursor">_</span>
+          </span>
+        </div>
+
+        <div id="10-query-in-place-result-rows">
+          <div id="10-query-in-place-result-row-1"><i id="10-query-in-place-result-bar-1"></i></div>
+          <div id="10-query-in-place-result-row-2"><i id="10-query-in-place-result-bar-2"></i></div>
+          <div id="10-query-in-place-result-row-3"><i id="10-query-in-place-result-bar-3"></i></div>
+          <div id="10-query-in-place-result-row-4"><i id="10-query-in-place-result-bar-4"></i></div>
+          <div id="10-query-in-place-result-row-5"><i id="10-query-in-place-result-bar-5"></i></div>
+        </div>
+
+        <div id="10-query-in-place-lockup">
+          <div id="10-query-in-place-lockup-rule"></div>
+          <div id="10-query-in-place-lockup-one">NO DATABASE.</div>
+          <div id="10-query-in-place-lockup-two">ONE BUCKET.</div>
+        </div>
+        <div id="10-query-in-place-ledger-label">PRODUCTION / LEDGER</div>
+        <div id="10-query-in-place-ledger-wrap">
+          <img id="10-query-in-place-ledger-image" src="assets/dara-ledger.jpg" alt="Dara production Ledger">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (() => {
+      const root = document.querySelector('[data-composition-id="10-query-in-place"]');
+      const byId = (suffix) => document.getElementById(`10-query-in-place-${suffix}`);
+      const world = byId("world");
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["10-query-in-place"] = tl;
+
+      const cam = { scale: 0.92, x: 304, y: 70 };
+      const drift = { p: 0, strength: 1 };
+      const applyCamera = () => {
+        const dx = Math.sin(drift.p) * 4 * drift.strength;
+        const dy = Math.sin(drift.p * 1.31) * 2.5 * drift.strength;
+        world.style.transform = `translate(${cam.x + dx}px, ${cam.y + dy}px) scale(${cam.scale})`;
+      };
+      applyCamera();
+
+      gsap.set(byId("local-state-sealed"), { opacity: 0 });
+      gsap.set(byId("upload-path-live"), { strokeDashoffset: 1200 });
+      gsap.set(byId("query-path-live"), { strokeDashoffset: 2600 });
+      gsap.set(byId("b2-card"), { opacity: 0 });
+      gsap.set(byId("b2-receipt"), { opacity: 0 });
+      gsap.set(byId("query-terminal"), { opacity: 0 });
+      gsap.set(byId("result-rows"), { opacity: 0 });
+      gsap.set(byId("ledger-wrap"), { opacity: 0 });
+      gsap.set(byId("ledger-label"), { opacity: 0 });
+      gsap.set(byId("lockup-rule"), { opacity: 0 });
+      gsap.set(byId("lockup-one"), { opacity: 0 });
+      gsap.set(byId("lockup-two"), { opacity: 0 });
+
+      tl.to(
+        drift,
+        {
+          p: Math.PI * 4,
+          duration: 14.81,
+          ease: "none",
+          onUpdate: applyCamera
+        },
+        0
+      );
+
+      tl.fromTo(
+        cam,
+        { scale: 0.92, x: 304, y: 70 },
+        {
+          scale: 1.13,
+          x: 373,
+          y: 136,
+          duration: 2.75,
+          ease: "power3.inOut",
+          onUpdate: applyCamera
+        },
+        0
+      );
+
+      tl.fromTo(
+        byId("local-row-final"),
+        { opacity: 0, scaleX: 0, transformOrigin: "0% 50%" },
+        { opacity: 1, scaleX: 1, duration: 0.72, ease: "power3.out" },
+        0.38
+      );
+      tl.fromTo(
+        byId("local-state-open"),
+        { opacity: 1 },
+        { opacity: 0.18, duration: 0.22, ease: "none" },
+        2.04
+      );
+      tl.fromTo(
+        byId("local-state-sealed"),
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.46, ease: "power2.out" },
+        2.12
+      );
+      tl.fromTo(
+        byId("launch-chip"),
+        { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: 0.48, ease: "power3.out" },
+        2.48
+      );
+
+      tl.to(
+        cam,
+        {
+          scale: 1.02,
+          x: -918,
+          y: 76,
+          duration: 3.05,
+          ease: "power3.inOut",
+          onUpdate: applyCamera
+        },
+        3.0
+      );
+      tl.fromTo(
+        byId("upload-path-live"),
+        { strokeDashoffset: 1200 },
+        { strokeDashoffset: 0, duration: 2.55, ease: "power2.inOut" },
+        3.08
+      );
+      tl.fromTo(
+        byId("launch-chip"),
+        { x: 0, y: 0, scale: 1 },
+        { x: 840, y: -12, scale: 0.78, duration: 2.62, ease: "power3.inOut" },
+        3.08
+      );
+      tl.fromTo(
+        byId("b2-card"),
+        { opacity: 0, y: 28 },
+        { opacity: 1, y: 0, duration: 0.72, ease: "power3.out" },
+        4.78
+      );
+      tl.fromTo(
+        byId("b2-receipt"),
+        { opacity: 0, scaleX: 0, transformOrigin: "0% 50%" },
+        { opacity: 1, scaleX: 1, duration: 0.58, ease: "power3.out" },
+        5.68
+      );
+
+      tl.fromTo(
+        byId("query-terminal"),
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.48, ease: "power2.out" },
+        6.5
+      );
+      tl.to(
+        cam,
+        {
+          scale: 0.96,
+          x: -1660,
+          y: 36,
+          duration: 1.95,
+          ease: "power2.inOut",
+          onUpdate: applyCamera
+        },
+        6.55
+      );
+      tl.to(
+        cam,
+        {
+          scale: 0.84,
+          x: -2596,
+          y: 76,
+          duration: 2.0,
+          ease: "power3.inOut",
+          onUpdate: applyCamera
+        },
+        8.5
+      );
+      tl.fromTo(
+        byId("query-path-live"),
+        { strokeDashoffset: 2600 },
+        { strokeDashoffset: 0, duration: 3.5, ease: "power2.inOut" },
+        6.7
+      );
+
+      const sequence = [
+        { t: 0.0, text: "" },
+        { t: 0.18, text: "SEL" },
+        { t: 0.36, text: "SELECT spend," },
+        { t: 0.72, text: "SELECT spend, provenence" },
+        { t: 1.12, text: "SELECT spend, proven" },
+        { t: 1.56, text: "SELECT spend, provenance FROM" },
+        { t: 2.12, text: "SELECT spend, provenance FROM read_parquet('b2://dara/*')" },
+        { t: 2.72, text: "SELECT spend, provenance FROM read_parquet('b2://dara/*') ✓" }
+      ];
+      const textAt = (time) => {
+        for (let i = sequence.length - 1; i >= 0; i -= 1) {
+          if (time >= sequence[i].t) return sequence[i].text;
+        }
+        return "";
+      };
+      const textDriver = { t: 0 };
+      const queryText = byId("query-text");
+      tl.to(
+        textDriver,
+        {
+          t: 4,
+          duration: 4,
+          ease: "none",
+          onUpdate: () => {
+            queryText.textContent = textAt(textDriver.t);
+            queryText.style.color = textDriver.t >= 2.72 ? "#2E7D5B" : "#FFFFFF";
+          }
+        },
+        6.5
+      );
+
+      const blink = { p: 0 };
+      const cursor = byId("query-cursor");
+      tl.to(
+        blink,
+        {
+          p: Math.PI * 12,
+          duration: 4,
+          ease: "none",
+          onUpdate: () => {
+            cursor.style.opacity = Math.sin(blink.p) > 0 ? "1" : "0";
+          }
+        },
+        6.5
+      );
+
+      tl.fromTo(
+        byId("result-rows"),
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.36, ease: "power2.out" },
+        8.22
+      );
+      [1, 2, 3, 4, 5].forEach((row, index) => {
+        tl.fromTo(
+          byId(`result-row-${row}`),
+          { opacity: 0, x: -90 },
+          { opacity: 1, x: 0, duration: 0.42, ease: "power3.out" },
+          8.35 + index * 0.34
+        );
+      });
+
+      tl.fromTo(
+        byId("ledger-wrap"),
+        { opacity: 0, scale: 0.96 },
+        { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" },
+        9.58
+      );
+      tl.fromTo(
+        byId("ledger-label"),
+        { opacity: 0, y: -18 },
+        { opacity: 1, y: 0, duration: 0.48, ease: "power2.out" },
+        10.08
+      );
+      tl.to(
+        drift,
+        {
+          strength: 0,
+          duration: 0.6,
+          ease: "power2.out",
+          onUpdate: applyCamera
+        },
+        9.9
+      );
+
+      tl.fromTo(
+        byId("lockup-rule"),
+        { opacity: 0, scaleX: 0, transformOrigin: "0% 50%" },
+        { opacity: 1, scaleX: 1, duration: 0.42, ease: "power3.out" },
+        10.72
+      );
+      tl.fromTo(
+        byId("lockup-one"),
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.62, ease: "power3.out" },
+        11.1
+      );
+      tl.fromTo(
+        byId("lockup-two"),
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.62, ease: "power3.out" },
+        12.02
+      );
+    })();
+  </script>
+</template>

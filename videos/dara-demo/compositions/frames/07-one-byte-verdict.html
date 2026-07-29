@@ -1,0 +1,575 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Archivo";
+      src: url("capture/assets/fonts/Archivo-Variable.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 900;
+    }
+
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/IBM_Plex_Mono-Regular.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #ffffff;
+      font-family: "Archivo";
+      isolation: isolate;
+    }
+
+    [class~="07-one-byte-verdict-bg"] {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: #14181c;
+    }
+
+    [class~="07-one-byte-verdict-content"] {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      perspective: 1800px;
+    }
+
+    [class~="07-one-byte-verdict-top-rule"] {
+      position: absolute;
+      top: 47px;
+      left: 106px;
+      width: 1708px;
+      height: 1px;
+      background: #262827;
+    }
+
+    [class~="07-one-byte-verdict-kicker"] {
+      position: absolute;
+      top: 67px;
+      left: 106px;
+      font-family: "IBM Plex Mono";
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-title"] {
+      position: absolute;
+      top: 103px;
+      left: 106px;
+      margin: 0;
+      max-width: 1120px;
+      font-size: 77px;
+      line-height: 0.92;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+      color: #ffffff;
+    }
+
+    [class~="07-one-byte-verdict-title-accent"] {
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-stage"] {
+      position: absolute;
+      top: 215px;
+      left: 106px;
+      width: 1708px;
+      height: 500px;
+      display: flex;
+      gap: 68px;
+      transform-style: preserve-3d;
+    }
+
+    [class~="07-one-byte-verdict-card"] {
+      position: relative;
+      width: 820px;
+      height: 500px;
+      overflow: hidden;
+      box-sizing: border-box;
+      border: 1px solid #48504d;
+      background: #181a19;
+      transform-style: preserve-3d;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
+    [class~="07-one-byte-verdict-card-left"] {
+      border-right: 4px solid #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-card-right"] {
+      border-left: 4px solid #c97a16;
+    }
+
+    [class~="07-one-byte-verdict-source"] {
+      position: absolute;
+      inset: 0 0 auto 0;
+      width: 100%;
+      height: 214px;
+      object-fit: cover;
+      object-position: center 58%;
+      filter: saturate(0.5) contrast(1.12);
+    }
+
+    [class~="07-one-byte-verdict-card-left"] [class~="07-one-byte-verdict-source"] {
+      opacity: 0.26;
+    }
+
+    [class~="07-one-byte-verdict-card-right"] [class~="07-one-byte-verdict-source"] {
+      opacity: 0.12;
+    }
+
+    [class~="07-one-byte-verdict-source-mask"] {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 214px;
+      background: rgba(20, 24, 28, 0.66);
+      border-bottom: 1px solid #262827;
+    }
+
+    [class~="07-one-byte-verdict-card-head"] {
+      position: absolute;
+      top: 28px;
+      left: 31px;
+      right: 31px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    [class~="07-one-byte-verdict-card-label"],
+    [class~="07-one-byte-verdict-card-delta"] {
+      font-family: "IBM Plex Mono";
+      font-size: 14px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    [class~="07-one-byte-verdict-card-label"] {
+      color: #ffffff;
+    }
+
+    [class~="07-one-byte-verdict-card-left"] [class~="07-one-byte-verdict-card-delta"] {
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-card-right"] [class~="07-one-byte-verdict-card-delta"] {
+      color: #c97a16;
+    }
+
+    [class~="07-one-byte-verdict-card-name"] {
+      position: absolute;
+      top: 79px;
+      left: 31px;
+      right: 31px;
+      margin: 0;
+      font-size: 39px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      text-transform: lowercase;
+    }
+
+    [class~="07-one-byte-verdict-card-left"] [class~="07-one-byte-verdict-card-name"] {
+      color: #ffffff;
+    }
+
+    [class~="07-one-byte-verdict-card-right"] [class~="07-one-byte-verdict-card-name"] {
+      color: #c97a16;
+    }
+
+    [class~="07-one-byte-verdict-hash-label"] {
+      position: absolute;
+      top: 239px;
+      left: 31px;
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #48504d;
+    }
+
+    [class~="07-one-byte-verdict-hash-wrap"] {
+      position: absolute;
+      top: 281px;
+      left: 31px;
+      width: 750px;
+      min-width: 750px;
+      min-height: 76px;
+      display: flex;
+      align-items: baseline;
+      white-space: nowrap;
+      font-family: "IBM Plex Mono";
+      font-size: 25px;
+      line-height: 1.35;
+      letter-spacing: 0.01em;
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-hash-text"] {
+      display: inline-block;
+      min-width: 684px;
+    }
+
+    [class~="07-one-byte-verdict-hash-cursor"] {
+      display: inline-block;
+      width: 18px;
+      color: #ffffff;
+    }
+
+    [class~="07-one-byte-verdict-glow-word"] {
+      display: inline-block;
+      transform-origin: 50% 50%;
+      text-shadow: 0 0 0 rgba(46, 125, 91, 0);
+    }
+
+    [class~="07-one-byte-verdict-mutated-suffix"] {
+      display: inline-block;
+      color: #2e7d5b;
+      transform-origin: 50% 50%;
+    }
+
+    [class~="07-one-byte-verdict-card-rule"] {
+      position: absolute;
+      left: 31px;
+      right: 31px;
+      top: 376px;
+      height: 1px;
+      background: #262827;
+    }
+
+    [class~="07-one-byte-verdict-evidence"] {
+      position: absolute;
+      left: 31px;
+      right: 31px;
+      top: 405px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #48504d;
+    }
+
+    [class~="07-one-byte-verdict-dot"] {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 10px;
+      background: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-card-right"] [class~="07-one-byte-verdict-dot"] {
+      background: #c97a16;
+    }
+
+    [class~="07-one-byte-verdict-attachment"] {
+      position: absolute;
+      z-index: 4;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      box-sizing: border-box;
+      border: 1px solid currentColor;
+      background: #14181c;
+      font-family: "IBM Plex Mono";
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
+    [class~="07-one-byte-verdict-provenance-left"] {
+      top: 326px;
+      left: 576px;
+      width: 224px;
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-provenance-right"] {
+      top: 326px;
+      left: 908px;
+      width: 224px;
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-verdict-left"] {
+      top: 397px;
+      left: 668px;
+      width: 132px;
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-verdict-right"] {
+      top: 397px;
+      left: 908px;
+      width: 158px;
+      color: #c97a16;
+    }
+
+    [class~="07-one-byte-verdict-boundary"] {
+      position: absolute;
+      left: 106px;
+      width: 1708px;
+      display: flex;
+      align-items: center;
+      border-top: 1px solid #262827;
+      font-family: "IBM Plex Mono";
+      font-size: 19px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    [class~="07-one-byte-verdict-boundary"]::before {
+      content: "/";
+      width: 46px;
+      color: #2e7d5b;
+    }
+
+    [class~="07-one-byte-verdict-boundary-primary"] {
+      top: 765px;
+      height: 45px;
+      color: #ffffff;
+    }
+
+    [class~="07-one-byte-verdict-boundary-secondary"] {
+      top: 825px;
+      height: 45px;
+      color: #c97a16;
+    }
+  </style>
+
+  <div id="root" data-composition-id="07-one-byte-verdict" data-width="1920" data-height="1080" data-duration="16.095">
+    <div class="clip 07-one-byte-verdict-bg" data-start="0" data-duration="16.095" data-track-index="0"></div>
+
+    <div class="clip 07-one-byte-verdict-content" data-start="0" data-duration="16.095" data-track-index="1">
+      <div class="07-one-byte-verdict-top-rule"></div>
+      <div class="07-one-byte-verdict-kicker">verification / negative contrast</div>
+      <h1 class="07-one-byte-verdict-title" data-f07="title">
+        one byte / <span class="07-one-byte-verdict-title-accent">two verdicts</span>
+      </h1>
+
+      <div class="07-one-byte-verdict-stage" data-layout-allow-overlap>
+        <section class="07-one-byte-verdict-card 07-one-byte-verdict-card-left" data-f07="card-left">
+          <img class="07-one-byte-verdict-source" src="assets/dara-verify.jpg" alt="">
+          <div class="07-one-byte-verdict-source-mask"></div>
+          <div class="07-one-byte-verdict-card-head">
+            <span class="07-one-byte-verdict-card-label">trusted file</span>
+            <span class="07-one-byte-verdict-card-delta">original</span>
+          </div>
+          <h2 class="07-one-byte-verdict-card-name">delivered record</h2>
+          <div class="07-one-byte-verdict-hash-label">whole-file sha-256</div>
+          <div class="07-one-byte-verdict-hash-wrap">
+            <span class="07-one-byte-verdict-hash-text 07-one-byte-verdict-glow-word" data-f07="left-hash" data-word="stable"></span>
+            <span class="07-one-byte-verdict-hash-cursor" data-f07="left-cursor">_</span>
+          </div>
+          <div class="07-one-byte-verdict-card-rule"></div>
+          <div class="07-one-byte-verdict-evidence">
+            <span><span class="07-one-byte-verdict-dot"></span>manifest embedded</span>
+            <span>record available</span>
+          </div>
+        </section>
+
+        <section class="07-one-byte-verdict-card 07-one-byte-verdict-card-right" data-f07="card-right">
+          <img class="07-one-byte-verdict-source" src="assets/dara-verify.jpg" alt="">
+          <div class="07-one-byte-verdict-source-mask"></div>
+          <div class="07-one-byte-verdict-card-head">
+            <span class="07-one-byte-verdict-card-label">mutated file</span>
+            <span class="07-one-byte-verdict-card-delta">+ 1 byte</span>
+          </div>
+          <h2 class="07-one-byte-verdict-card-name">changed delivery</h2>
+          <div class="07-one-byte-verdict-hash-label">whole-file sha-256</div>
+          <div class="07-one-byte-verdict-hash-wrap">
+            <span class="07-one-byte-verdict-hash-text" data-f07="right-hash">
+              <span data-f07="right-prefix"></span><span class="07-one-byte-verdict-mutated-suffix 07-one-byte-verdict-glow-word" data-f07="right-suffix" data-word="mutation"></span>
+            </span>
+            <span class="07-one-byte-verdict-hash-cursor" data-f07="right-cursor">_</span>
+          </div>
+          <div class="07-one-byte-verdict-card-rule"></div>
+          <div class="07-one-byte-verdict-evidence">
+            <span><span class="07-one-byte-verdict-dot"></span>manifest embedded</span>
+            <span>record available</span>
+          </div>
+        </section>
+
+        <div class="07-one-byte-verdict-attachment 07-one-byte-verdict-provenance-left" data-f07="provenance-left">provenance extracted</div>
+        <div class="07-one-byte-verdict-attachment 07-one-byte-verdict-provenance-right" data-f07="provenance-right">provenance extracted</div>
+        <div class="07-one-byte-verdict-attachment 07-one-byte-verdict-verdict-left" data-f07="verdict-left">match</div>
+        <div class="07-one-byte-verdict-attachment 07-one-byte-verdict-verdict-right" data-f07="verdict-right">diverged</div>
+      </div>
+
+      <div class="07-one-byte-verdict-boundary 07-one-byte-verdict-boundary-primary" data-f07="boundary-primary">exact delivery integrity</div>
+      <div class="07-one-byte-verdict-boundary 07-one-byte-verdict-boundary-secondary" data-f07="boundary-secondary">not adversarial authenticity</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (() => {
+      const root = document.querySelector('[data-composition-id="07-one-byte-verdict"]');
+      const q = (name) =>
+        Array.from(root.querySelectorAll("[data-f07]")).find(
+          (element) => element.dataset.f07 === name
+        );
+      const qa = (selector) => Array.from(root.querySelectorAll(selector));
+      const tl = gsap.timeline({ paused: true });
+
+      tl.fromTo(
+        q("title"),
+        { y: -72, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.82, ease: "power3.out" },
+        0
+      );
+
+      tl.fromTo(
+        q("card-left"),
+        { x: -420, rotateY: 26, scale: 0.85, opacity: 0 },
+        { x: 0, rotateY: 13, scale: 1, opacity: 1, duration: 1.15, ease: "power3.out" },
+        0.28
+      );
+      tl.fromTo(
+        q("card-right"),
+        { x: 420, rotateY: -26, scale: 0.85, opacity: 0 },
+        { x: 0, rotateY: -13, scale: 1, opacity: 1, duration: 1.15, ease: "power3.out" },
+        0.46
+      );
+
+      tl.to(q("card-left"), { y: -6, duration: 0.9, ease: "sine.inOut" }, 1.55);
+      tl.to(q("card-right"), { y: 6, duration: 0.9, ease: "sine.inOut" }, 1.55);
+      tl.to(q("card-left"), { y: 0, duration: 0.9, ease: "sine.inOut" }, 2.45);
+      tl.to(q("card-right"), { y: 0, duration: 0.9, ease: "sine.inOut" }, 2.45);
+
+      const hashStates = [
+        { t: 0.0, left: "", right: "" },
+        { t: 0.35, left: "efaf24d3", right: "efaf24d3" },
+        { t: 0.82, left: "efaf24d3 c4cbeeb2", right: "efaf24d3 c4cbeeb2" },
+        { t: 1.42, left: "efaf24d3 c4cbeeb2 497acd5f", right: "efaf24d3 c4cbeeb2 497acd5f" },
+        { t: 2.05, left: "efaf24d3 c4cbeeb2 497acd5f cba1e485", right: "efaf24d3 c4cbeeb2 497acd5f cba1e485" },
+        { t: 2.78, left: "efaf24d3 c4cbeeb2 497acd5f cba1e485", right: "efaf24d3 c4cbeeb2 497acd5f cba1e4F5" }
+      ];
+
+      const stateAt = (time) => {
+        for (let i = hashStates.length - 1; i >= 0; i -= 1) {
+          if (time >= hashStates[i].t) return hashStates[i];
+        }
+        return hashStates[0];
+      };
+
+      const hashDriver = { t: 0 };
+      tl.to(
+        hashDriver,
+        {
+          t: 4.4,
+          duration: 4.4,
+          ease: "none",
+          onUpdate: () => {
+            const state = stateAt(hashDriver.t);
+            q("left-hash").textContent = state.left;
+            const hasSuffix = hashDriver.t >= 2.05;
+            q("right-prefix").textContent = hasSuffix ? state.right.slice(0, -2) : state.right;
+            q("right-suffix").textContent = hasSuffix ? state.right.slice(-2) : "";
+            q("right-suffix").style.color = hashDriver.t >= 2.78 ? "#c97a16" : "#2e7d5b";
+          }
+        },
+        3.8
+      );
+
+      const cursorDriver = { p: 0 };
+      tl.to(
+        cursorDriver,
+        {
+          p: Math.PI * 12,
+          duration: 4.4,
+          ease: "none",
+          onUpdate: () => {
+            const opacity = Math.sin(cursorDriver.p) > 0 ? "1" : "0";
+            q("left-cursor").style.opacity = opacity;
+            q("right-cursor").style.opacity = opacity;
+          }
+        },
+        3.8
+      );
+
+      const wordTimings = {
+        stable: { start: 0.52, end: 1.02 },
+        mutation: { start: 2.38, end: 3.28 }
+      };
+      const glowWords = qa('[class~="07-one-byte-verdict-glow-word"]');
+      const glowDriver = { t: 0 };
+      const attack = 0.18;
+      const release = 0.46;
+      const rest = 0.12;
+      const envelope = (time, start, end) => {
+        if (time < start) return 0;
+        if (time < end) return Math.min((time - start) / attack, 1);
+        if (time < end + release) return 1 - ((time - end) / release) * (1 - rest);
+        return rest;
+      };
+
+      tl.to(
+        glowDriver,
+        {
+          t: 4.4,
+          duration: 4.4,
+          ease: "none",
+          onUpdate: () => {
+            glowWords.forEach((el) => {
+              const timing = wordTimings[el.dataset.word];
+              const env = envelope(glowDriver.t, timing.start, timing.end);
+              const isMutation = el.dataset.word === "mutation";
+              const rgb = isMutation ? "201, 122, 22" : "46, 125, 91";
+              el.style.textShadow = `0 0 ${34 * env}px rgba(${rgb}, ${0.72 * env})`;
+              el.style.transform = `scale(${1 + 0.16 * env})`;
+            });
+          }
+        },
+        3.8
+      );
+
+      [
+        ["provenance-left", 8.25],
+        ["provenance-right", 8.44],
+        ["verdict-left", 10.08],
+        ["verdict-right", 10.34]
+      ].forEach(([name, at]) => {
+        tl.fromTo(
+          q(name),
+          { scale: 0, opacity: 0, y: 18 },
+          { scale: 1, opacity: 1, y: 0, duration: 0.62, ease: "power3.out" },
+          at
+        );
+      });
+
+      tl.fromTo(
+        q("boundary-primary"),
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.72, ease: "power3.out" },
+        12.5
+      );
+      tl.fromTo(
+        q("boundary-secondary"),
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.72, ease: "power3.out" },
+        13.3
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["07-one-byte-verdict"] = tl;
+    })();
+  </script>
+</template>

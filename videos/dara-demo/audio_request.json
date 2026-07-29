@@ -1,0 +1,88 @@
+{
+  "lines": [
+    {
+      "id": "01",
+      "sfx": [
+        "low data impact",
+        "restrained tick rise"
+      ]
+    },
+    {
+      "id": "02",
+      "sfx": [
+        "soft surface arrival"
+      ]
+    },
+    {
+      "id": "03",
+      "sfx": [
+        "quiet key taps",
+        "soft estimate lock"
+      ]
+    },
+    {
+      "id": "04",
+      "sfx": [
+        "state ticks",
+        "restrained pass confirmation"
+      ]
+    },
+    {
+      "id": "05",
+      "sfx": [
+        "policy latch",
+        "muted blocked tone"
+      ]
+    },
+    {
+      "id": "06",
+      "sfx": [
+        "hash scan",
+        "trusted match"
+      ]
+    },
+    {
+      "id": "07",
+      "sfx": [
+        "one-byte flip",
+        "integrity break"
+      ]
+    },
+    {
+      "id": "08",
+      "sfx": [
+        "ledger traversal",
+        "lineage branch"
+      ]
+    },
+    {
+      "id": "09",
+      "sfx": [
+        "object tile arrivals",
+        "single bucket lock"
+      ]
+    },
+    {
+      "id": "10",
+      "sfx": [
+        "parquet seal",
+        "query sweep"
+      ]
+    },
+    {
+      "id": "11",
+      "sfx": [
+        "three proof ticks"
+      ]
+    },
+    {
+      "id": "12",
+      "sfx": [
+        "three restrained type hits"
+      ]
+    }
+  ],
+  "bgm": {
+    "mode": "none"
+  }
+}

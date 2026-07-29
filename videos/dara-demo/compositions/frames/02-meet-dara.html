@@ -1,0 +1,590 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "02MeetArchivo";
+      src: url("capture/assets/fonts/Archivo-Variable.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: "02MeetPlexMono";
+      src: url("capture/assets/fonts/IBM_Plex_Mono-Regular.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+      font-display: block;
+    }
+
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #ffffff;
+      font-family: "02MeetArchivo";
+    }
+
+    [id="02-meet-dara-ground"] {
+      position: absolute;
+      inset: 0;
+      background: #14181c;
+    }
+
+    [id="02-meet-dara-shot"] {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .frame-02-meet-dara-grid {
+      position: absolute;
+      inset: 58px 90px 184px;
+      border-top: 1px solid #262827;
+      border-bottom: 1px solid #262827;
+      pointer-events: none;
+    }
+
+    .frame-02-meet-dara-grid::after {
+      content: "";
+      position: absolute;
+      left: 486px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: #262827;
+    }
+
+    .frame-02-meet-dara-morph-card {
+      position: absolute;
+      left: 90px;
+      top: 76px;
+      width: 430px;
+      height: 146px;
+      overflow: hidden;
+      transform-origin: 0 0;
+      background: #14181c;
+      border-top: 1px solid #2e7d5b;
+      will-change: transform;
+    }
+
+    .frame-02-meet-dara-content-old,
+    .frame-02-meet-dara-content-new {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .frame-02-meet-dara-content-old {
+      padding-left: 4px;
+      font-size: 116px;
+      font-weight: 900;
+      line-height: 0.88;
+      letter-spacing: -0.055em;
+      text-transform: lowercase;
+      white-space: nowrap;
+    }
+
+    .frame-02-meet-dara-content-new {
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-top: 22px;
+      opacity: 0;
+    }
+
+    .frame-02-meet-dara-brand-lockup {
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+    }
+
+    .frame-02-meet-dara-brand-meta,
+    .frame-02-meet-dara-rail-index,
+    .frame-02-meet-dara-phrase-kicker,
+    .frame-02-meet-dara-label-note {
+      font-family: "02MeetPlexMono";
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.3;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .frame-02-meet-dara-brand-meta {
+      margin-top: 7px;
+      color: #c97a16;
+    }
+
+    .frame-02-meet-dara-letter {
+      display: inline-block;
+      opacity: 0;
+    }
+
+    .frame-02-meet-dara-surface {
+      position: absolute;
+      left: 650px;
+      top: 132px;
+      width: 1176px;
+      height: 664px;
+      overflow: hidden;
+      border: 1px solid #48504d;
+      background: #181a19;
+      will-change: transform;
+    }
+
+    .frame-02-meet-dara-surface img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 10%;
+      filter: saturate(0.78) contrast(1.04) brightness(0.82);
+    }
+
+    .frame-02-meet-dara-surface-wash {
+      position: absolute;
+      inset: 0;
+      background: rgba(20, 24, 28, 0.22);
+      pointer-events: none;
+    }
+
+    .frame-02-meet-dara-input-highlight {
+      position: absolute;
+      left: 18px;
+      top: 226px;
+      width: 354px;
+      height: 416px;
+      border: 1px solid #2e7d5b;
+      background: rgba(46, 125, 91, 0.12);
+      pointer-events: none;
+    }
+
+    .frame-02-meet-dara-control-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .frame-02-meet-dara-control-svg path {
+      fill: none;
+      stroke: #2e7d5b;
+      stroke-width: 2;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+
+    .frame-02-meet-dara-phrase {
+      position: absolute;
+      left: 90px;
+      top: 308px;
+      width: 454px;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 4px;
+      perspective: 800px;
+    }
+
+    .frame-02-meet-dara-phrase-kicker {
+      margin-bottom: 12px;
+      color: #c97a16;
+    }
+
+    .frame-02-meet-dara-word {
+      display: inline-block;
+      color: #48504d;
+      font-size: 62px;
+      font-weight: 800;
+      line-height: 0.96;
+      letter-spacing: -0.035em;
+      text-transform: lowercase;
+      transform-origin: 0 50%;
+      text-shadow: 0 0 0 rgba(46, 125, 91, 0);
+    }
+
+    .frame-02-meet-dara-word.frame-02-meet-dara-provider {
+      color: #2e7d5b;
+    }
+
+    .frame-02-meet-dara-rail {
+      position: absolute;
+      left: 90px;
+      top: 496px;
+      width: 454px;
+      height: 282px;
+      display: grid;
+      grid-template-rows: repeat(3, 1fr);
+      border-top: 1px solid #262827;
+      border-bottom: 1px solid #262827;
+    }
+
+    .frame-02-meet-dara-rail-row {
+      position: relative;
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      align-items: center;
+      border-bottom: 1px solid #262827;
+      will-change: transform;
+    }
+
+    .frame-02-meet-dara-rail-row:last-child {
+      border-bottom: 0;
+    }
+
+    .frame-02-meet-dara-rail-index {
+      color: #c97a16;
+    }
+
+    .frame-02-meet-dara-label-word {
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+    }
+
+    .frame-02-meet-dara-label-note {
+      position: absolute;
+      right: 0;
+      bottom: 11px;
+      color: #48504d;
+    }
+
+    .frame-02-meet-dara-rail-lines {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .frame-02-meet-dara-rail-lines path {
+      fill: none;
+      stroke: #2e7d5b;
+      stroke-width: 1.5;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+
+    .frame-02-meet-dara-rail-lines circle {
+      fill: #2e7d5b;
+    }
+
+    .frame-02-meet-dara-phase-mark {
+      position: absolute;
+      right: 94px;
+      top: 78px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #c97a16;
+      font-family: "02MeetPlexMono";
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .frame-02-meet-dara-phase-mark::before {
+      content: "";
+      width: 36px;
+      height: 2px;
+      background: #2e7d5b;
+    }
+  </style>
+
+  <div id="root" data-composition-id="02-meet-dara" data-width="1920" data-height="1080" data-duration="10.714">
+    <div
+      id="02-meet-dara-ground"
+      class="clip"
+      data-start="0"
+      data-duration="10.714"
+      data-track-index="0"
+    ></div>
+
+    <section
+      id="02-meet-dara-shot"
+      class="clip"
+      data-start="0"
+      data-duration="10.714"
+      data-track-index="1"
+    >
+      <div class="frame-02-meet-dara-grid"></div>
+      <div class="frame-02-meet-dara-phase-mark">control plane</div>
+
+      <div id="02-meet-dara-morph-card" class="frame-02-meet-dara-morph-card">
+        <div id="02-meet-dara-content-old" class="frame-02-meet-dara-content-old">
+          <span id="02-meet-dara-letter-d" class="frame-02-meet-dara-letter">d</span>
+          <span id="02-meet-dara-letter-a1" class="frame-02-meet-dara-letter">a</span>
+          <span id="02-meet-dara-letter-r" class="frame-02-meet-dara-letter">r</span>
+          <span id="02-meet-dara-letter-a2" class="frame-02-meet-dara-letter">a</span>
+        </div>
+        <div id="02-meet-dara-content-new" class="frame-02-meet-dara-content-new">
+          <div>
+            <div class="frame-02-meet-dara-brand-lockup">dara</div>
+            <div class="frame-02-meet-dara-brand-meta">media control</div>
+          </div>
+          <div class="frame-02-meet-dara-rail-index">02</div>
+        </div>
+      </div>
+
+      <div id="02-meet-dara-surface" class="frame-02-meet-dara-surface">
+        <img src="assets/dara-studio.jpg" alt="Dara Studio product interface" />
+        <div class="frame-02-meet-dara-surface-wash"></div>
+        <div id="02-meet-dara-input-highlight" class="frame-02-meet-dara-input-highlight"></div>
+        <svg
+          class="frame-02-meet-dara-control-svg"
+          viewBox="0 0 1176 664"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <path id="02-meet-dara-boundary-main" d="M 384 218 L 384 640" />
+          <path id="02-meet-dara-boundary-top" d="M 350 218 L 384 218 L 418 218" />
+          <path id="02-meet-dara-boundary-provider" d="M 418 252 L 1108 252" />
+        </svg>
+      </div>
+
+      <div id="02-meet-dara-phrase" class="frame-02-meet-dara-phrase">
+        <div class="frame-02-meet-dara-phrase-kicker">from / to</div>
+        <span class="frame-02-meet-dara-word" data-word="brief">brief</span>
+        <span class="frame-02-meet-dara-word frame-02-meet-dara-provider" data-word="provider">provider</span>
+      </div>
+
+      <div id="02-meet-dara-rail" class="frame-02-meet-dara-rail">
+        <div id="02-meet-dara-label-govern" class="frame-02-meet-dara-rail-row">
+          <div class="frame-02-meet-dara-rail-index">01</div>
+          <div class="frame-02-meet-dara-label-word">govern</div>
+          <div class="frame-02-meet-dara-label-note">policy</div>
+        </div>
+        <div id="02-meet-dara-label-preserve" class="frame-02-meet-dara-rail-row">
+          <div class="frame-02-meet-dara-rail-index">02</div>
+          <div class="frame-02-meet-dara-label-word">preserve</div>
+          <div class="frame-02-meet-dara-label-note">record</div>
+        </div>
+        <div id="02-meet-dara-label-verify" class="frame-02-meet-dara-rail-row">
+          <div class="frame-02-meet-dara-rail-index">03</div>
+          <div class="frame-02-meet-dara-label-word">verify</div>
+          <div class="frame-02-meet-dara-label-note">bytes</div>
+        </div>
+      </div>
+
+      <svg
+        class="frame-02-meet-dara-rail-lines"
+        viewBox="0 0 1920 1080"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path id="02-meet-dara-line-govern" d="M 544 542 L 604 542 L 680 510" />
+        <path id="02-meet-dara-line-preserve" d="M 544 636 L 604 636 L 1270 676" />
+        <path id="02-meet-dara-line-verify" d="M 544 730 L 604 730 L 1658 398" />
+        <circle id="02-meet-dara-dot-govern" cx="680" cy="510" r="4" />
+        <circle id="02-meet-dara-dot-preserve" cx="1270" cy="676" r="4" />
+        <circle id="02-meet-dara-dot-verify" cx="1658" cy="398" r="4" />
+      </svg>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script>
+    (() => {
+      const root = document.querySelector('[data-composition-id="02-meet-dara"]');
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines = window.__timelines || {};
+      window.__timelines["02-meet-dara"] = tl;
+
+      const q = (selector) => root.querySelector(selector);
+      const qa = (selector) => Array.from(root.querySelectorAll(selector));
+      const byId = (value) => document.getElementById(value);
+      const frame = 1 / 60;
+
+      const titleCascade = [
+        { target: byId("02-meet-dara-letter-d"), start: 0.04, y: 80, duration: 0.19 },
+        { target: byId("02-meet-dara-letter-a1"), start: 0.04 + 0.19 + frame, y: 50, duration: 0.15 },
+        { target: byId("02-meet-dara-letter-r"), start: 0.04 + 0.19 + frame + 0.15 - frame, y: 45, duration: 0.14 },
+        { target: byId("02-meet-dara-letter-a2"), start: 0.04 + 0.19 + 0.15 + 0.14 - frame, y: 70, duration: 0.15 },
+      ];
+
+      titleCascade.forEach((item) => {
+        tl.set(item.target, { opacity: 1, y: item.y }, item.start);
+        tl.to(
+          item.target,
+          { y: 0, duration: item.duration, ease: "power4.out" },
+          item.start,
+        );
+      });
+
+      tl.fromTo(
+        byId("02-meet-dara-surface"),
+        { opacity: 0.14, y: 142 },
+        { opacity: 1, y: 0, duration: 1.58, ease: "power4.out" },
+        0.38,
+      );
+
+      tl.fromTo(
+        byId("02-meet-dara-morph-card"),
+        {
+          scale: 3.2,
+          borderRadius: 0,
+          backgroundColor: "#14181c",
+        },
+        {
+          scale: 1,
+          borderRadius: 0,
+          backgroundColor: "#181a19",
+          duration: 1.12,
+          ease: "power2.inOut",
+        },
+        1.28,
+      );
+      tl.to(
+        byId("02-meet-dara-content-old"),
+        { opacity: 0, duration: 0.44, ease: "power1.in" },
+        1.28,
+      );
+      tl.to(
+        byId("02-meet-dara-content-new"),
+        { opacity: 1, duration: 0.44, ease: "power1.out" },
+        1.96,
+      );
+
+      tl.fromTo(
+        byId("02-meet-dara-phrase"),
+        { opacity: 0, x: -32 },
+        { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" },
+        2.64,
+      );
+      tl.fromTo(
+        byId("02-meet-dara-input-highlight"),
+        { opacity: 0 },
+        { opacity: 1, duration: 0.54, ease: "power1.out" },
+        2.9,
+      );
+
+      const controlPaths = [
+        { el: byId("02-meet-dara-boundary-main"), start: 3.46, duration: 0.72 },
+        { el: byId("02-meet-dara-boundary-top"), start: 4.0, duration: 0.48 },
+        { el: byId("02-meet-dara-boundary-provider"), start: 4.36, duration: 0.68 },
+      ];
+      controlPaths.forEach((item) => {
+        const length = item.el.getTotalLength();
+        item.el.style.strokeDasharray = `${length}`;
+        item.el.style.strokeDashoffset = `${length}`;
+        tl.to(
+          item.el,
+          { strokeDashoffset: 0, duration: item.duration, ease: "power2.out" },
+          item.start,
+        );
+      });
+
+      const wordTimings = {
+        brief: { start: 0.22, end: 1.04 },
+        provider: { start: 1.38, end: 2.68 },
+      };
+      const glowDriver = { t: 0 };
+      const glowWords = qa(".frame-02-meet-dara-word");
+      const attack = 0.18;
+      const release = 0.42;
+      const restLevel = 0.08;
+      const glowDuration = 3.02;
+
+      const envelope = (time, start, end) => {
+        if (time < start) return 0;
+        if (time < end) return Math.min((time - start) / attack, 1);
+        const releaseEnd = end + release;
+        if (time < releaseEnd) {
+          return 1 - ((time - end) / release) * (1 - restLevel);
+        }
+        return restLevel;
+      };
+
+      const lerp = (a, b, amount) => Math.round(a + (b - a) * amount);
+      tl.to(
+        glowDriver,
+        {
+          t: glowDuration,
+          duration: glowDuration,
+          ease: "none",
+          onUpdate: () => {
+            glowWords.forEach((word) => {
+              const timing = wordTimings[word.dataset.word];
+              if (!timing) return;
+              const amount = envelope(glowDriver.t, timing.start, timing.end);
+              const active = { r: 255, g: 255, b: 255 };
+              const rest = { r: 72, g: 80, b: 77 };
+              word.style.color = `rgb(${lerp(rest.r, active.r, amount)}, ${lerp(rest.g, active.g, amount)}, ${lerp(rest.b, active.b, amount)})`;
+              word.style.textShadow = `0 0 ${38 * amount}px rgba(46, 125, 91, ${0.76 * amount})`;
+              word.style.transform = `scale(${1 + 0.18 * amount})`;
+            });
+          },
+        },
+        2.64,
+      );
+
+      const content = [
+        { key: "govern", body: "policy", hold: 0.1 },
+        { key: "preserve", body: "record", hold: 0.1 },
+        { key: "verify", body: "bytes", hold: 0.14 },
+      ];
+      const baseDuration = 0.78;
+      const secondsPerCharacter = 0.035;
+      let cumulative = 0;
+      const sequence = content.map((entry) => {
+        const duration = baseDuration + entry.key.length * secondsPerCharacter + entry.hold;
+        const start = cumulative;
+        cumulative += duration;
+        return { ...entry, start, end: cumulative };
+      });
+      const sequenceStart = 5.78;
+
+      sequence.forEach((entry) => {
+        const row = byId(`02-meet-dara-label-${entry.key}`);
+        const line = byId(`02-meet-dara-line-${entry.key}`);
+        const dot = byId(`02-meet-dara-dot-${entry.key}`);
+        const lineLength = line.getTotalLength();
+        line.style.strokeDasharray = `${lineLength}`;
+        line.style.strokeDashoffset = `${lineLength}`;
+
+        tl.fromTo(
+          row,
+          { opacity: 0, y: 42 },
+          { opacity: 1, y: 0, duration: 0.52, ease: "power4.out" },
+          sequenceStart + entry.start,
+        );
+        tl.to(
+          line,
+          { strokeDashoffset: 0, duration: 0.56, ease: "power2.out" },
+          sequenceStart + entry.start + 0.22,
+        );
+        tl.fromTo(
+          dot,
+          { opacity: 0, scale: 0 },
+          { opacity: 1, scale: 1, duration: 0.2, ease: "power2.out" },
+          sequenceStart + entry.start + 0.66,
+        );
+      });
+
+      tl.fromTo(
+        byId("02-meet-dara-rail"),
+        { borderTopColor: "#262827", borderBottomColor: "#262827" },
+        {
+          borderTopColor: "#2e7d5b",
+          borderBottomColor: "#2e7d5b",
+          duration: 0.48,
+          ease: "power1.out",
+        },
+        9.16,
+      );
+    })();
+  </script>
+</template>

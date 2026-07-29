@@ -11,6 +11,10 @@ pipeline and policy layers where judges read code, keep the UI to three screens,
 and make sure every B2 role and every Genblaze primitive listed in the specs is
 actually exercised and actually named in the README.
 
+**Execution directive:** the deadline does not reduce Dara's acceptance criteria.
+Complete every legitimate target in this plan; do not activate the historical cut
+order at the bottom of this file.
+
 ## Milestones
 
 | # | Milestone | Done when |
@@ -220,15 +224,20 @@ Work top to bottom. Each task is one commit.
 
 - [ ] **T-46** Record the demo video to the beat sheet in `docs/SUBMISSION.md`.
       Under 3:00. Upload public to YouTube.
+      Reproducible 12-scene source is committed under `videos/dara-demo`; its
+      165.929-second composition passes the HyperFrames runtime, layout, motion, and
+      contrast gates with zero errors. Final render, end-to-end playback review, and
+      public upload remain.
 - [x] **T-47** Write the Devpost description: features, B2 usage, Genblaze usage,
       explicit provider and model list.
 - [x] **T-48** Grant judge access if the repo is private. Verify the working URL from a
       clean browser with no session.
 - [ ] **T-49** Submit. Then stop touching the deploy.
 
-## Cut list — if you are behind
+## Historical contingency order — inactive
 
-Cut in this order. Everything above the line still makes a coherent, submittable product.
+This early planning artifact is retained for decision history only. It is not
+authorized: Dara is being built against the full checklist above.
 
 1. `voiceover-pack` pipeline
 2. Regeneration diff view (keep regeneration itself, drop the visual diff)

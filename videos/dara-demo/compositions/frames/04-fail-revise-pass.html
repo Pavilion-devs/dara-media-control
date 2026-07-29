@@ -1,0 +1,928 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Archivo";
+      src: url("capture/assets/fonts/Archivo-Variable.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 900;
+    }
+
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/IBM_Plex_Mono-Regular.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    #root {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #ffffff;
+      font-family: "Archivo", sans-serif;
+    }
+
+    [class~="04-fail-revise-pass-background"] {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #14181c;
+    }
+
+    [class~="04-fail-revise-pass-background"] img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 32%;
+      opacity: 0.17;
+      filter: grayscale(1) contrast(1.12);
+    }
+
+    [class~="04-fail-revise-pass-background-wash"] {
+      position: absolute;
+      inset: 0;
+      background: rgba(20, 24, 28, 0.48);
+    }
+
+    [class~="04-fail-revise-pass-content"] {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    [class~="04-fail-revise-pass-top-rule"],
+    [class~="04-fail-revise-pass-bottom-rule"] {
+      position: absolute;
+      left: 106px;
+      right: 106px;
+      height: 1px;
+      background: #48504d;
+      opacity: 0.72;
+    }
+
+    [class~="04-fail-revise-pass-top-rule"] {
+      top: 63px;
+    }
+
+    [class~="04-fail-revise-pass-bottom-rule"] {
+      top: 868px;
+    }
+
+    [class~="04-fail-revise-pass-kicker"] {
+      position: absolute;
+      left: 106px;
+      top: 83px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: #5aa681;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 17px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    [class~="04-fail-revise-pass-kicker"]::before {
+      content: "";
+      width: 36px;
+      height: 2px;
+      background: #5aa681;
+    }
+
+    [class~="04-fail-revise-pass-fixture-tag"] {
+      position: absolute;
+      right: 614px;
+      top: 84px;
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 15px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.62;
+    }
+
+    [class~="04-fail-revise-pass-receipt-stage"] {
+      position: absolute;
+      left: 106px;
+      top: 148px;
+      width: 1195px;
+      height: 690px;
+    }
+
+    [class~="04-fail-revise-pass-attempt-one"] {
+      position: relative;
+      width: 100%;
+      height: 252px;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #262827;
+      background: rgba(20, 24, 28, 0.9);
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+
+    [class~="04-fail-revise-pass-attempt-grid"] {
+      display: grid;
+      grid-template-columns: 232px minmax(0, 1fr) 370px;
+      height: 100%;
+    }
+
+    [class~="04-fail-revise-pass-attempt-index"] {
+      padding: 30px 28px 24px 0;
+      border-right: 1px solid #262827;
+    }
+
+    [class~="04-fail-revise-pass-mono"] {
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 15px;
+      line-height: 1.35;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    [class~="04-fail-revise-pass-attempt-number"] {
+      margin-top: 20px;
+      color: #5aa681;
+      font-size: 72px;
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+
+    [class~="04-fail-revise-pass-attempt-copy"] {
+      padding: 29px 34px;
+      min-width: 0;
+    }
+
+    [class~="04-fail-revise-pass-copy-label"] {
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 14px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.56;
+    }
+
+    [class~="04-fail-revise-pass-copy-value"] {
+      margin-top: 20px;
+      color: #ffffff;
+      font-size: 37px;
+      font-weight: 700;
+      line-height: 1.04;
+      letter-spacing: -0.02em;
+      text-transform: lowercase;
+    }
+
+    [class~="04-fail-revise-pass-reason-row"] {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      margin-top: 22px;
+      color: #5aa681;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 15px;
+      line-height: 1.2;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      will-change: transform, opacity;
+    }
+
+    [class~="04-fail-revise-pass-reason-row"]::before {
+      content: "/";
+      color: #5aa681;
+      font-size: 21px;
+    }
+
+    [class~="04-fail-revise-pass-status-wrap"] {
+      position: relative;
+      min-width: 0;
+      border-left: 1px solid #262827;
+      overflow: hidden;
+    }
+
+    [class~="04-fail-revise-pass-status-state"] {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 28px 34px;
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+
+    [class~="04-fail-revise-pass-score-state"] {
+      z-index: 1;
+    }
+
+    [class~="04-fail-revise-pass-failed-state"] {
+      z-index: 2;
+      background: #14181c;
+    }
+
+    [class~="04-fail-revise-pass-status-word"] {
+      margin-top: 16px;
+      color: #ffffff;
+      font-size: 62px;
+      font-weight: 900;
+      line-height: 0.88;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+    }
+
+    [class~="04-fail-revise-pass-failed-state"] [class~="04-fail-revise-pass-status-word"] {
+      color: #5aa681;
+    }
+
+    [class~="04-fail-revise-pass-expand-mask"] {
+      position: relative;
+      height: 232px;
+      overflow: hidden;
+    }
+
+    [class~="04-fail-revise-pass-expand-sheet"] {
+      position: relative;
+      height: 232px;
+      background: #181a19;
+      border-bottom: 1px solid #48504d;
+      will-change: transform;
+    }
+
+    [class~="04-fail-revise-pass-branch"] {
+      position: absolute;
+      left: 116px;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: #5aa681;
+    }
+
+    [class~="04-fail-revise-pass-branch"]::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 46px;
+      width: 68px;
+      height: 1px;
+      background: #5aa681;
+    }
+
+    [class~="04-fail-revise-pass-revision"] {
+      position: absolute;
+      left: 184px;
+      right: 0;
+      top: 30px;
+      height: 156px;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      border-top: 1px solid #262827;
+      border-bottom: 1px solid #262827;
+    }
+
+    [class~="04-fail-revise-pass-revision-label"] {
+      padding: 26px 28px;
+      border-right: 1px solid #262827;
+      color: #5aa681;
+    }
+
+    [class~="04-fail-revise-pass-revision-copy"] {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      padding: 24px 34px;
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 21px;
+      line-height: 1.35;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    [class~="04-fail-revise-pass-text-wrap"] {
+      display: inline-flex;
+      align-items: baseline;
+      min-width: 530px;
+      white-space: nowrap;
+    }
+
+    [class~="04-fail-revise-pass-cursor"] {
+      display: inline-block;
+      width: 14px;
+      margin-left: 5px;
+      color: #5aa681;
+    }
+
+    [class~="04-fail-revise-pass-below"] {
+      position: relative;
+      height: 180px;
+      will-change: transform;
+    }
+
+    [class~="04-fail-revise-pass-attempt-two"] {
+      position: absolute;
+      left: 184px;
+      right: 0;
+      top: 0;
+      height: 168px;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 370px;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #48504d;
+      background: rgba(20, 24, 28, 0.96);
+      will-change: transform, opacity;
+    }
+
+    [class~="04-fail-revise-pass-attempt-two-index"] {
+      padding: 26px 28px;
+      border-right: 1px solid #262827;
+    }
+
+    [class~="04-fail-revise-pass-attempt-two-number"] {
+      margin-top: 13px;
+      color: #5aa681;
+      font-size: 54px;
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+
+    [class~="04-fail-revise-pass-scoring"] {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      padding: 25px 32px;
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 19px;
+      line-height: 1.3;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    [class~="04-fail-revise-pass-pass-wrap"] {
+      position: relative;
+      overflow: hidden;
+      border-left: 1px solid #262827;
+    }
+
+    [class~="04-fail-revise-pass-pass-state"] {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding: 24px 28px;
+      transform-origin: 50% 50%;
+      will-change: transform, opacity;
+    }
+
+    [class~="04-fail-revise-pass-pass-outgoing"] {
+      z-index: 1;
+      color: #ffffff;
+    }
+
+    [class~="04-fail-revise-pass-pass-incoming"] {
+      z-index: 2;
+      background: #5aa681;
+      color: #14181c;
+    }
+
+    [class~="04-fail-revise-pass-pass-word"] {
+      font-size: 46px;
+      font-weight: 900;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+    }
+
+    [class~="04-fail-revise-pass-check"] {
+      flex: 0 0 58px;
+      width: 58px;
+      height: 58px;
+    }
+
+    [class~="04-fail-revise-pass-check"] path {
+      fill: none;
+      stroke: #14181c;
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    [class~="04-fail-revise-pass-production-rail"] {
+      position: absolute;
+      left: 1340px;
+      top: 148px;
+      width: 474px;
+      height: 690px;
+      border-top: 1px solid #5aa681;
+      border-bottom: 1px solid #48504d;
+      background: #181a19;
+      transform-origin: 0% 50%;
+      will-change: transform, opacity;
+    }
+
+    [class~="04-fail-revise-pass-production-head"] {
+      padding: 27px 30px 25px;
+      border-bottom: 1px solid #262827;
+      color: #5aa681;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 15px;
+      line-height: 1.45;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    [class~="04-fail-revise-pass-production-title"] {
+      margin-top: 15px;
+      color: #ffffff;
+      font-family: "Archivo", sans-serif;
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      text-transform: lowercase;
+    }
+
+    [class~="04-fail-revise-pass-record"] {
+      position: relative;
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      align-items: center;
+      min-height: 150px;
+      padding: 20px 30px;
+      border-bottom: 1px solid #262827;
+    }
+
+    [class~="04-fail-revise-pass-record-mark"] {
+      color: #5aa681;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 19px;
+      line-height: 1;
+      letter-spacing: 0.1em;
+    }
+
+    [class~="04-fail-revise-pass-record-name"] {
+      color: #ffffff;
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      text-transform: lowercase;
+    }
+
+    [class~="04-fail-revise-pass-record-meta"] {
+      margin-top: 10px;
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px;
+      line-height: 1.35;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.52;
+    }
+
+    [class~="04-fail-revise-pass-boundary-note"] {
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      bottom: 28px;
+      padding-top: 20px;
+      border-top: 1px solid #262827;
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px;
+      line-height: 1.45;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    [class~="04-fail-revise-pass-frame-no"] {
+      position: absolute;
+      right: 106px;
+      top: 83px;
+      color: #ffffff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 15px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      opacity: 0.42;
+    }
+  </style>
+
+  <div id="root" data-composition-id="04-fail-revise-pass" data-width="1920" data-height="1080" data-duration="17.353">
+    <div
+      class="clip 04-fail-revise-pass-background"
+      data-start="0"
+      data-duration="17.353"
+      data-track-index="0"
+    >
+      <img src="assets/dara-studio.jpg" alt="" />
+      <div class="04-fail-revise-pass-background-wash"></div>
+    </div>
+
+    <div
+      class="clip 04-fail-revise-pass-content"
+      data-start="0"
+      data-duration="17.353"
+      data-track-index="1"
+    >
+      <div class="04-fail-revise-pass-top-rule"></div>
+      <div class="04-fail-revise-pass-bottom-rule"></div>
+      <div class="04-fail-revise-pass-kicker">DETERMINISTIC QA REPLAY</div>
+      <div class="04-fail-revise-pass-fixture-tag">FIXTURE / ISOLATED</div>
+      <div class="04-fail-revise-pass-frame-no">04 / QA</div>
+
+      <section class="04-fail-revise-pass-receipt-stage" aria-label="QA replay receipts">
+        <article
+          id="04-fail-revise-pass-attempt-one"
+          class="04-fail-revise-pass-attempt-one"
+          data-layout-allow-overlap
+        >
+          <div class="04-fail-revise-pass-attempt-grid">
+            <div class="04-fail-revise-pass-attempt-index">
+              <div class="04-fail-revise-pass-mono">ATTEMPT</div>
+              <div class="04-fail-revise-pass-attempt-number">01</div>
+            </div>
+            <div class="04-fail-revise-pass-attempt-copy">
+              <div class="04-fail-revise-pass-copy-label">ORIGINAL PROMPT</div>
+              <div class="04-fail-revise-pass-copy-value">prompt / v1</div>
+              <div
+                id="04-fail-revise-pass-reason"
+                class="04-fail-revise-pass-reason-row"
+              >
+                BELOW THRESHOLD / FAILURE RECORDED
+              </div>
+            </div>
+            <div class="04-fail-revise-pass-status-wrap">
+              <div
+                id="04-fail-revise-pass-score-state"
+                class="04-fail-revise-pass-status-state 04-fail-revise-pass-score-state"
+              >
+                <div class="04-fail-revise-pass-copy-label">SCORE STATE</div>
+                <div
+                  id="04-fail-revise-pass-score-text"
+                  class="04-fail-revise-pass-status-word"
+                >
+                  scoring
+                </div>
+              </div>
+              <div
+                id="04-fail-revise-pass-failed-state"
+                class="04-fail-revise-pass-status-state 04-fail-revise-pass-failed-state"
+              >
+                <div class="04-fail-revise-pass-copy-label">RECEIPT STATE</div>
+                <div class="04-fail-revise-pass-status-word">failed</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div
+          id="04-fail-revise-pass-expand-mask"
+          class="04-fail-revise-pass-expand-mask"
+          data-layout-allow-overflow
+        >
+          <div
+            id="04-fail-revise-pass-expand-sheet"
+            class="04-fail-revise-pass-expand-sheet"
+          >
+            <div class="04-fail-revise-pass-branch"></div>
+            <div class="04-fail-revise-pass-revision">
+              <div class="04-fail-revise-pass-revision-label">
+                <div class="04-fail-revise-pass-mono">REVISION BRANCH</div>
+              </div>
+              <div class="04-fail-revise-pass-revision-copy">
+                <span class="04-fail-revise-pass-text-wrap">
+                  <span id="04-fail-revise-pass-revision-text"></span>
+                  <span
+                    id="04-fail-revise-pass-cursor"
+                    class="04-fail-revise-pass-cursor"
+                  >_</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="04-fail-revise-pass-below" class="04-fail-revise-pass-below">
+          <article
+            id="04-fail-revise-pass-attempt-two"
+            class="04-fail-revise-pass-attempt-two"
+          >
+            <div class="04-fail-revise-pass-attempt-two-index">
+              <div class="04-fail-revise-pass-mono">ATTEMPT</div>
+              <div class="04-fail-revise-pass-attempt-two-number">02</div>
+            </div>
+            <div
+              id="04-fail-revise-pass-attempt-two-text"
+              class="04-fail-revise-pass-scoring"
+            >
+              SCORING
+            </div>
+            <div class="04-fail-revise-pass-pass-wrap">
+              <div
+                id="04-fail-revise-pass-pass-outgoing"
+                class="04-fail-revise-pass-pass-state 04-fail-revise-pass-pass-outgoing"
+              >
+                <div class="04-fail-revise-pass-pass-word">scoring</div>
+              </div>
+              <div
+                id="04-fail-revise-pass-pass-incoming"
+                class="04-fail-revise-pass-pass-state 04-fail-revise-pass-pass-incoming"
+              >
+                <svg
+                  class="04-fail-revise-pass-check"
+                  viewBox="0 0 64 64"
+                  aria-hidden="true"
+                >
+                  <path
+                    id="04-fail-revise-pass-check-path"
+                    d="M 10 34 L 25 49 L 55 15"
+                  ></path>
+                </svg>
+                <div class="04-fail-revise-pass-pass-word">passed</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside
+        id="04-fail-revise-pass-production-rail"
+        class="04-fail-revise-pass-production-rail"
+      >
+        <div class="04-fail-revise-pass-production-head">
+          SEPARATE EVIDENCE CLASS
+          <div class="04-fail-revise-pass-production-title">
+            production records
+          </div>
+        </div>
+        <div
+          id="04-fail-revise-pass-record-openai"
+          class="04-fail-revise-pass-record"
+        >
+          <div class="04-fail-revise-pass-record-mark">AI</div>
+          <div>
+            <div class="04-fail-revise-pass-record-name">openai</div>
+            <div class="04-fail-revise-pass-record-meta">PRODUCTION RECORD</div>
+          </div>
+        </div>
+        <div
+          id="04-fail-revise-pass-record-b2"
+          class="04-fail-revise-pass-record"
+        >
+          <div class="04-fail-revise-pass-record-mark">B2</div>
+          <div>
+            <div class="04-fail-revise-pass-record-name">B2</div>
+            <div class="04-fail-revise-pass-record-meta">PRODUCTION RECORD</div>
+          </div>
+        </div>
+        <div class="04-fail-revise-pass-boundary-note">
+          FIXTURE REPLAY ≠ PRODUCTION
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    (() => {
+      const root = document.querySelector('[data-composition-id="04-fail-revise-pass"]');
+      const byId = (id) => document.getElementById(id);
+      const tl = gsap.timeline({ paused: true });
+
+      const attemptOne = byId("04-fail-revise-pass-attempt-one");
+      const reason = byId("04-fail-revise-pass-reason");
+      const scoreState = byId("04-fail-revise-pass-score-state");
+      const scoreText = byId("04-fail-revise-pass-score-text");
+      const failedState = byId("04-fail-revise-pass-failed-state");
+      const expandSheet = byId("04-fail-revise-pass-expand-sheet");
+      const below = byId("04-fail-revise-pass-below");
+      const revisionText = byId("04-fail-revise-pass-revision-text");
+      const cursor = byId("04-fail-revise-pass-cursor");
+      const attemptTwo = byId("04-fail-revise-pass-attempt-two");
+      const attemptTwoText = byId("04-fail-revise-pass-attempt-two-text");
+      const passOutgoing = byId("04-fail-revise-pass-pass-outgoing");
+      const passIncoming = byId("04-fail-revise-pass-pass-incoming");
+      const checkPath = byId("04-fail-revise-pass-check-path");
+      const productionRail = byId("04-fail-revise-pass-production-rail");
+      const recordOpenAI = byId("04-fail-revise-pass-record-openai");
+      const recordB2 = byId("04-fail-revise-pass-record-b2");
+
+      const scoreStates = [
+        { t: 0.0, text: "scoring" },
+        { t: 0.7, text: "score / …" },
+        { t: 1.25, text: "score / below" },
+        { t: 1.9, text: "below threshold" }
+      ];
+      const scoreDriver = { t: 0 };
+
+      const revisionStates = [
+        { t: 0.0, text: "" },
+        { t: 0.35, text: "REV" },
+        { t: 0.75, text: "REVISE" },
+        { t: 1.15, text: "REVISED PROMPT" },
+        { t: 1.75, text: "REVISED PROMPT / V2" },
+        { t: 2.25, text: "REVISED PROMPT / V2  ✓" }
+      ];
+      const revisionDriver = { t: 0 };
+      const blinkDriver = { p: 0 };
+
+      const attemptTwoStates = [
+        { t: 0.0, text: "SCORING" },
+        { t: 0.55, text: "SCORING / …" },
+        { t: 1.15, text: "SCORE / CHECK" },
+        { t: 1.7, text: "THRESHOLD MET" }
+      ];
+      const attemptTwoDriver = { t: 0 };
+
+      const textAt = (states, time) => {
+        for (let i = states.length - 1; i >= 0; i -= 1) {
+          if (time >= states[i].t) return states[i].text;
+        }
+        return "";
+      };
+
+      const checkLength = checkPath.getTotalLength();
+      checkPath.style.strokeDasharray = `${checkLength}`;
+      checkPath.style.strokeDashoffset = `${checkLength}`;
+
+      tl.fromTo(
+        root.querySelector('[class~="04-fail-revise-pass-kicker"]'),
+        { opacity: 0, x: -22 },
+        { opacity: 1, x: 0, duration: 0.42, ease: "power3.out" },
+        0.04
+      );
+      tl.fromTo(
+        root.querySelector('[class~="04-fail-revise-pass-fixture-tag"]'),
+        { opacity: 0, x: 16 },
+        { opacity: 0.62, x: 0, duration: 0.38, ease: "power3.out" },
+        0.08
+      );
+      tl.fromTo(
+        attemptOne,
+        { scale: 0, opacity: 0, y: 16 },
+        { scale: 1, opacity: 1, y: 0, duration: 0.62, ease: "power3.out" },
+        0.12
+      );
+      tl.fromTo(
+        reason,
+        { opacity: 0, x: -12 },
+        { opacity: 0, x: -12, duration: 0.01, ease: "none" },
+        0
+      );
+      tl.fromTo(
+        failedState,
+        { scale: 0.72, opacity: 0 },
+        { scale: 0.72, opacity: 0, duration: 0.01, ease: "none" },
+        0
+      );
+      tl.fromTo(
+        attemptTwo,
+        { opacity: 0, y: 14 },
+        { opacity: 0, y: 14, duration: 0.01, ease: "none" },
+        0
+      );
+      tl.fromTo(
+        passIncoming,
+        { scale: 0.72, opacity: 0 },
+        { scale: 0.72, opacity: 0, duration: 0.01, ease: "none" },
+        0
+      );
+      tl.fromTo(
+        productionRail,
+        { opacity: 0, scaleX: 0.82, x: 28 },
+        { opacity: 0, scaleX: 0.82, x: 28, duration: 0.01, ease: "none" },
+        0
+      );
+
+      tl.to(
+        scoreDriver,
+        {
+          t: 2.2,
+          duration: 2.2,
+          ease: "none",
+          onUpdate: () => {
+            scoreText.textContent = textAt(scoreStates, scoreDriver.t);
+          }
+        },
+        0.72
+      );
+
+      tl.to(
+        scoreState,
+        { scale: 0.72, opacity: 0, duration: 0.38, ease: "power2.in" },
+        3.22
+      );
+      tl.fromTo(
+        failedState,
+        { scale: 0.72, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.58, ease: "back.out(1.4)" },
+        3.45
+      );
+      tl.fromTo(
+        reason,
+        { opacity: 0, x: -12 },
+        { opacity: 1, x: 0, duration: 0.42, ease: "power3.out" },
+        4.15
+      );
+
+      tl.fromTo(
+        [expandSheet, below],
+        { y: -232 },
+        { y: 0, duration: 0.56, ease: "power3.out" },
+        7.2
+      );
+      tl.to(
+        revisionDriver,
+        {
+          t: 2.5,
+          duration: 2.5,
+          ease: "none",
+          onUpdate: () => {
+            revisionText.textContent = textAt(revisionStates, revisionDriver.t);
+          }
+        },
+        7.64
+      );
+      tl.to(
+        blinkDriver,
+        {
+          p: Math.PI * 8,
+          duration: 3.1,
+          ease: "none",
+          onUpdate: () => {
+            cursor.style.opacity = Math.sin(blinkDriver.p) > 0 ? "1" : "0";
+          }
+        },
+        7.45
+      );
+      tl.fromTo(
+        attemptTwo,
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.48, ease: "power3.out" },
+        9.65
+      );
+      tl.to(
+        attemptTwoDriver,
+        {
+          t: 1.9,
+          duration: 1.9,
+          ease: "none",
+          onUpdate: () => {
+            attemptTwoText.textContent = textAt(attemptTwoStates, attemptTwoDriver.t);
+          }
+        },
+        10.12
+      );
+
+      tl.to(
+        passOutgoing,
+        { scale: 0.72, opacity: 0, duration: 0.36, ease: "power2.in" },
+        12.5
+      );
+      tl.fromTo(
+        passIncoming,
+        { scale: 0.72, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.58, ease: "back.out(1.4)" },
+        12.72
+      );
+      tl.to(
+        checkPath,
+        { strokeDashoffset: 0, duration: 0.62, ease: "power2.out" },
+        13.16
+      );
+      tl.fromTo(
+        productionRail,
+        { opacity: 0, scaleX: 0.82, x: 28 },
+        { opacity: 1, scaleX: 1, x: 0, duration: 0.56, ease: "power3.out" },
+        13.3
+      );
+      tl.fromTo(
+        [recordOpenAI, recordB2],
+        { opacity: 0, x: 18 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.42,
+          stagger: 0.12,
+          ease: "power3.out"
+        },
+        13.74
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines["04-fail-revise-pass"] = tl;
+    })();
+  </script>
+</template>

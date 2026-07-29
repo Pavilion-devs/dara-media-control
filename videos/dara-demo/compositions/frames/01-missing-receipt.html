@@ -1,0 +1,621 @@
+<template>
+  <style>
+    #root {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      container-type: size;
+      color: #ffffff;
+    }
+
+    .f01-missing-receipt-ground,
+    .f01-missing-receipt-scene {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    .f01-missing-receipt-ground {
+      background: #14181c;
+    }
+
+    .f01-missing-receipt-camera {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      transform-origin: 50% 50%;
+      will-change: transform, filter;
+      filter: url(#f01-missing-receipt-camera-streak);
+    }
+
+    .f01-missing-receipt-ledger {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.56) contrast(1.12) saturate(0.72);
+    }
+
+    .f01-missing-receipt-shade {
+      position: absolute;
+      inset: 0;
+      background: rgba(20, 24, 28, 0.22);
+    }
+
+    .f01-missing-receipt-row-focus {
+      position: absolute;
+      left: 2.8cqw;
+      top: 41.7cqh;
+      width: 94.4cqw;
+      height: 10.4cqh;
+      border-top: 1px solid rgba(46, 125, 91, 0.95);
+      border-bottom: 1px solid rgba(46, 125, 91, 0.55);
+      background: rgba(46, 125, 91, 0.11);
+      opacity: 0;
+    }
+
+    .f01-missing-receipt-row-index {
+      position: absolute;
+      left: 2.8cqw;
+      top: 38.6cqh;
+      color: #5aa681;
+      font-family: monospace;
+      font-size: 0.78cqw;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0;
+    }
+
+    .f01-missing-receipt-figure {
+      position: absolute;
+      left: 5.4cqw;
+      top: 5.7cqh;
+      width: 47cqw;
+      transform-origin: 42% 46%;
+    }
+
+    .f01-missing-receipt-counter-wrap {
+      display: flex;
+      align-items: baseline;
+      width: 41cqw;
+      color: #ffffff;
+      line-height: 0.84;
+    }
+
+    .f01-missing-receipt-counter {
+      display: inline-block;
+      width: 100%;
+      font-family: sans-serif;
+      font-size: 12.6cqw;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.06em;
+      transform-origin: 38% 50%;
+    }
+
+    .f01-missing-receipt-counter-label {
+      margin-top: 2.2cqh;
+      display: flex;
+      align-items: center;
+      gap: 1.1cqw;
+      color: #5aa681;
+      font-family: monospace;
+      font-size: 1.12cqw;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .f01-missing-receipt-counter-label::before {
+      content: "";
+      width: 1.9cqw;
+      height: 2px;
+      background: #5aa681;
+    }
+
+    .f01-missing-receipt-provider {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      gap: 0.6cqw;
+      padding: 0.7cqh 0.75cqw;
+      border-top: 1px solid rgba(255, 255, 255, 0.34);
+      color: #ffffff;
+      background: rgba(20, 24, 28, 0.76);
+      font-family: monospace;
+      font-size: 0.74cqw;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .f01-missing-receipt-provider::before {
+      content: "/";
+      color: #5aa681;
+    }
+
+    .f01-missing-receipt-provider-1 {
+      left: 49.5cqw;
+      top: 8.4cqh;
+    }
+
+    .f01-missing-receipt-provider-2 {
+      left: 56.8cqw;
+      top: 16.4cqh;
+    }
+
+    .f01-missing-receipt-provider-3 {
+      left: 51.8cqw;
+      top: 25.2cqh;
+    }
+
+    .f01-missing-receipt-provider-4 {
+      left: 40.8cqw;
+      top: 30.2cqh;
+    }
+
+    .f01-missing-receipt-provider-5 {
+      left: 31.8cqw;
+      top: 25.6cqh;
+    }
+
+    .f01-missing-receipt-probe-lines {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .f01-missing-receipt-probe-lines line {
+      fill: none;
+      stroke: #5aa681;
+      stroke-width: 2;
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 1200;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .f01-missing-receipt-probe-lines circle {
+      fill: #5aa681;
+      opacity: 0;
+    }
+
+    .f01-missing-receipt-probe-deck {
+      position: absolute;
+      left: 53.8cqw;
+      top: 25.7cqh;
+      width: 35.4cqw;
+      min-height: 31cqh;
+      transform-origin: 50% 50%;
+    }
+
+    .f01-missing-receipt-probe {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 8.4cqh;
+      border-top: 1px solid rgba(255, 255, 255, 0.38);
+      color: #ffffff;
+      background: rgba(20, 24, 28, 0.9);
+      padding: 0 1.15cqw;
+      opacity: 0;
+    }
+
+    .f01-missing-receipt-probe:last-child {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.38);
+    }
+
+    .f01-missing-receipt-probe-word {
+      display: inline-block;
+      color: rgb(101, 107, 104);
+      font-family: sans-serif;
+      font-size: 2.1cqw;
+      font-weight: 900;
+      letter-spacing: -0.025em;
+      text-transform: lowercase;
+      transform-origin: 0 50%;
+      text-shadow: 0 0 0 rgba(46, 125, 91, 0);
+    }
+
+    .f01-missing-receipt-probe-note {
+      color: #5aa681;
+      font-family: monospace;
+      font-size: 0.72cqw;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .f01-missing-receipt-verdict {
+      position: absolute;
+      left: 20.8cqw;
+      top: 48.1cqh;
+      width: 58.4cqw;
+      min-height: 13.8cqh;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2.1cqw;
+      background: #5aa681;
+      color: #14181c;
+      opacity: 0;
+      transform-origin: 50% 50%;
+    }
+
+    .f01-missing-receipt-verdict-mark {
+      font-family: monospace;
+      font-size: 0.78cqw;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .f01-missing-receipt-verdict-text {
+      font-family: monospace;
+      font-size: 2.25cqw;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+  </style>
+
+  <div id="root" data-composition-id="01-missing-receipt" data-width="1920" data-height="1080" data-duration="14.637">
+    <div
+      class="clip f01-missing-receipt-ground"
+      data-start="0"
+      data-duration="14.637"
+      data-track-index="0"
+    ></div>
+
+    <div
+      class="clip f01-missing-receipt-scene"
+      data-start="0"
+      data-duration="14.637"
+      data-track-index="1"
+    >
+      <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+        <filter
+          id="f01-missing-receipt-camera-streak"
+          x="-50%"
+          y="-50%"
+          width="200%"
+          height="200%"
+        >
+          <feGaussianBlur
+            id="01-missing-receipt-camera-blur"
+            in="SourceGraphic"
+            stdDeviation="0 0"
+          />
+        </filter>
+      </svg>
+
+      <div class="f01-missing-receipt-camera" id="01-missing-receipt-camera">
+        <img
+          class="f01-missing-receipt-ledger"
+          src="assets/dara-ledger.jpg"
+          alt=""
+        />
+        <div class="f01-missing-receipt-shade"></div>
+
+        <div class="f01-missing-receipt-row-index" id="01-missing-receipt-row-index">
+          / ledger row 0001
+        </div>
+        <div class="f01-missing-receipt-row-focus" id="01-missing-receipt-row-focus"></div>
+
+        <div
+          class="f01-missing-receipt-figure"
+          id="01-missing-receipt-figure"
+          data-layout-allow-overlap
+        >
+          <div class="f01-missing-receipt-counter-wrap">
+            <span class="f01-missing-receipt-counter" id="01-missing-receipt-counter">0</span>
+          </div>
+          <div class="f01-missing-receipt-counter-label" id="01-missing-receipt-counter-label">
+            assets / month
+          </div>
+        </div>
+
+        <div
+          class="f01-missing-receipt-provider f01-missing-receipt-provider-1"
+          data-provider-index="1"
+        >
+          provider / 01
+        </div>
+        <div
+          class="f01-missing-receipt-provider f01-missing-receipt-provider-2"
+          data-provider-index="2"
+        >
+          provider / 02
+        </div>
+        <div
+          class="f01-missing-receipt-provider f01-missing-receipt-provider-3"
+          data-provider-index="3"
+        >
+          provider / 03
+        </div>
+        <div
+          class="f01-missing-receipt-provider f01-missing-receipt-provider-4"
+          data-provider-index="4"
+        >
+          provider / 04
+        </div>
+        <div
+          class="f01-missing-receipt-provider f01-missing-receipt-provider-5"
+          data-provider-index="5"
+        >
+          provider / 05
+        </div>
+
+        <svg
+          class="f01-missing-receipt-probe-lines"
+          viewBox="0 0 1920 1080"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <line id="01-missing-receipt-line-cost" x1="1040" y1="324" x2="1260" y2="515" />
+          <circle id="01-missing-receipt-dot-cost" cx="1260" cy="515" r="6" />
+          <line id="01-missing-receipt-line-model" x1="1040" y1="414" x2="150" y2="515" />
+          <circle id="01-missing-receipt-dot-model" cx="150" cy="515" r="6" />
+          <line id="01-missing-receipt-line-file" x1="1040" y1="504" x2="170" y2="306" />
+          <circle id="01-missing-receipt-dot-file" cx="170" cy="306" r="6" />
+        </svg>
+
+        <div class="f01-missing-receipt-probe-deck" id="01-missing-receipt-probe-deck">
+          <div class="f01-missing-receipt-probe" data-probe="cost">
+            <span class="f01-missing-receipt-probe-word" data-word="cost">cost</span>
+            <span class="f01-missing-receipt-probe-note">total spend</span>
+          </div>
+          <div class="f01-missing-receipt-probe" data-probe="model">
+            <span class="f01-missing-receipt-probe-word" data-word="model">model</span>
+            <span class="f01-missing-receipt-probe-note">recorded model</span>
+          </div>
+          <div class="f01-missing-receipt-probe" data-probe="file">
+            <span class="f01-missing-receipt-probe-word" data-word="file">delivered file</span>
+            <span class="f01-missing-receipt-probe-note">published asset</span>
+          </div>
+        </div>
+
+        <div class="f01-missing-receipt-verdict" id="01-missing-receipt-verdict">
+          <span class="f01-missing-receipt-verdict-mark">/ proof status</span>
+          <span class="f01-missing-receipt-verdict-text">no durable receipt</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const compositionRoot = document.querySelector('[data-composition-id="01-missing-receipt"]');
+      const camera = compositionRoot.querySelector("#\\30 1-missing-receipt-camera");
+      const counter = compositionRoot.querySelector("#\\30 1-missing-receipt-counter");
+      const counterLabel = compositionRoot.querySelector("#\\30 1-missing-receipt-counter-label");
+      const figure = compositionRoot.querySelector("#\\30 1-missing-receipt-figure");
+      const rowFocus = compositionRoot.querySelector("#\\30 1-missing-receipt-row-focus");
+      const rowIndex = compositionRoot.querySelector("#\\30 1-missing-receipt-row-index");
+      const probeDeck = compositionRoot.querySelector("#\\30 1-missing-receipt-probe-deck");
+      const verdict = compositionRoot.querySelector("#\\30 1-missing-receipt-verdict");
+      const blurNode = compositionRoot.querySelector("#\\30 1-missing-receipt-camera-blur");
+      const providers = Array.from(compositionRoot.querySelectorAll(".f01-missing-receipt-provider"));
+      const probeWords = Array.from(compositionRoot.querySelectorAll(".f01-missing-receipt-probe-word"));
+
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["01-missing-receipt"] = tl;
+
+      const countState = { value: 0 };
+      const phase = { scale: 0.94, x: 0, y: 0 };
+      const drift = { p: 0, amp: 1 };
+      const blurProxy = { v: 0 };
+
+      const applyCamera = () => {
+        const dx = Math.sin(drift.p) * 4 * drift.amp;
+        const dy = Math.sin(drift.p * 1.31) * 2.2 * drift.amp;
+        camera.style.transform =
+          `scale(${phase.scale}) translate(${phase.x + dx}px, ${phase.y + dy}px)`;
+      };
+
+      const writeBlur = () => {
+        blurNode.setAttribute("stdDeviation", `${blurProxy.v} ${blurProxy.v}`);
+      };
+
+      applyCamera();
+      writeBlur();
+
+      tl.to(
+        countState,
+        {
+          value: 4000,
+          duration: 2.25,
+          ease: "power3.out",
+          onUpdate: () => {
+            counter.textContent = Math.round(countState.value).toLocaleString("en-US");
+          },
+        },
+        0.12
+      );
+      tl.fromTo(
+        counter,
+        { scale: 0.48, opacity: 0.72 },
+        { scale: 1, opacity: 1, duration: 2.25, ease: "power3.out" },
+        0.12
+      );
+      tl.fromTo(
+        counterLabel,
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
+        0.58
+      );
+
+      providers.forEach((provider, index) => {
+        const fromX = index < 3 ? 54 : -54;
+        tl.fromTo(
+          provider,
+          { x: fromX, y: 14, opacity: 0 },
+          {
+            x: 0,
+            y: 0,
+            opacity: 1,
+            duration: 0.46,
+            ease: "power4.out",
+          },
+          3.05 + index * 0.27
+        );
+      });
+
+      tl.to(phase, { scale: 1, duration: 1.25, ease: "power2.out" }, 0.18);
+      tl.to(
+        phase,
+        { scale: 1.5, y: 30, duration: 0.53, ease: "power3.in" },
+        4.72
+      );
+      tl.to(
+        blurProxy,
+        { v: 18, duration: 0.53, ease: "power3.in", onUpdate: writeBlur },
+        4.72
+      );
+      tl.set([figure, ...providers], { visibility: "hidden" }, 5.25);
+      tl.set([rowFocus, rowIndex], { opacity: 1 }, 5.25);
+      tl.to(
+        phase,
+        { scale: 1.22, y: 35, duration: 0.72, ease: "expo.out" },
+        5.25
+      );
+      tl.to(
+        blurProxy,
+        { v: 0, duration: 0.72, ease: "expo.out", onUpdate: writeBlur },
+        5.25
+      );
+      tl.to(
+        phase,
+        { scale: 1.27, y: 30, duration: 4.2, ease: "power2.inOut" },
+        6.1
+      );
+
+      const PROBE_CONTENT = [
+        { key: "cost", body: "total spend" },
+        { key: "model", body: "recorded model" },
+        { key: "file", body: "published asset" },
+      ];
+      const BASE_DURATION = 0.65;
+      const SEC_PER_CHAR = 0.024;
+      let probeCumulative = 0;
+      const PROBE_TIMELINE = PROBE_CONTENT.map((entry) => {
+        const duration = BASE_DURATION + entry.body.length * SEC_PER_CHAR;
+        const start = probeCumulative;
+        probeCumulative += duration;
+        return { ...entry, start, end: probeCumulative };
+      });
+
+      PROBE_TIMELINE.forEach((entry) => {
+        const probe = Array.from(compositionRoot.querySelectorAll("[data-probe]")).find(
+          (element) => element.dataset.probe === entry.key
+        );
+        const line = document.getElementById(`01-missing-receipt-line-${entry.key}`);
+        const dot = document.getElementById(`01-missing-receipt-dot-${entry.key}`);
+        const at = 7.05 + entry.start;
+        tl.fromTo(
+          probe,
+          { x: 38, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.48, ease: "power4.out" },
+          at
+        );
+        tl.to(
+          line,
+          { strokeDashoffset: 0, duration: 0.52, ease: "power2.out" },
+          at + 0.08
+        );
+        tl.to(dot, { opacity: 1, duration: 0.18, ease: "none" }, at + 0.48);
+      });
+
+      const WORD_TIMINGS = {
+        cost: { start: 0.08, end: 0.72 },
+        model: { start: 1.12, end: 1.76 },
+        file: { start: 2.18, end: 2.98 },
+      };
+      const wordDriver = { t: 0 };
+      const ATTACK_DUR = 0.16;
+      const RELEASE = 0.38;
+      const REST_LEVEL = 0.12;
+      const MAX_BLUR = 38;
+      const MAX_SCALE_BOOST = 0.19;
+
+      const envelope = (time, start, end) => {
+        if (time < start) return 0;
+        if (time < end) return Math.min((time - start) / ATTACK_DUR, 1);
+        const releaseEnd = end + RELEASE;
+        if (time < releaseEnd) {
+          return 1 - ((time - end) / RELEASE) * (1 - REST_LEVEL);
+        }
+        return REST_LEVEL;
+      };
+
+      tl.to(
+        wordDriver,
+        {
+          t: 3.2,
+          duration: 3.2,
+          ease: "none",
+          onUpdate: () => {
+            probeWords.forEach((word) => {
+              const timing = WORD_TIMINGS[word.dataset.word];
+              if (!timing) return;
+              const env = envelope(wordDriver.t, timing.start, timing.end);
+              const r = Math.round(103 + (90 - 103) * env);
+              const g = Math.round(110 + (166 - 110) * env);
+              const b = Math.round(107 + (129 - 107) * env);
+              word.style.color = `rgb(${r}, ${g}, ${b})`;
+              word.style.textShadow =
+                `0 0 ${MAX_BLUR * env}px rgba(90, 166, 129, ${0.72 * env})`;
+              word.style.transform = `scale(${1 + MAX_SCALE_BOOST * env})`;
+            });
+          },
+        },
+        7.05
+      );
+
+      tl.to(
+        probeDeck,
+        {
+          scale: 0.8,
+          filter: "blur(10px)",
+          opacity: 1,
+          duration: 0.2,
+          ease: "power3.in",
+        },
+        10.5
+      );
+      tl.set(probeDeck, { opacity: 0 }, 10.7);
+      tl.fromTo(
+        verdict,
+        { scale: 1.25, filter: "blur(10px)", opacity: 1 },
+        {
+          scale: 1,
+          filter: "blur(0px)",
+          opacity: 1,
+          duration: 0.5,
+          ease: "expo.out",
+        },
+        10.7
+      );
+      tl.to(drift, { amp: 0, duration: 0.4, ease: "power2.out" }, 10.5);
+
+      tl.to(
+        drift,
+        {
+          p: Math.PI * 2 * 1.7,
+          duration: 14.237,
+          ease: "none",
+          onUpdate: applyCamera,
+        },
+        0
+      );
+    })();
+  </script>
+</template>

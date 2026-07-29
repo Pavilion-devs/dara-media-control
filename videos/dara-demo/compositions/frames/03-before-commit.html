@@ -1,0 +1,875 @@
+<template>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+  <style>
+    @font-face {
+      font-family: "Archivo";
+      src: url("capture/assets/fonts/Archivo-Variable.ttf") format("truetype");
+      font-weight: 400 900;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("capture/assets/fonts/IBM_Plex_Mono-Regular.ttf") format("truetype");
+      font-weight: 400 500;
+      font-style: normal;
+      font-display: block;
+    }
+
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      container-type: size;
+      color: #ffffff;
+      font-family: "Archivo";
+    }
+
+    #root *,
+    #root *::before,
+    #root *::after {
+      box-sizing: border-box;
+    }
+
+    [id="03-before-commit-bg"] {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #14181c;
+    }
+
+    [id="03-before-commit-bg-image"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 50% 42%;
+      opacity: 0.28;
+      filter: saturate(0.7) contrast(1.08);
+    }
+
+    [id="03-before-commit-bg-dim"] {
+      position: absolute;
+      inset: 0;
+      background: rgba(20, 24, 28, 0.58);
+    }
+
+    [id="03-before-commit-stage"] {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    [id="03-before-commit-topline"] {
+      position: absolute;
+      top: 46px;
+      left: 90px;
+      right: 90px;
+      height: 34px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: 1px solid #262827;
+      font-family: "IBM Plex Mono";
+      font-size: 14px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-frame-number"] {
+      color: #ffffff;
+      opacity: 0.52;
+    }
+
+    [id="03-before-commit-morph-card"] {
+      position: absolute;
+      left: 88px;
+      top: 106px;
+      width: 1000px;
+      height: 730px;
+      overflow: hidden;
+      border: 1px solid #48504d;
+      border-radius: 0;
+      background: #181a19;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    [id="03-before-commit-content-old"],
+    [id="03-before-commit-content-new"] {
+      position: absolute;
+      inset: 0;
+    }
+
+    [id="03-before-commit-content-old"] {
+      display: grid;
+      align-content: center;
+      padding: 56px;
+      background: #14181c;
+    }
+
+    [id="03-before-commit-old-kicker"] {
+      margin-bottom: 20px;
+      font-family: "IBM Plex Mono";
+      font-size: 15px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-old-title"] {
+      max-width: 760px;
+      font-size: 78px;
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      text-transform: lowercase;
+      color: #ffffff;
+    }
+
+    [id="03-before-commit-content-new"] {
+      background: #181a19;
+    }
+
+    [id="03-before-commit-composer-head"] {
+      height: 82px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #262827;
+    }
+
+    [id="03-before-commit-composer-title"] {
+      font-size: 27px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      text-transform: lowercase;
+    }
+
+    [id="03-before-commit-draft-label"] {
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-composer-body"] {
+      padding: 26px 32px 30px;
+    }
+
+    [id="03-before-commit-brief-label"] {
+      margin-bottom: 12px;
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ffffff;
+      opacity: 0.62;
+    }
+
+    [id="03-before-commit-brief-grow-mask"] {
+      height: 226px;
+      overflow: hidden;
+      transform-origin: 50% 0%;
+      will-change: transform;
+    }
+
+    [id="03-before-commit-brief-grow-sheet"] {
+      position: relative;
+      height: 226px;
+      padding: 25px 26px;
+      border: 1px solid #48504d;
+      background: #14181c;
+      transform-origin: 50% 0%;
+      will-change: transform;
+    }
+
+    [id="03-before-commit-text-wrap"] {
+      display: inline-flex;
+      align-items: flex-start;
+      min-width: 770px;
+      white-space: pre-wrap;
+      font-family: "IBM Plex Mono";
+      font-size: 22px;
+      line-height: 1.55;
+      letter-spacing: 0;
+      color: #ffffff;
+    }
+
+    [id="03-before-commit-typed-text"] {
+      white-space: pre-wrap;
+    }
+
+    [id="03-before-commit-cursor"] {
+      display: inline-block;
+      width: 12px;
+      margin-left: 5px;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-below"] {
+      position: relative;
+      padding-top: 22px;
+      will-change: transform;
+    }
+
+    [id="03-before-commit-control-grid"] {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    [id="03-before-commit-control-grid"] > div {
+      min-height: 68px;
+      padding: 13px 16px;
+      border-top: 1px solid #48504d;
+    }
+
+    [id="03-before-commit-control-grid"] small {
+      display: block;
+      margin-bottom: 8px;
+      font-family: "IBM Plex Mono";
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-control-grid"] strong {
+      font-size: 20px;
+      line-height: 1.1;
+      font-weight: 600;
+    }
+
+    [id="03-before-commit-action-row"] {
+      display: grid;
+      grid-template-columns: 1fr 286px;
+      gap: 18px;
+      align-items: end;
+      margin-top: 18px;
+    }
+
+    [id="03-before-commit-preflight-note"] {
+      min-height: 90px;
+      padding-top: 14px;
+      border-top: 1px solid #262827;
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      line-height: 1.5;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffffff;
+      opacity: 0.48;
+    }
+
+    [id="03-before-commit-decision-stack"] {
+      position: relative;
+      display: grid;
+      gap: 10px;
+    }
+
+    [id="03-before-commit-decision-label"] {
+      min-height: 26px;
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      line-height: 1;
+      letter-spacing: 0.14em;
+      text-align: center;
+      text-transform: uppercase;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-submit"] {
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #262827;
+      background: #181a19;
+      font-family: "IBM Plex Mono";
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #48504d;
+    }
+
+    [id="03-before-commit-studio-crop"] {
+      position: absolute;
+      top: 154px;
+      right: 86px;
+      width: 654px;
+      height: 612px;
+      overflow: hidden;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #48504d;
+      background: #14181c;
+      will-change: transform;
+    }
+
+    [id="03-before-commit-studio-crop"] img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: 78% 54%;
+      opacity: 0.72;
+      filter: saturate(0.62) contrast(1.05);
+    }
+
+    [id="03-before-commit-studio-crop-dim"] {
+      position: absolute;
+      inset: 0;
+      background: rgba(20, 24, 28, 0.3);
+    }
+
+    [id="03-before-commit-studio-tag"] {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 12px;
+      border: 1px solid #48504d;
+      background: #14181c;
+      font-family: "IBM Plex Mono";
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    [id="03-before-commit-receipts"] {
+      position: absolute;
+      top: 154px;
+      right: 86px;
+      width: 654px;
+      height: 612px;
+      padding: 24px 26px;
+      border-top: 1px solid #48504d;
+      border-bottom: 1px solid #48504d;
+      background: rgba(20, 24, 28, 0.96);
+      will-change: transform;
+    }
+
+    [id="03-before-commit-receipts-head"] {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 42px;
+      border-bottom: 1px solid #262827;
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ffffff;
+    }
+
+    [id="03-before-commit-receipts-head"] span:last-child {
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-receipt-list"] {
+      display: grid;
+      margin-top: 14px;
+    }
+
+    [id="03-before-commit-receipt-list"] > div {
+      min-height: 78px;
+      display: grid;
+      grid-template-columns: 134px 1fr 22px;
+      gap: 16px;
+      align-items: center;
+      border-bottom: 1px solid #262827;
+      will-change: transform;
+    }
+
+    [id="03-before-commit-receipt-list"] small {
+      font-family: "IBM Plex Mono";
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ffffff;
+      opacity: 0.46;
+    }
+
+    [id="03-before-commit-receipt-list"] strong {
+      font-size: 21px;
+      line-height: 1.15;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+    }
+
+    [id="03-before-commit-receipt-list"] b {
+      font-family: "IBM Plex Mono";
+      font-size: 13px;
+      font-weight: 400;
+      color: #2e7d5b;
+    }
+
+    [id="03-before-commit-estimate-block"] {
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      bottom: 26px;
+      height: 142px;
+      padding-top: 18px;
+      border-top: 1px solid #48504d;
+      display: grid;
+      grid-template-columns: 1fr 296px;
+      align-items: start;
+      gap: 24px;
+    }
+
+    [id="03-before-commit-estimate-copy"] {
+      font-family: "IBM Plex Mono";
+      font-size: 12px;
+      line-height: 1.5;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #ffffff;
+      opacity: 0.56;
+    }
+
+    [id="03-before-commit-estimate-wrap"] {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      width: 296px;
+      font-variant-numeric: tabular-nums;
+      transform-origin: 100% 50%;
+    }
+
+    [id="03-before-commit-estimate-value"] {
+      display: inline-block;
+      min-width: 246px;
+      font-family: "Archivo";
+      font-size: 68px;
+      line-height: 0.9;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      text-align: right;
+      color: #ffffff;
+      transform-origin: 100% 50%;
+    }
+
+    [id="03-before-commit-estimate-cap"] {
+      grid-column: 2;
+      margin-top: -10px;
+      font-family: "IBM Plex Mono";
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: 0.12em;
+      text-align: right;
+      text-transform: uppercase;
+      color: #ffffff;
+      opacity: 0.42;
+    }
+
+    [id="03-before-commit-progress"] {
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      bottom: 0;
+      height: 3px;
+      background: #262827;
+      overflow: hidden;
+    }
+
+    [id="03-before-commit-progress-fill"] {
+      width: 100%;
+      height: 100%;
+      background: #2e7d5b;
+      transform-origin: 0 50%;
+    }
+  </style>
+
+  <div id="root" data-composition-id="03-before-commit" data-width="1920" data-height="1080" data-duration="14.084">
+    <div
+      id="03-before-commit-bg"
+      class="clip"
+      data-start="0"
+      data-duration="14.084"
+      data-track-index="0"
+    >
+      <img
+        id="03-before-commit-bg-image"
+        src="assets/dara-studio.jpg"
+        alt=""
+      />
+      <div id="03-before-commit-bg-dim"></div>
+    </div>
+
+    <div
+      id="03-before-commit-stage"
+      class="clip"
+      data-start="0"
+      data-duration="14.084"
+      data-track-index="1"
+    >
+      <div id="03-before-commit-topline">
+        <span>Pre-commit control / Studio</span>
+        <span id="03-before-commit-frame-number">03 / no provider call</span>
+      </div>
+
+      <div id="03-before-commit-morph-card">
+        <div id="03-before-commit-content-old">
+          <div id="03-before-commit-old-kicker">Studio / new brief</div>
+          <div id="03-before-commit-old-title">know before commit</div>
+        </div>
+
+        <div id="03-before-commit-content-new">
+          <div id="03-before-commit-composer-head">
+            <div id="03-before-commit-composer-title">new brief</div>
+            <div id="03-before-commit-draft-label">draft / preflight</div>
+          </div>
+
+          <div id="03-before-commit-composer-body">
+            <div id="03-before-commit-brief-label">brief</div>
+            <div id="03-before-commit-brief-grow-mask" data-layout-allow-overflow>
+              <div id="03-before-commit-brief-grow-sheet">
+                <div id="03-before-commit-text-wrap">
+                  <span id="03-before-commit-typed-text"></span><span id="03-before-commit-cursor">_</span>
+                </div>
+              </div>
+            </div>
+
+            <div id="03-before-commit-below">
+              <div id="03-before-commit-control-grid">
+                <div>
+                  <small>pipeline</small>
+                  <strong>Still campaign</strong>
+                </div>
+                <div>
+                  <small>policy</small>
+                  <strong>Standard client</strong>
+                </div>
+              </div>
+
+              <div id="03-before-commit-action-row">
+                <div id="03-before-commit-preflight-note">
+                  Pipeline / fallback / policy / reserve
+                </div>
+                <div id="03-before-commit-decision-stack">
+                  <div id="03-before-commit-decision-label">operator decides</div>
+                  <div id="03-before-commit-submit">run verified demo</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="03-before-commit-studio-crop">
+        <img src="assets/dara-studio.jpg" alt="" />
+        <div id="03-before-commit-studio-crop-dim"></div>
+        <div id="03-before-commit-studio-tag">Studio / captured state</div>
+      </div>
+
+      <div id="03-before-commit-receipts">
+        <div id="03-before-commit-receipts-head">
+          <span>resolved before commitment</span>
+          <span>preflight active</span>
+        </div>
+
+        <div id="03-before-commit-receipt-list">
+          <div data-receipt-index="0">
+            <small>pipeline</small>
+            <strong>Still campaign</strong>
+            <b>✓</b>
+          </div>
+          <div data-receipt-index="1">
+            <small>fallback</small>
+            <strong>Deterministic fixture</strong>
+            <b>✓</b>
+          </div>
+          <div data-receipt-index="2">
+            <small>policy</small>
+            <strong>Preflight allowed</strong>
+            <b>✓</b>
+          </div>
+        </div>
+
+        <div id="03-before-commit-estimate-block">
+          <div id="03-before-commit-estimate-copy">
+            Estimated cost<br />
+            expected / reserve
+          </div>
+          <div id="03-before-commit-estimate-wrap">
+            <span id="03-before-commit-estimate-value">$0.000</span>
+          </div>
+          <div id="03-before-commit-estimate-cap">$0.090 reserve cap</div>
+        </div>
+
+        <div id="03-before-commit-progress">
+          <div id="03-before-commit-progress-fill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      window.__timelines = window.__timelines || {};
+
+      const q = (id) => document.querySelector('[id="' + id + '"]');
+      const tl = gsap.timeline({ paused: true });
+
+      const morphCard = q("03-before-commit-morph-card");
+      const contentOld = q("03-before-commit-content-old");
+      const contentNew = q("03-before-commit-content-new");
+      const studioCrop = q("03-before-commit-studio-crop");
+      const receipts = q("03-before-commit-receipts");
+      const briefMask = q("03-before-commit-brief-grow-mask");
+      const briefSheet = q("03-before-commit-brief-grow-sheet");
+      const below = q("03-before-commit-below");
+      const typedText = q("03-before-commit-typed-text");
+      const cursor = q("03-before-commit-cursor");
+      const decisionLabel = q("03-before-commit-decision-label");
+      const submit = q("03-before-commit-submit");
+      const estimateValue = q("03-before-commit-estimate-value");
+      const estimateWrap = q("03-before-commit-estimate-wrap");
+      const progressFill = q("03-before-commit-progress-fill");
+
+      tl.fromTo(
+        morphCard,
+        {
+          scale: 0.62,
+          x: 116,
+          y: 64,
+          opacity: 0.2,
+          borderRadius: 0,
+          backgroundColor: "#14181c"
+        },
+        {
+          scale: 1,
+          x: 0,
+          y: 0,
+          opacity: 1,
+          borderRadius: 0,
+          backgroundColor: "#181a19",
+          duration: 2.05,
+          ease: "power2.inOut"
+        },
+        0.12
+      );
+
+      tl.fromTo(
+        studioCrop,
+        { x: 96, opacity: 0.12 },
+        { x: 0, opacity: 1, duration: 1.2, ease: "power3.out" },
+        0.28
+      );
+
+      tl.to(
+        contentOld,
+        { opacity: 0, duration: 0.68, ease: "power1.in" },
+        1.06
+      );
+
+      tl.fromTo(
+        contentNew,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.76, ease: "power1.out" },
+        1.48
+      );
+
+      const BODY_H = 226;
+      const COLLAPSED_H = 110;
+      const grow = { h: COLLAPSED_H };
+
+      function renderGrow() {
+        const scale = Math.max(grow.h / BODY_H, 0.0001);
+        gsap.set(briefMask, { scaleY: scale, transformOrigin: "50% 0%" });
+        gsap.set(briefSheet, { scaleY: 1 / scale, transformOrigin: "50% 0%" });
+        gsap.set(below, { y: grow.h - BODY_H });
+      }
+
+      renderGrow();
+
+      tl.to(
+        grow,
+        { h: 168, duration: 0.18, ease: "power3.out", onUpdate: renderGrow },
+        4.54
+      );
+
+      tl.to(
+        grow,
+        { h: BODY_H, duration: 0.18, ease: "power3.out", onUpdate: renderGrow },
+        5.18
+      );
+
+      const TYPE_SEQUENCE = [
+        { t: 0.00, text: "" },
+        { t: 0.18, text: "Hero" },
+        { t: 0.42, text: "Hero shot of" },
+        { t: 0.78, text: "Hero shot of a ceramic bowl" },
+        { t: 1.18, text: "Hero shot of a ceramic bowl on washed linn" },
+        { t: 1.42, text: "Hero shot of a ceramic bowl on washed lin" },
+        { t: 1.68, text: "Hero shot of a ceramic bowl on washed linen," },
+        { t: 2.08, text: "Hero shot of a ceramic bowl on washed linen,\nmorning light," },
+        { t: 2.64, text: "Hero shot of a ceramic bowl on washed linen,\nmorning light,\nquiet editorial" },
+        { t: 3.18, text: "Hero shot of a ceramic bowl on washed linen,\nmorning light,\nquiet editorial composition" },
+        { t: 3.68, text: "Hero shot of a ceramic bowl on washed linen,\nmorning light,\nquiet editorial composition ✓" }
+      ];
+
+      function textAt(time) {
+        for (let i = TYPE_SEQUENCE.length - 1; i >= 0; i -= 1) {
+          if (time >= TYPE_SEQUENCE[i].t) return TYPE_SEQUENCE[i].text;
+        }
+        return "";
+      }
+
+      const typeDriver = { t: 0 };
+      tl.to(
+        typeDriver,
+        {
+          t: 3.9,
+          duration: 3.9,
+          ease: "none",
+          onUpdate: function () {
+            typedText.textContent = textAt(typeDriver.t);
+          }
+        },
+        2.52
+      );
+
+      const blinkDriver = { p: 0 };
+      tl.to(
+        blinkDriver,
+        {
+          p: Math.PI * 2 * 6,
+          duration: 4.0,
+          ease: "none",
+          onUpdate: function () {
+            cursor.style.opacity = Math.sin(blinkDriver.p) > 0 ? "1" : "0";
+          }
+        },
+        2.5
+      );
+
+      tl.fromTo(
+        studioCrop,
+        { x: 0, opacity: 1 },
+        { x: -230, opacity: 0, duration: 0.32, ease: "power4.in", immediateRender: false },
+        6.18
+      );
+
+      tl.fromTo(
+        receipts,
+        { x: 230, opacity: 0.35 },
+        { x: 0, opacity: 1, duration: 0.42, ease: "power4.out" },
+        6.5
+      );
+
+      const RECEIPT_CONTENT = [
+        { key: "pipeline", body: "Still campaign", hold: 0.34 },
+        { key: "fallback", body: "Deterministic fixture", hold: 0.28 },
+        { key: "policy", body: "Preflight allowed", hold: 0.42 }
+      ];
+      const BASE_DURATION = 0.56;
+      const SEC_PER_CHAR = 0.012;
+      let cumulative = 0;
+      const RECEIPT_TIMELINE = RECEIPT_CONTENT.map(function (entry) {
+        const duration = BASE_DURATION + entry.body.length * SEC_PER_CHAR + entry.hold;
+        const start = cumulative;
+        cumulative += duration;
+        return {
+          key: entry.key,
+          body: entry.body,
+          start: start,
+          end: cumulative
+        };
+      });
+
+      RECEIPT_TIMELINE.forEach(function (entry, index) {
+        const row = receipts.querySelector('[data-receipt-index="' + index + '"]');
+        tl.fromTo(
+          row,
+          { x: 42, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.42, ease: "power3.out" },
+          6.82 + entry.start
+        );
+      });
+
+      tl.fromTo(
+        progressFill,
+        { scaleX: 0 },
+        { scaleX: 1, duration: 3.72, ease: "none" },
+        6.72
+      );
+
+      const estimateState = { value: 0 };
+      const COUNT_AT = 9.08;
+      const COUNT_DURATION = 1.55;
+
+      tl.fromTo(
+        estimateWrap,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.42, ease: "power2.out" },
+        COUNT_AT - 0.18
+      );
+
+      tl.to(
+        estimateState,
+        {
+          value: 30,
+          duration: COUNT_DURATION,
+          ease: "power3.out",
+          onUpdate: function () {
+            estimateValue.textContent = "$0." + String(Math.round(estimateState.value)).padStart(3, "0");
+          }
+        },
+        COUNT_AT
+      );
+
+      tl.fromTo(
+        estimateValue,
+        { scale: 0.55 },
+        { scale: 1, duration: COUNT_DURATION, ease: "power3.out" },
+        COUNT_AT
+      );
+
+      tl.to(
+        estimateValue,
+        { color: "#2e7d5b", duration: 0.34, ease: "power2.out" },
+        COUNT_AT + COUNT_DURATION - 0.08
+      );
+
+      tl.fromTo(
+        decisionLabel,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.52, ease: "power3.out" },
+        10.82
+      );
+
+      tl.fromTo(
+        submit,
+        {
+          backgroundColor: "#181a19",
+          borderColor: "#262827",
+          color: "#48504d"
+        },
+        {
+          backgroundColor: "#2e7d5b",
+          borderColor: "#2e7d5b",
+          color: "#14181c",
+          duration: 0.48,
+          ease: "power2.out"
+        },
+        11.02
+      );
+
+      window.__timelines["03-before-commit"] = tl;
+    })();
+  </script>
+</template>

@@ -44,3 +44,17 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# HyperFrames demo: keep authored source and required fonts, exclude capture debris
+# and generated review/render outputs.
+/videos/dara-demo/capture/**
+!/videos/dara-demo/capture/assets/
+/videos/dara-demo/capture/assets/**
+!/videos/dara-demo/capture/assets/fonts/
+!/videos/dara-demo/capture/assets/fonts/**
+/videos/dara-demo/.hyperframes/frame-packets/
+/videos/dara-demo/AGENTS.md
+/videos/dara-demo/CLAUDE.md
+/videos/dara-demo/snapshots/
+/videos/dara-demo/renders/
+/videos/dara-demo/*.mp4

@@ -1,0 +1,3508 @@
+{
+  "total_duration_s": 165.929,
+  "width": 1920,
+  "height": 1080,
+  "groups": [
+    {
+      "id": "caption-group-0",
+      "frame": 1,
+      "start": 0.199,
+      "end": 1.339,
+      "text": "A team generates",
+      "words": [
+        {
+          "id": "caption-word-0-0",
+          "text": "A",
+          "start": 0.199,
+          "end": 0.299
+        },
+        {
+          "id": "caption-word-0-1",
+          "text": "team",
+          "start": 0.34,
+          "end": 0.599
+        },
+        {
+          "id": "caption-word-0-2",
+          "text": "generates",
+          "start": 0.699,
+          "end": 1.299
+        }
+      ]
+    },
+    {
+      "id": "caption-group-1",
+      "frame": 1,
+      "start": 1.339,
+      "end": 2.859,
+      "text": "four thousand assets a",
+      "words": [
+        {
+          "id": "caption-word-1-0",
+          "text": "four",
+          "start": 1.339,
+          "end": 1.699
+        },
+        {
+          "id": "caption-word-1-1",
+          "text": "thousand",
+          "start": 1.779,
+          "end": 2.24
+        },
+        {
+          "id": "caption-word-1-2",
+          "text": "assets",
+          "start": 2.359,
+          "end": 2.7
+        },
+        {
+          "id": "caption-word-1-3",
+          "text": "a",
+          "start": 2.759,
+          "end": 2.819
+        }
+      ]
+    },
+    {
+      "id": "caption-group-2",
+      "frame": 1,
+      "start": 2.859,
+      "end": 4,
+      "text": "month across five",
+      "words": [
+        {
+          "id": "caption-word-2-0",
+          "text": "month",
+          "start": 2.859,
+          "end": 3.099
+        },
+        {
+          "id": "caption-word-2-1",
+          "text": "across",
+          "start": 3.22,
+          "end": 3.519
+        },
+        {
+          "id": "caption-word-2-2",
+          "text": "five",
+          "start": 3.659,
+          "end": 3.899
+        }
+      ]
+    },
+    {
+      "id": "caption-group-3",
+      "frame": 1,
+      "start": 4,
+      "end": 4.739,
+      "text": "providers.",
+      "words": [
+        {
+          "id": "caption-word-3-0",
+          "text": "providers.",
+          "start": 4,
+          "end": 4.619
+        }
+      ]
+    },
+    {
+      "id": "caption-group-4",
+      "frame": 1,
+      "start": 5.139,
+      "end": 5.739,
+      "text": "Pick any",
+      "words": [
+        {
+          "id": "caption-word-4-0",
+          "text": "Pick",
+          "start": 5.139,
+          "end": 5.38
+        },
+        {
+          "id": "caption-word-4-1",
+          "text": "any",
+          "start": 5.46,
+          "end": 5.619
+        }
+      ]
+    },
+    {
+      "id": "caption-group-5",
+      "frame": 1,
+      "start": 5.779,
+      "end": 6.54,
+      "text": "one file.",
+      "words": [
+        {
+          "id": "caption-word-5-0",
+          "text": "one",
+          "start": 5.779,
+          "end": 6.019
+        },
+        {
+          "id": "caption-word-5-1",
+          "text": "file.",
+          "start": 6.079,
+          "end": 6.42
+        }
+      ]
+    },
+    {
+      "id": "caption-group-6",
+      "frame": 1,
+      "start": 7.059,
+      "end": 7.379,
+      "text": "What did",
+      "words": [
+        {
+          "id": "caption-word-6-0",
+          "text": "What",
+          "start": 7.059,
+          "end": 7.219
+        },
+        {
+          "id": "caption-word-6-1",
+          "text": "did",
+          "start": 7.239,
+          "end": 7.339
+        }
+      ]
+    },
+    {
+      "id": "caption-group-7",
+      "frame": 1,
+      "start": 7.379,
+      "end": 8.12,
+      "text": "it cost?",
+      "words": [
+        {
+          "id": "caption-word-7-0",
+          "text": "it",
+          "start": 7.379,
+          "end": 7.5
+        },
+        {
+          "id": "caption-word-7-1",
+          "text": "cost?",
+          "start": 7.559,
+          "end": 8
+        }
+      ]
+    },
+    {
+      "id": "caption-group-8",
+      "frame": 1,
+      "start": 8.439,
+      "end": 9.099,
+      "text": "Which model",
+      "words": [
+        {
+          "id": "caption-word-8-0",
+          "text": "Which",
+          "start": 8.439,
+          "end": 8.64
+        },
+        {
+          "id": "caption-word-8-1",
+          "text": "model",
+          "start": 8.739,
+          "end": 8.979
+        }
+      ]
+    },
+    {
+      "id": "caption-group-9",
+      "frame": 1,
+      "start": 9.099,
+      "end": 9.8,
+      "text": "made it?",
+      "words": [
+        {
+          "id": "caption-word-9-0",
+          "text": "made",
+          "start": 9.099,
+          "end": 9.28
+        },
+        {
+          "id": "caption-word-9-1",
+          "text": "it?",
+          "start": 9.319,
+          "end": 9.719
+        }
+      ]
+    },
+    {
+      "id": "caption-group-10",
+      "frame": 1,
+      "start": 9.8,
+      "end": 10.92,
+      "text": "What exactly reached",
+      "words": [
+        {
+          "id": "caption-word-10-0",
+          "text": "What",
+          "start": 9.8,
+          "end": 9.94
+        },
+        {
+          "id": "caption-word-10-1",
+          "text": "exactly",
+          "start": 10.039,
+          "end": 10.539
+        },
+        {
+          "id": "caption-word-10-2",
+          "text": "reached",
+          "start": 10.619,
+          "end": 10.88
+        }
+      ]
+    },
+    {
+      "id": "caption-group-11",
+      "frame": 1,
+      "start": 10.92,
+      "end": 11.64,
+      "text": "the customer?",
+      "words": [
+        {
+          "id": "caption-word-11-0",
+          "text": "the",
+          "start": 10.92,
+          "end": 10.979
+        },
+        {
+          "id": "caption-word-11-1",
+          "text": "customer?",
+          "start": 11.019,
+          "end": 11.52
+        }
+      ]
+    },
+    {
+      "id": "caption-group-12",
+      "frame": 1,
+      "start": 12.139,
+      "end": 13.199,
+      "text": "Most teams cannot",
+      "words": [
+        {
+          "id": "caption-word-12-0",
+          "text": "Most",
+          "start": 12.139,
+          "end": 12.4
+        },
+        {
+          "id": "caption-word-12-1",
+          "text": "teams",
+          "start": 12.439,
+          "end": 12.779
+        },
+        {
+          "id": "caption-word-12-2",
+          "text": "cannot",
+          "start": 12.819,
+          "end": 13.159
+        }
+      ]
+    },
+    {
+      "id": "caption-group-13",
+      "frame": 1,
+      "start": 13.199,
+      "end": 14.08,
+      "text": "prove the answer.",
+      "words": [
+        {
+          "id": "caption-word-13-0",
+          "text": "prove",
+          "start": 13.199,
+          "end": 13.399
+        },
+        {
+          "id": "caption-word-13-1",
+          "text": "the",
+          "start": 13.439,
+          "end": 13.5
+        },
+        {
+          "id": "caption-word-13-2",
+          "text": "answer.",
+          "start": 13.599,
+          "end": 13.96
+        }
+      ]
+    },
+    {
+      "id": "caption-group-14",
+      "frame": 2,
+      "start": 14.356,
+      "end": 14.936,
+      "text": "Dara is",
+      "words": [
+        {
+          "id": "caption-word-14-0",
+          "text": "Dara",
+          "start": 14.356,
+          "end": 14.696
+        },
+        {
+          "id": "caption-word-14-1",
+          "text": "is",
+          "start": 14.797,
+          "end": 14.896
+        }
+      ]
+    },
+    {
+      "id": "caption-group-15",
+      "frame": 2,
+      "start": 14.936,
+      "end": 15.477,
+      "text": "the control",
+      "words": [
+        {
+          "id": "caption-word-15-0",
+          "text": "the",
+          "start": 14.936,
+          "end": 14.996
+        },
+        {
+          "id": "caption-word-15-1",
+          "text": "control",
+          "start": 15.036,
+          "end": 15.357
+        }
+      ]
+    },
+    {
+      "id": "caption-group-16",
+      "frame": 2,
+      "start": 15.496,
+      "end": 16.097,
+      "text": "plane between",
+      "words": [
+        {
+          "id": "caption-word-16-0",
+          "text": "plane",
+          "start": 15.496,
+          "end": 15.737
+        },
+        {
+          "id": "caption-word-16-1",
+          "text": "between",
+          "start": 15.776,
+          "end": 16.056
+        }
+      ]
+    },
+    {
+      "id": "caption-group-17",
+      "frame": 2,
+      "start": 16.097,
+      "end": 16.596,
+      "text": "a media",
+      "words": [
+        {
+          "id": "caption-word-17-0",
+          "text": "a",
+          "start": 16.097,
+          "end": 16.176
+        },
+        {
+          "id": "caption-word-17-1",
+          "text": "media",
+          "start": 16.237,
+          "end": 16.477
+        }
+      ]
+    },
+    {
+      "id": "caption-group-18",
+      "frame": 2,
+      "start": 16.596,
+      "end": 17.216,
+      "text": "brief and",
+      "words": [
+        {
+          "id": "caption-word-18-0",
+          "text": "brief",
+          "start": 16.596,
+          "end": 16.937
+        },
+        {
+          "id": "caption-word-18-1",
+          "text": "and",
+          "start": 16.996,
+          "end": 17.096
+        }
+      ]
+    },
+    {
+      "id": "caption-group-19",
+      "frame": 2,
+      "start": 17.256,
+      "end": 18.456,
+      "text": "every provider call:",
+      "words": [
+        {
+          "id": "caption-word-19-0",
+          "text": "every",
+          "start": 17.256,
+          "end": 17.456
+        },
+        {
+          "id": "caption-word-19-1",
+          "text": "provider",
+          "start": 17.556,
+          "end": 17.996
+        },
+        {
+          "id": "caption-word-19-2",
+          "text": "call:",
+          "start": 18.076,
+          "end": 18.336
+        }
+      ]
+    },
+    {
+      "id": "caption-group-20",
+      "frame": 2,
+      "start": 18.836,
+      "end": 20.096,
+      "text": "govern before spend,",
+      "words": [
+        {
+          "id": "caption-word-20-0",
+          "text": "govern",
+          "start": 18.836,
+          "end": 19.156
+        },
+        {
+          "id": "caption-word-20-1",
+          "text": "before",
+          "start": 19.197,
+          "end": 19.476
+        },
+        {
+          "id": "caption-word-20-2",
+          "text": "spend,",
+          "start": 19.596,
+          "end": 19.976
+        }
+      ]
+    },
+    {
+      "id": "caption-group-21",
+      "frame": 2,
+      "start": 20.336,
+      "end": 21.936,
+      "text": "preserve every attempt,",
+      "words": [
+        {
+          "id": "caption-word-21-0",
+          "text": "preserve",
+          "start": 20.336,
+          "end": 20.816
+        },
+        {
+          "id": "caption-word-21-1",
+          "text": "every",
+          "start": 20.896,
+          "end": 21.116
+        },
+        {
+          "id": "caption-word-21-2",
+          "text": "attempt,",
+          "start": 21.237,
+          "end": 21.896
+        }
+      ]
+    },
+    {
+      "id": "caption-group-22",
+      "frame": 2,
+      "start": 21.936,
+      "end": 22.657,
+      "text": "and verify",
+      "words": [
+        {
+          "id": "caption-word-22-0",
+          "text": "and",
+          "start": 21.936,
+          "end": 22.036
+        },
+        {
+          "id": "caption-word-22-1",
+          "text": "verify",
+          "start": 22.096,
+          "end": 22.596
+        }
+      ]
+    },
+    {
+      "id": "caption-group-23",
+      "frame": 2,
+      "start": 22.657,
+      "end": 23.716,
+      "text": "the exact bytes",
+      "words": [
+        {
+          "id": "caption-word-23-0",
+          "text": "the",
+          "start": 22.657,
+          "end": 22.716
+        },
+        {
+          "id": "caption-word-23-1",
+          "text": "exact",
+          "start": 22.836,
+          "end": 23.216
+        },
+        {
+          "id": "caption-word-23-2",
+          "text": "bytes",
+          "start": 23.316,
+          "end": 23.657
+        }
+      ]
+    },
+    {
+      "id": "caption-group-24",
+      "frame": 2,
+      "start": 23.716,
+      "end": 24.376,
+      "text": "that shipped.",
+      "words": [
+        {
+          "id": "caption-word-24-0",
+          "text": "that",
+          "start": 23.716,
+          "end": 23.816
+        },
+        {
+          "id": "caption-word-24-1",
+          "text": "shipped.",
+          "start": 23.916,
+          "end": 24.256
+        }
+      ]
+    },
+    {
+      "id": "caption-group-25",
+      "frame": 3,
+      "start": 24.71,
+      "end": 25.131,
+      "text": "Start with",
+      "words": [
+        {
+          "id": "caption-word-25-0",
+          "text": "Start",
+          "start": 24.71,
+          "end": 24.93
+        },
+        {
+          "id": "caption-word-25-1",
+          "text": "with",
+          "start": 24.97,
+          "end": 25.071
+        }
+      ]
+    },
+    {
+      "id": "caption-group-26",
+      "frame": 3,
+      "start": 25.131,
+      "end": 25.71,
+      "text": "a brief.",
+      "words": [
+        {
+          "id": "caption-word-26-0",
+          "text": "a",
+          "start": 25.131,
+          "end": 25.191
+        },
+        {
+          "id": "caption-word-26-1",
+          "text": "brief.",
+          "start": 25.23,
+          "end": 25.59
+        }
+      ]
+    },
+    {
+      "id": "caption-group-27",
+      "frame": 3,
+      "start": 26.17,
+      "end": 27.99,
+      "text": "Dara resolves the pipeline,",
+      "words": [
+        {
+          "id": "caption-word-27-0",
+          "text": "Dara",
+          "start": 26.17,
+          "end": 26.57
+        },
+        {
+          "id": "caption-word-27-1",
+          "text": "resolves",
+          "start": 26.631,
+          "end": 27.11
+        },
+        {
+          "id": "caption-word-27-2",
+          "text": "the",
+          "start": 27.171,
+          "end": 27.25
+        },
+        {
+          "id": "caption-word-27-3",
+          "text": "pipeline,",
+          "start": 27.29,
+          "end": 27.87
+        }
+      ]
+    },
+    {
+      "id": "caption-group-28",
+      "frame": 3,
+      "start": 28.11,
+      "end": 29.031,
+      "text": "fallback chain,",
+      "words": [
+        {
+          "id": "caption-word-28-0",
+          "text": "fallback",
+          "start": 28.11,
+          "end": 28.59
+        },
+        {
+          "id": "caption-word-28-1",
+          "text": "chain,",
+          "start": 28.63,
+          "end": 28.911
+        }
+      ]
+    },
+    {
+      "id": "caption-group-29",
+      "frame": 3,
+      "start": 29.23,
+      "end": 29.89,
+      "text": "policy,",
+      "words": [
+        {
+          "id": "caption-word-29-0",
+          "text": "policy,",
+          "start": 29.23,
+          "end": 29.77
+        }
+      ]
+    },
+    {
+      "id": "caption-group-30",
+      "frame": 3,
+      "start": 30.05,
+      "end": 31.391,
+      "text": "and estimated cost",
+      "words": [
+        {
+          "id": "caption-word-30-0",
+          "text": "and",
+          "start": 30.05,
+          "end": 30.19
+        },
+        {
+          "id": "caption-word-30-1",
+          "text": "estimated",
+          "start": 30.29,
+          "end": 30.871
+        },
+        {
+          "id": "caption-word-30-2",
+          "text": "cost",
+          "start": 30.951,
+          "end": 31.35
+        }
+      ]
+    },
+    {
+      "id": "caption-group-31",
+      "frame": 3,
+      "start": 31.391,
+      "end": 32.39,
+      "text": "before commitment.",
+      "words": [
+        {
+          "id": "caption-word-31-0",
+          "text": "before",
+          "start": 31.391,
+          "end": 31.67
+        },
+        {
+          "id": "caption-word-31-1",
+          "text": "commitment.",
+          "start": 31.77,
+          "end": 32.27
+        }
+      ]
+    },
+    {
+      "id": "caption-group-32",
+      "frame": 3,
+      "start": 32.791,
+      "end": 33.791,
+      "text": "The operator sees",
+      "words": [
+        {
+          "id": "caption-word-32-0",
+          "text": "The",
+          "start": 32.791,
+          "end": 32.871
+        },
+        {
+          "id": "caption-word-32-1",
+          "text": "operator",
+          "start": 32.93,
+          "end": 33.47
+        },
+        {
+          "id": "caption-word-32-2",
+          "text": "sees",
+          "start": 33.53,
+          "end": 33.73
+        }
+      ]
+    },
+    {
+      "id": "caption-group-33",
+      "frame": 3,
+      "start": 33.791,
+      "end": 34.31,
+      "text": "the likely",
+      "words": [
+        {
+          "id": "caption-word-33-0",
+          "text": "the",
+          "start": 33.791,
+          "end": 33.871
+        },
+        {
+          "id": "caption-word-33-1",
+          "text": "likely",
+          "start": 33.93,
+          "end": 34.211
+        }
+      ]
+    },
+    {
+      "id": "caption-group-34",
+      "frame": 3,
+      "start": 34.31,
+      "end": 36.55,
+      "text": "spend first—then decides whether",
+      "words": [
+        {
+          "id": "caption-word-34-0",
+          "text": "spend",
+          "start": 34.31,
+          "end": 34.61
+        },
+        {
+          "id": "caption-word-34-1",
+          "text": "first—then",
+          "start": 34.751,
+          "end": 35.73
+        },
+        {
+          "id": "caption-word-34-2",
+          "text": "decides",
+          "start": 35.751,
+          "end": 36.23
+        },
+        {
+          "id": "caption-word-34-3",
+          "text": "whether",
+          "start": 36.251,
+          "end": 36.511
+        }
+      ]
+    },
+    {
+      "id": "caption-group-35",
+      "frame": 3,
+      "start": 36.55,
+      "end": 37.11,
+      "text": "this run",
+      "words": [
+        {
+          "id": "caption-word-35-0",
+          "text": "this",
+          "start": 36.55,
+          "end": 36.771
+        },
+        {
+          "id": "caption-word-35-1",
+          "text": "run",
+          "start": 36.791,
+          "end": 37.09
+        }
+      ]
+    },
+    {
+      "id": "caption-group-36",
+      "frame": 3,
+      "start": 37.11,
+      "end": 37.91,
+      "text": "should exist.",
+      "words": [
+        {
+          "id": "caption-word-36-0",
+          "text": "should",
+          "start": 37.11,
+          "end": 37.251
+        },
+        {
+          "id": "caption-word-36-1",
+          "text": "exist.",
+          "start": 37.331,
+          "end": 37.79
+        }
+      ]
+    },
+    {
+      "id": "caption-group-37",
+      "frame": 4,
+      "start": 38.214,
+      "end": 39.174,
+      "text": "For the demo,",
+      "words": [
+        {
+          "id": "caption-word-37-0",
+          "text": "For",
+          "start": 38.214,
+          "end": 38.434
+        },
+        {
+          "id": "caption-word-37-1",
+          "text": "the",
+          "start": 38.474,
+          "end": 38.535
+        },
+        {
+          "id": "caption-word-37-2",
+          "text": "demo,",
+          "start": 38.634,
+          "end": 39.054
+        }
+      ]
+    },
+    {
+      "id": "caption-group-38",
+      "frame": 4,
+      "start": 39.314,
+      "end": 41.255,
+      "text": "a deterministic replay makes",
+      "words": [
+        {
+          "id": "caption-word-38-0",
+          "text": "a",
+          "start": 39.314,
+          "end": 39.354
+        },
+        {
+          "id": "caption-word-38-1",
+          "text": "deterministic",
+          "start": 39.454,
+          "end": 40.294
+        },
+        {
+          "id": "caption-word-38-2",
+          "text": "replay",
+          "start": 40.394,
+          "end": 40.814
+        },
+        {
+          "id": "caption-word-38-3",
+          "text": "makes",
+          "start": 40.954,
+          "end": 41.214
+        }
+      ]
+    },
+    {
+      "id": "caption-group-39",
+      "frame": 4,
+      "start": 41.255,
+      "end": 42.294,
+      "text": "the quality loop",
+      "words": [
+        {
+          "id": "caption-word-39-0",
+          "text": "the",
+          "start": 41.255,
+          "end": 41.314
+        },
+        {
+          "id": "caption-word-39-1",
+          "text": "quality",
+          "start": 41.434,
+          "end": 41.874
+        },
+        {
+          "id": "caption-word-39-2",
+          "text": "loop",
+          "start": 41.994,
+          "end": 42.214
+        }
+      ]
+    },
+    {
+      "id": "caption-group-40",
+      "frame": 4,
+      "start": 42.294,
+      "end": 42.954,
+      "text": "repeatable:",
+      "words": [
+        {
+          "id": "caption-word-40-0",
+          "text": "repeatable:",
+          "start": 42.294,
+          "end": 42.834
+        }
+      ]
+    },
+    {
+      "id": "caption-group-41",
+      "frame": 4,
+      "start": 43.274,
+      "end": 44.574,
+      "text": "attempt one scores",
+      "words": [
+        {
+          "id": "caption-word-41-0",
+          "text": "attempt",
+          "start": 43.274,
+          "end": 43.674
+        },
+        {
+          "id": "caption-word-41-1",
+          "text": "one",
+          "start": 43.834,
+          "end": 44.014
+        },
+        {
+          "id": "caption-word-41-2",
+          "text": "scores",
+          "start": 44.114,
+          "end": 44.535
+        }
+      ]
+    },
+    {
+      "id": "caption-group-42",
+      "frame": 4,
+      "start": 44.574,
+      "end": 45.595,
+      "text": "below threshold,",
+      "words": [
+        {
+          "id": "caption-word-42-0",
+          "text": "below",
+          "start": 44.574,
+          "end": 44.794
+        },
+        {
+          "id": "caption-word-42-1",
+          "text": "threshold,",
+          "start": 44.914,
+          "end": 45.475
+        }
+      ]
+    },
+    {
+      "id": "caption-group-43",
+      "frame": 4,
+      "start": 45.854,
+      "end": 46.674,
+      "text": "Dara records",
+      "words": [
+        {
+          "id": "caption-word-43-0",
+          "text": "Dara",
+          "start": 45.854,
+          "end": 46.154
+        },
+        {
+          "id": "caption-word-43-1",
+          "text": "records",
+          "start": 46.214,
+          "end": 46.634
+        }
+      ]
+    },
+    {
+      "id": "caption-group-44",
+      "frame": 4,
+      "start": 46.674,
+      "end": 47.375,
+      "text": "the failure,",
+      "words": [
+        {
+          "id": "caption-word-44-0",
+          "text": "the",
+          "start": 46.674,
+          "end": 46.734
+        },
+        {
+          "id": "caption-word-44-1",
+          "text": "failure,",
+          "start": 46.835,
+          "end": 47.255
+        }
+      ]
+    },
+    {
+      "id": "caption-group-45",
+      "frame": 4,
+      "start": 47.614,
+      "end": 48.834,
+      "text": "revises the prompt,",
+      "words": [
+        {
+          "id": "caption-word-45-0",
+          "text": "revises",
+          "start": 47.614,
+          "end": 48.134
+        },
+        {
+          "id": "caption-word-45-1",
+          "text": "the",
+          "start": 48.174,
+          "end": 48.234
+        },
+        {
+          "id": "caption-word-45-2",
+          "text": "prompt,",
+          "start": 48.335,
+          "end": 48.714
+        }
+      ]
+    },
+    {
+      "id": "caption-group-46",
+      "frame": 4,
+      "start": 49.035,
+      "end": 49.314,
+      "text": "and the",
+      "words": [
+        {
+          "id": "caption-word-46-0",
+          "text": "and",
+          "start": 49.035,
+          "end": 49.114
+        },
+        {
+          "id": "caption-word-46-1",
+          "text": "the",
+          "start": 49.154,
+          "end": 49.214
+        }
+      ]
+    },
+    {
+      "id": "caption-group-47",
+      "frame": 4,
+      "start": 49.314,
+      "end": 50.714,
+      "text": "second attempt passes.",
+      "words": [
+        {
+          "id": "caption-word-47-0",
+          "text": "second",
+          "start": 49.314,
+          "end": 49.535
+        },
+        {
+          "id": "caption-word-47-1",
+          "text": "attempt",
+          "start": 49.574,
+          "end": 50.014
+        },
+        {
+          "id": "caption-word-47-2",
+          "text": "passes.",
+          "start": 50.074,
+          "end": 50.594
+        }
+      ]
+    },
+    {
+      "id": "caption-group-48",
+      "frame": 4,
+      "start": 50.955,
+      "end": 52.495,
+      "text": "Production OpenAI and",
+      "words": [
+        {
+          "id": "caption-word-48-0",
+          "text": "Production",
+          "start": 50.955,
+          "end": 51.434
+        },
+        {
+          "id": "caption-word-48-1",
+          "text": "OpenAI",
+          "start": 51.614,
+          "end": 52.234
+        },
+        {
+          "id": "caption-word-48-2",
+          "text": "and",
+          "start": 52.294,
+          "end": 52.375
+        }
+      ]
+    },
+    {
+      "id": "caption-group-49",
+      "frame": 4,
+      "start": 52.594,
+      "end": 53.774,
+      "text": "B2 records remain",
+      "words": [
+        {
+          "id": "caption-word-49-0",
+          "text": "B2",
+          "start": 52.594,
+          "end": 52.915
+        },
+        {
+          "id": "caption-word-49-1",
+          "text": "records",
+          "start": 52.974,
+          "end": 53.354
+        },
+        {
+          "id": "caption-word-49-2",
+          "text": "remain",
+          "start": 53.415,
+          "end": 53.714
+        }
+      ]
+    },
+    {
+      "id": "caption-group-50",
+      "frame": 4,
+      "start": 53.774,
+      "end": 54.835,
+      "text": "separate and visible.",
+      "words": [
+        {
+          "id": "caption-word-50-0",
+          "text": "separate",
+          "start": 53.774,
+          "end": 54.114
+        },
+        {
+          "id": "caption-word-50-1",
+          "text": "and",
+          "start": 54.154,
+          "end": 54.274
+        },
+        {
+          "id": "caption-word-50-2",
+          "text": "visible.",
+          "start": 54.314,
+          "end": 54.715
+        }
+      ]
+    },
+    {
+      "id": "caption-group-51",
+      "frame": 5,
+      "start": 55.227,
+      "end": 55.907,
+      "text": "Now switch",
+      "words": [
+        {
+          "id": "caption-word-51-0",
+          "text": "Now",
+          "start": 55.227,
+          "end": 55.427
+        },
+        {
+          "id": "caption-word-51-1",
+          "text": "switch",
+          "start": 55.567,
+          "end": 55.847
+        }
+      ]
+    },
+    {
+      "id": "caption-group-52",
+      "frame": 5,
+      "start": 55.907,
+      "end": 56.187,
+      "text": "to a",
+      "words": [
+        {
+          "id": "caption-word-52-0",
+          "text": "to",
+          "start": 55.907,
+          "end": 56.007
+        },
+        {
+          "id": "caption-word-52-1",
+          "text": "a",
+          "start": 56.067,
+          "end": 56.108
+        }
+      ]
+    },
+    {
+      "id": "caption-group-53",
+      "frame": 5,
+      "start": 56.187,
+      "end": 57.387,
+      "text": "locked policy and",
+      "words": [
+        {
+          "id": "caption-word-53-0",
+          "text": "locked",
+          "start": 56.187,
+          "end": 56.507
+        },
+        {
+          "id": "caption-word-53-1",
+          "text": "policy",
+          "start": 56.608,
+          "end": 57.107
+        },
+        {
+          "id": "caption-word-53-2",
+          "text": "and",
+          "start": 57.168,
+          "end": 57.267
+        }
+      ]
+    },
+    {
+      "id": "caption-group-54",
+      "frame": 5,
+      "start": 57.387,
+      "end": 57.967,
+      "text": "submit the",
+      "words": [
+        {
+          "id": "caption-word-54-0",
+          "text": "submit",
+          "start": 57.387,
+          "end": 57.747
+        },
+        {
+          "id": "caption-word-54-1",
+          "text": "the",
+          "start": 57.787,
+          "end": 57.847
+        }
+      ]
+    },
+    {
+      "id": "caption-group-55",
+      "frame": 5,
+      "start": 57.988,
+      "end": 58.807,
+      "text": "same brief.",
+      "words": [
+        {
+          "id": "caption-word-55-0",
+          "text": "same",
+          "start": 57.988,
+          "end": 58.208
+        },
+        {
+          "id": "caption-word-55-1",
+          "text": "brief.",
+          "start": 58.307,
+          "end": 58.687
+        }
+      ]
+    },
+    {
+      "id": "caption-group-56",
+      "frame": 5,
+      "start": 59.507,
+      "end": 60.287,
+      "text": "Dara blocks",
+      "words": [
+        {
+          "id": "caption-word-56-0",
+          "text": "Dara",
+          "start": 59.507,
+          "end": 59.827
+        },
+        {
+          "id": "caption-word-56-1",
+          "text": "blocks",
+          "start": 59.888,
+          "end": 60.227
+        }
+      ]
+    },
+    {
+      "id": "caption-group-57",
+      "frame": 5,
+      "start": 60.287,
+      "end": 61.707,
+      "text": "it before execution,",
+      "words": [
+        {
+          "id": "caption-word-57-0",
+          "text": "it",
+          "start": 60.287,
+          "end": 60.388
+        },
+        {
+          "id": "caption-word-57-1",
+          "text": "before",
+          "start": 60.428,
+          "end": 60.727
+        },
+        {
+          "id": "caption-word-57-2",
+          "text": "execution,",
+          "start": 60.867,
+          "end": 61.587
+        }
+      ]
+    },
+    {
+      "id": "caption-group-58",
+      "frame": 5,
+      "start": 62.007,
+      "end": 63.147,
+      "text": "records the reason,",
+      "words": [
+        {
+          "id": "caption-word-58-0",
+          "text": "records",
+          "start": 62.007,
+          "end": 62.468
+        },
+        {
+          "id": "caption-word-58-1",
+          "text": "the",
+          "start": 62.507,
+          "end": 62.567
+        },
+        {
+          "id": "caption-word-58-2",
+          "text": "reason,",
+          "start": 62.647,
+          "end": 63.027
+        }
+      ]
+    },
+    {
+      "id": "caption-group-59",
+      "frame": 5,
+      "start": 63.387,
+      "end": 64.047,
+      "text": "and preserves",
+      "words": [
+        {
+          "id": "caption-word-59-0",
+          "text": "and",
+          "start": 63.387,
+          "end": 63.468
+        },
+        {
+          "id": "caption-word-59-1",
+          "text": "preserves",
+          "start": 63.527,
+          "end": 63.988
+        }
+      ]
+    },
+    {
+      "id": "caption-group-60",
+      "frame": 5,
+      "start": 64.047,
+      "end": 64.627,
+      "text": "the cost",
+      "words": [
+        {
+          "id": "caption-word-60-0",
+          "text": "the",
+          "start": 64.047,
+          "end": 64.127
+        },
+        {
+          "id": "caption-word-60-1",
+          "text": "cost",
+          "start": 64.208,
+          "end": 64.547
+        }
+      ]
+    },
+    {
+      "id": "caption-group-61",
+      "frame": 5,
+      "start": 64.627,
+      "end": 65.647,
+      "text": "that was prevented.",
+      "words": [
+        {
+          "id": "caption-word-61-0",
+          "text": "that",
+          "start": 64.627,
+          "end": 64.727
+        },
+        {
+          "id": "caption-word-61-1",
+          "text": "was",
+          "start": 64.767,
+          "end": 64.888
+        },
+        {
+          "id": "caption-word-61-2",
+          "text": "prevented.",
+          "start": 64.967,
+          "end": 65.527
+        }
+      ]
+    },
+    {
+      "id": "caption-group-62",
+      "frame": 5,
+      "start": 66.207,
+      "end": 66.547,
+      "text": "This is",
+      "words": [
+        {
+          "id": "caption-word-62-0",
+          "text": "This",
+          "start": 66.207,
+          "end": 66.347
+        },
+        {
+          "id": "caption-word-62-1",
+          "text": "is",
+          "start": 66.408,
+          "end": 66.488
+        }
+      ]
+    },
+    {
+      "id": "caption-group-63",
+      "frame": 5,
+      "start": 66.547,
+      "end": 67.587,
+      "text": "the important part:",
+      "words": [
+        {
+          "id": "caption-word-63-0",
+          "text": "the",
+          "start": 66.547,
+          "end": 66.607
+        },
+        {
+          "id": "caption-word-63-1",
+          "text": "important",
+          "start": 66.667,
+          "end": 67.048
+        },
+        {
+          "id": "caption-word-63-2",
+          "text": "part:",
+          "start": 67.167,
+          "end": 67.467
+        }
+      ]
+    },
+    {
+      "id": "caption-group-64",
+      "frame": 5,
+      "start": 68.027,
+      "end": 68.787,
+      "text": "no provider",
+      "words": [
+        {
+          "id": "caption-word-64-0",
+          "text": "no",
+          "start": 68.027,
+          "end": 68.207
+        },
+        {
+          "id": "caption-word-64-1",
+          "text": "provider",
+          "start": 68.267,
+          "end": 68.747
+        }
+      ]
+    },
+    {
+      "id": "caption-group-65",
+      "frame": 5,
+      "start": 68.787,
+      "end": 69.488,
+      "text": "was called.",
+      "words": [
+        {
+          "id": "caption-word-65-0",
+          "text": "was",
+          "start": 68.787,
+          "end": 68.908
+        },
+        {
+          "id": "caption-word-65-1",
+          "text": "called.",
+          "start": 69.007,
+          "end": 69.368
+        }
+      ]
+    },
+    {
+      "id": "caption-group-66",
+      "frame": 6,
+      "start": 69.809,
+      "end": 70.229,
+      "text": "Take the",
+      "words": [
+        {
+          "id": "caption-word-66-0",
+          "text": "Take",
+          "start": 69.809,
+          "end": 70.028
+        },
+        {
+          "id": "caption-word-66-1",
+          "text": "the",
+          "start": 70.068,
+          "end": 70.169
+        }
+      ]
+    },
+    {
+      "id": "caption-group-67",
+      "frame": 6,
+      "start": 70.229,
+      "end": 71.628,
+      "text": "published embedded file",
+      "words": [
+        {
+          "id": "caption-word-67-0",
+          "text": "published",
+          "start": 70.229,
+          "end": 70.628
+        },
+        {
+          "id": "caption-word-67-1",
+          "text": "embedded",
+          "start": 70.688,
+          "end": 71.068
+        },
+        {
+          "id": "caption-word-67-2",
+          "text": "file",
+          "start": 71.228,
+          "end": 71.588
+        }
+      ]
+    },
+    {
+      "id": "caption-group-68",
+      "frame": 6,
+      "start": 71.628,
+      "end": 72.109,
+      "text": "and drop",
+      "words": [
+        {
+          "id": "caption-word-68-0",
+          "text": "and",
+          "start": 71.628,
+          "end": 71.788
+        },
+        {
+          "id": "caption-word-68-1",
+          "text": "drop",
+          "start": 71.828,
+          "end": 72.048
+        }
+      ]
+    },
+    {
+      "id": "caption-group-69",
+      "frame": 6,
+      "start": 72.109,
+      "end": 73.168,
+      "text": "it into Verify.",
+      "words": [
+        {
+          "id": "caption-word-69-0",
+          "text": "it",
+          "start": 72.109,
+          "end": 72.169
+        },
+        {
+          "id": "caption-word-69-1",
+          "text": "into",
+          "start": 72.208,
+          "end": 72.409
+        },
+        {
+          "id": "caption-word-69-2",
+          "text": "Verify.",
+          "start": 72.468,
+          "end": 73.048
+        }
+      ]
+    },
+    {
+      "id": "caption-group-70",
+      "frame": 6,
+      "start": 73.649,
+      "end": 74.728,
+      "text": "Dara hashes the",
+      "words": [
+        {
+          "id": "caption-word-70-0",
+          "text": "Dara",
+          "start": 73.649,
+          "end": 73.988
+        },
+        {
+          "id": "caption-word-70-1",
+          "text": "hashes",
+          "start": 74.029,
+          "end": 74.488
+        },
+        {
+          "id": "caption-word-70-2",
+          "text": "the",
+          "start": 74.549,
+          "end": 74.669
+        }
+      ]
+    },
+    {
+      "id": "caption-group-71",
+      "frame": 6,
+      "start": 74.728,
+      "end": 75.988,
+      "text": "whole delivered file,",
+      "words": [
+        {
+          "id": "caption-word-71-0",
+          "text": "whole",
+          "start": 74.728,
+          "end": 74.928
+        },
+        {
+          "id": "caption-word-71-1",
+          "text": "delivered",
+          "start": 75.049,
+          "end": 75.428
+        },
+        {
+          "id": "caption-word-71-2",
+          "text": "file,",
+          "start": 75.569,
+          "end": 75.868
+        }
+      ]
+    },
+    {
+      "id": "caption-group-72",
+      "frame": 6,
+      "start": 76.248,
+      "end": 76.908,
+      "text": "compares it",
+      "words": [
+        {
+          "id": "caption-word-72-0",
+          "text": "compares",
+          "start": 76.248,
+          "end": 76.708
+        },
+        {
+          "id": "caption-word-72-1",
+          "text": "it",
+          "start": 76.748,
+          "end": 76.848
+        }
+      ]
+    },
+    {
+      "id": "caption-group-73",
+      "frame": 6,
+      "start": 76.908,
+      "end": 77.188,
+      "text": "with the",
+      "words": [
+        {
+          "id": "caption-word-73-0",
+          "text": "with",
+          "start": 76.908,
+          "end": 77.008
+        },
+        {
+          "id": "caption-word-73-1",
+          "text": "the",
+          "start": 77.048,
+          "end": 77.129
+        }
+      ]
+    },
+    {
+      "id": "caption-group-74",
+      "frame": 6,
+      "start": 77.188,
+      "end": 80.089,
+      "text": "trusted published SHA-256 stored",
+      "words": [
+        {
+          "id": "caption-word-74-0",
+          "text": "trusted",
+          "start": 77.188,
+          "end": 77.649
+        },
+        {
+          "id": "caption-word-74-1",
+          "text": "published",
+          "start": 77.728,
+          "end": 78.148
+        },
+        {
+          "id": "caption-word-74-2",
+          "text": "SHA-256",
+          "start": 78.268,
+          "end": 79.748
+        },
+        {
+          "id": "caption-word-74-3",
+          "text": "stored",
+          "start": 79.828,
+          "end": 80.049
+        }
+      ]
+    },
+    {
+      "id": "caption-group-75",
+      "frame": 6,
+      "start": 80.089,
+      "end": 80.289,
+      "text": "in",
+      "words": [
+        {
+          "id": "caption-word-75-0",
+          "text": "in",
+          "start": 80.089,
+          "end": 80.169
+        }
+      ]
+    },
+    {
+      "id": "caption-group-76",
+      "frame": 6,
+      "start": 80.408,
+      "end": 80.968,
+      "text": "B2,",
+      "words": [
+        {
+          "id": "caption-word-76-0",
+          "text": "B2,",
+          "start": 80.408,
+          "end": 80.848
+        }
+      ]
+    },
+    {
+      "id": "caption-group-77",
+      "frame": 6,
+      "start": 81.288,
+      "end": 81.908,
+      "text": "and renders",
+      "words": [
+        {
+          "id": "caption-word-77-0",
+          "text": "and",
+          "start": 81.288,
+          "end": 81.388
+        },
+        {
+          "id": "caption-word-77-1",
+          "text": "renders",
+          "start": 81.488,
+          "end": 81.868
+        }
+      ]
+    },
+    {
+      "id": "caption-group-78",
+      "frame": 6,
+      "start": 81.908,
+      "end": 82.988,
+      "text": "the lineage behind",
+      "words": [
+        {
+          "id": "caption-word-78-0",
+          "text": "the",
+          "start": 81.908,
+          "end": 82.009
+        },
+        {
+          "id": "caption-word-78-1",
+          "text": "lineage",
+          "start": 82.068,
+          "end": 82.448
+        },
+        {
+          "id": "caption-word-78-2",
+          "text": "behind",
+          "start": 82.509,
+          "end": 82.948
+        }
+      ]
+    },
+    {
+      "id": "caption-group-79",
+      "frame": 6,
+      "start": 82.988,
+      "end": 84.368,
+      "text": "that exact object.",
+      "words": [
+        {
+          "id": "caption-word-79-0",
+          "text": "that",
+          "start": 82.988,
+          "end": 83.089
+        },
+        {
+          "id": "caption-word-79-1",
+          "text": "exact",
+          "start": 83.188,
+          "end": 83.629
+        },
+        {
+          "id": "caption-word-79-2",
+          "text": "object.",
+          "start": 83.788,
+          "end": 84.248
+        }
+      ]
+    },
+    {
+      "id": "caption-group-80",
+      "frame": 7,
+      "start": 84.673,
+      "end": 85.773,
+      "text": "Change one byte",
+      "words": [
+        {
+          "id": "caption-word-80-0",
+          "text": "Change",
+          "start": 84.673,
+          "end": 84.993
+        },
+        {
+          "id": "caption-word-80-1",
+          "text": "one",
+          "start": 85.134,
+          "end": 85.333
+        },
+        {
+          "id": "caption-word-80-2",
+          "text": "byte",
+          "start": 85.413,
+          "end": 85.733
+        }
+      ]
+    },
+    {
+      "id": "caption-group-81",
+      "frame": 7,
+      "start": 85.773,
+      "end": 87.054,
+      "text": "and verify again.",
+      "words": [
+        {
+          "id": "caption-word-81-0",
+          "text": "and",
+          "start": 85.773,
+          "end": 85.873
+        },
+        {
+          "id": "caption-word-81-1",
+          "text": "verify",
+          "start": 85.973,
+          "end": 86.454
+        },
+        {
+          "id": "caption-word-81-2",
+          "text": "again.",
+          "start": 86.513,
+          "end": 86.934
+        }
+      ]
+    },
+    {
+      "id": "caption-group-82",
+      "frame": 7,
+      "start": 87.493,
+      "end": 88.613,
+      "text": "The embedded provenance",
+      "words": [
+        {
+          "id": "caption-word-82-0",
+          "text": "The",
+          "start": 87.493,
+          "end": 87.553
+        },
+        {
+          "id": "caption-word-82-1",
+          "text": "embedded",
+          "start": 87.613,
+          "end": 87.993
+        },
+        {
+          "id": "caption-word-82-2",
+          "text": "provenance",
+          "start": 88.093,
+          "end": 88.573
+        }
+      ]
+    },
+    {
+      "id": "caption-group-83",
+      "frame": 7,
+      "start": 88.613,
+      "end": 89.133,
+      "text": "can still",
+      "words": [
+        {
+          "id": "caption-word-83-0",
+          "text": "can",
+          "start": 88.613,
+          "end": 88.773
+        },
+        {
+          "id": "caption-word-83-1",
+          "text": "still",
+          "start": 88.793,
+          "end": 89.073
+        }
+      ]
+    },
+    {
+      "id": "caption-group-84",
+      "frame": 7,
+      "start": 89.133,
+      "end": 90.034,
+      "text": "be extracted,",
+      "words": [
+        {
+          "id": "caption-word-84-0",
+          "text": "be",
+          "start": 89.133,
+          "end": 89.193
+        },
+        {
+          "id": "caption-word-84-1",
+          "text": "extracted,",
+          "start": 89.293,
+          "end": 89.914
+        }
+      ]
+    },
+    {
+      "id": "caption-group-85",
+      "frame": 7,
+      "start": 90.253,
+      "end": 90.533,
+      "text": "but the",
+      "words": [
+        {
+          "id": "caption-word-85-0",
+          "text": "but",
+          "start": 90.253,
+          "end": 90.333
+        },
+        {
+          "id": "caption-word-85-1",
+          "text": "the",
+          "start": 90.374,
+          "end": 90.473
+        }
+      ]
+    },
+    {
+      "id": "caption-group-86",
+      "frame": 7,
+      "start": 90.533,
+      "end": 92.973,
+      "text": "trusted whole-file comparison diverges",
+      "words": [
+        {
+          "id": "caption-word-86-0",
+          "text": "trusted",
+          "start": 90.533,
+          "end": 90.914
+        },
+        {
+          "id": "caption-word-86-1",
+          "text": "whole-file",
+          "start": 91.013,
+          "end": 91.513
+        },
+        {
+          "id": "caption-word-86-2",
+          "text": "comparison",
+          "start": 91.573,
+          "end": 92.173
+        },
+        {
+          "id": "caption-word-86-3",
+          "text": "diverges",
+          "start": 92.313,
+          "end": 92.874
+        }
+      ]
+    },
+    {
+      "id": "caption-group-87",
+      "frame": 7,
+      "start": 92.973,
+      "end": 93.773,
+      "text": "immediately.",
+      "words": [
+        {
+          "id": "caption-word-87-0",
+          "text": "immediately.",
+          "start": 92.973,
+          "end": 93.653
+        }
+      ]
+    },
+    {
+      "id": "caption-group-88",
+      "frame": 7,
+      "start": 94.173,
+      "end": 95.613,
+      "text": "Dara proves exact",
+      "words": [
+        {
+          "id": "caption-word-88-0",
+          "text": "Dara",
+          "start": 94.173,
+          "end": 94.493
+        },
+        {
+          "id": "caption-word-88-1",
+          "text": "proves",
+          "start": 94.573,
+          "end": 94.874
+        },
+        {
+          "id": "caption-word-88-2",
+          "text": "exact",
+          "start": 94.954,
+          "end": 95.493
+        }
+      ]
+    },
+    {
+      "id": "caption-group-89",
+      "frame": 7,
+      "start": 95.613,
+      "end": 96.813,
+      "text": "delivery integrity;",
+      "words": [
+        {
+          "id": "caption-word-89-0",
+          "text": "delivery",
+          "start": 95.613,
+          "end": 96.053
+        },
+        {
+          "id": "caption-word-89-1",
+          "text": "integrity;",
+          "start": 96.093,
+          "end": 96.693
+        }
+      ]
+    },
+    {
+      "id": "caption-group-90",
+      "frame": 7,
+      "start": 97.213,
+      "end": 97.553,
+      "text": "it does",
+      "words": [
+        {
+          "id": "caption-word-90-0",
+          "text": "it",
+          "start": 97.213,
+          "end": 97.294
+        },
+        {
+          "id": "caption-word-90-1",
+          "text": "does",
+          "start": 97.334,
+          "end": 97.493
+        }
+      ]
+    },
+    {
+      "id": "caption-group-91",
+      "frame": 7,
+      "start": 97.553,
+      "end": 99.033,
+      "text": "not claim adversarial",
+      "words": [
+        {
+          "id": "caption-word-91-0",
+          "text": "not",
+          "start": 97.553,
+          "end": 97.793
+        },
+        {
+          "id": "caption-word-91-1",
+          "text": "claim",
+          "start": 97.874,
+          "end": 98.173
+        },
+        {
+          "id": "caption-word-91-2",
+          "text": "adversarial",
+          "start": 98.253,
+          "end": 98.914
+        }
+      ]
+    },
+    {
+      "id": "caption-group-92",
+      "frame": 7,
+      "start": 99.033,
+      "end": 99.873,
+      "text": "authenticity.",
+      "words": [
+        {
+          "id": "caption-word-92-0",
+          "text": "authenticity.",
+          "start": 99.033,
+          "end": 99.753
+        }
+      ]
+    },
+    {
+      "id": "caption-group-93",
+      "frame": 8,
+      "start": 100.168,
+      "end": 101.269,
+      "text": "Open any prior",
+      "words": [
+        {
+          "id": "caption-word-93-0",
+          "text": "Open",
+          "start": 100.168,
+          "end": 100.468
+        },
+        {
+          "id": "caption-word-93-1",
+          "text": "any",
+          "start": 100.568,
+          "end": 100.708
+        },
+        {
+          "id": "caption-word-93-2",
+          "text": "prior",
+          "start": 100.848,
+          "end": 101.149
+        }
+      ]
+    },
+    {
+      "id": "caption-group-94",
+      "frame": 8,
+      "start": 101.328,
+      "end": 102.648,
+      "text": "asset and regenerate",
+      "words": [
+        {
+          "id": "caption-word-94-0",
+          "text": "asset",
+          "start": 101.328,
+          "end": 101.669
+        },
+        {
+          "id": "caption-word-94-1",
+          "text": "and",
+          "start": 101.768,
+          "end": 101.848
+        },
+        {
+          "id": "caption-word-94-2",
+          "text": "regenerate",
+          "start": 101.928,
+          "end": 102.588
+        }
+      ]
+    },
+    {
+      "id": "caption-group-95",
+      "frame": 8,
+      "start": 102.648,
+      "end": 102.988,
+      "text": "from its",
+      "words": [
+        {
+          "id": "caption-word-95-0",
+          "text": "from",
+          "start": 102.648,
+          "end": 102.749
+        },
+        {
+          "id": "caption-word-95-1",
+          "text": "its",
+          "start": 102.789,
+          "end": 102.908
+        }
+      ]
+    },
+    {
+      "id": "caption-group-96",
+      "frame": 8,
+      "start": 102.988,
+      "end": 104.348,
+      "text": "recorded parameters.",
+      "words": [
+        {
+          "id": "caption-word-96-0",
+          "text": "recorded",
+          "start": 102.988,
+          "end": 103.448
+        },
+        {
+          "id": "caption-word-96-1",
+          "text": "parameters.",
+          "start": 103.529,
+          "end": 104.228
+        }
+      ]
+    },
+    {
+      "id": "caption-group-97",
+      "frame": 8,
+      "start": 104.688,
+      "end": 105.429,
+      "text": "Dara creates",
+      "words": [
+        {
+          "id": "caption-word-97-0",
+          "text": "Dara",
+          "start": 104.688,
+          "end": 105.008
+        },
+        {
+          "id": "caption-word-97-1",
+          "text": "creates",
+          "start": 105.088,
+          "end": 105.388
+        }
+      ]
+    },
+    {
+      "id": "caption-group-98",
+      "frame": 8,
+      "start": 105.429,
+      "end": 105.808,
+      "text": "a new",
+      "words": [
+        {
+          "id": "caption-word-98-0",
+          "text": "a",
+          "start": 105.429,
+          "end": 105.449
+        },
+        {
+          "id": "caption-word-98-1",
+          "text": "new",
+          "start": 105.568,
+          "end": 105.688
+        }
+      ]
+    },
+    {
+      "id": "caption-group-99",
+      "frame": 8,
+      "start": 105.828,
+      "end": 106.848,
+      "text": "child run linked",
+      "words": [
+        {
+          "id": "caption-word-99-0",
+          "text": "child",
+          "start": 105.828,
+          "end": 106.168
+        },
+        {
+          "id": "caption-word-99-1",
+          "text": "run",
+          "start": 106.228,
+          "end": 106.428
+        },
+        {
+          "id": "caption-word-99-2",
+          "text": "linked",
+          "start": 106.568,
+          "end": 106.808
+        }
+      ]
+    },
+    {
+      "id": "caption-group-100",
+      "frame": 8,
+      "start": 106.848,
+      "end": 107.428,
+      "text": "by parent",
+      "words": [
+        {
+          "id": "caption-word-100-0",
+          "text": "by",
+          "start": 106.848,
+          "end": 106.989
+        },
+        {
+          "id": "caption-word-100-1",
+          "text": "parent",
+          "start": 107.068,
+          "end": 107.368
+        }
+      ]
+    },
+    {
+      "id": "caption-group-101",
+      "frame": 8,
+      "start": 107.428,
+      "end": 108.188,
+      "text": "run ID.",
+      "words": [
+        {
+          "id": "caption-word-101-0",
+          "text": "run",
+          "start": 107.428,
+          "end": 107.588
+        },
+        {
+          "id": "caption-word-101-1",
+          "text": "ID.",
+          "start": 107.688,
+          "end": 108.068
+        }
+      ]
+    },
+    {
+      "id": "caption-group-102",
+      "frame": 8,
+      "start": 108.549,
+      "end": 109.049,
+      "text": "The result",
+      "words": [
+        {
+          "id": "caption-word-102-0",
+          "text": "The",
+          "start": 108.549,
+          "end": 108.608
+        },
+        {
+          "id": "caption-word-102-1",
+          "text": "result",
+          "start": 108.648,
+          "end": 108.988
+        }
+      ]
+    },
+    {
+      "id": "caption-group-103",
+      "frame": 8,
+      "start": 109.049,
+      "end": 109.728,
+      "text": "may differ,",
+      "words": [
+        {
+          "id": "caption-word-103-0",
+          "text": "may",
+          "start": 109.049,
+          "end": 109.208
+        },
+        {
+          "id": "caption-word-103-1",
+          "text": "differ,",
+          "start": 109.269,
+          "end": 109.608
+        }
+      ]
+    },
+    {
+      "id": "caption-group-104",
+      "frame": 8,
+      "start": 109.988,
+      "end": 110.908,
+      "text": "but the recipe,",
+      "words": [
+        {
+          "id": "caption-word-104-0",
+          "text": "but",
+          "start": 109.988,
+          "end": 110.069
+        },
+        {
+          "id": "caption-word-104-1",
+          "text": "the",
+          "start": 110.108,
+          "end": 110.148
+        },
+        {
+          "id": "caption-word-104-2",
+          "text": "recipe,",
+          "start": 110.268,
+          "end": 110.788
+        }
+      ]
+    },
+    {
+      "id": "caption-group-105",
+      "frame": 8,
+      "start": 111.028,
+      "end": 112.248,
+      "text": "provider context,",
+      "words": [
+        {
+          "id": "caption-word-105-0",
+          "text": "provider",
+          "start": 111.028,
+          "end": 111.509
+        },
+        {
+          "id": "caption-word-105-1",
+          "text": "context,",
+          "start": 111.568,
+          "end": 112.128
+        }
+      ]
+    },
+    {
+      "id": "caption-group-106",
+      "frame": 8,
+      "start": 112.429,
+      "end": 113.068,
+      "text": "and lineage",
+      "words": [
+        {
+          "id": "caption-word-106-0",
+          "text": "and",
+          "start": 112.429,
+          "end": 112.528
+        },
+        {
+          "id": "caption-word-106-1",
+          "text": "lineage",
+          "start": 112.628,
+          "end": 113.009
+        }
+      ]
+    },
+    {
+      "id": "caption-group-107",
+      "frame": 8,
+      "start": 113.068,
+      "end": 114.148,
+      "text": "remain inspectable.",
+      "words": [
+        {
+          "id": "caption-word-107-0",
+          "text": "remain",
+          "start": 113.068,
+          "end": 113.348
+        },
+        {
+          "id": "caption-word-107-1",
+          "text": "inspectable.",
+          "start": 113.389,
+          "end": 114.028
+        }
+      ]
+    },
+    {
+      "id": "caption-group-108",
+      "frame": 9,
+      "start": 114.465,
+      "end": 115.745,
+      "text": "The persistence model",
+      "words": [
+        {
+          "id": "caption-word-108-0",
+          "text": "The",
+          "start": 114.465,
+          "end": 114.545
+        },
+        {
+          "id": "caption-word-108-1",
+          "text": "persistence",
+          "start": 114.585,
+          "end": 115.245
+        },
+        {
+          "id": "caption-word-108-2",
+          "text": "model",
+          "start": 115.325,
+          "end": 115.705
+        }
+      ]
+    },
+    {
+      "id": "caption-group-109",
+      "frame": 9,
+      "start": 115.745,
+      "end": 117.106,
+      "text": "is deliberately simple:",
+      "words": [
+        {
+          "id": "caption-word-109-0",
+          "text": "is",
+          "start": 115.745,
+          "end": 115.885
+        },
+        {
+          "id": "caption-word-109-1",
+          "text": "deliberately",
+          "start": 115.945,
+          "end": 116.506
+        },
+        {
+          "id": "caption-word-109-2",
+          "text": "simple:",
+          "start": 116.645,
+          "end": 116.986
+        }
+      ]
+    },
+    {
+      "id": "caption-group-110",
+      "frame": 9,
+      "start": 117.445,
+      "end": 117.785,
+      "text": "one",
+      "words": [
+        {
+          "id": "caption-word-110-0",
+          "text": "one",
+          "start": 117.445,
+          "end": 117.665
+        }
+      ]
+    },
+    {
+      "id": "caption-group-111",
+      "frame": 9,
+      "start": 117.865,
+      "end": 119.625,
+      "text": "Backblaze B2 bucket.",
+      "words": [
+        {
+          "id": "caption-word-111-0",
+          "text": "Backblaze",
+          "start": 117.865,
+          "end": 118.505
+        },
+        {
+          "id": "caption-word-111-1",
+          "text": "B2",
+          "start": 118.605,
+          "end": 119.125
+        },
+        {
+          "id": "caption-word-111-2",
+          "text": "bucket.",
+          "start": 119.166,
+          "end": 119.505
+        }
+      ]
+    },
+    {
+      "id": "caption-group-112",
+      "frame": 9,
+      "start": 119.925,
+      "end": 121.326,
+      "text": "It holds Genblaze-bound",
+      "words": [
+        {
+          "id": "caption-word-112-0",
+          "text": "It",
+          "start": 119.925,
+          "end": 120.005
+        },
+        {
+          "id": "caption-word-112-1",
+          "text": "holds",
+          "start": 120.085,
+          "end": 120.425
+        },
+        {
+          "id": "caption-word-112-2",
+          "text": "Genblaze-bound",
+          "start": 120.445,
+          "end": 121.206
+        }
+      ]
+    },
+    {
+      "id": "caption-group-113",
+      "frame": 9,
+      "start": 121.345,
+      "end": 122.245,
+      "text": "source assets,",
+      "words": [
+        {
+          "id": "caption-word-113-0",
+          "text": "source",
+          "start": 121.345,
+          "end": 121.545
+        },
+        {
+          "id": "caption-word-113-1",
+          "text": "assets,",
+          "start": 121.685,
+          "end": 122.125
+        }
+      ]
+    },
+    {
+      "id": "caption-group-114",
+      "frame": 9,
+      "start": 122.546,
+      "end": 124.185,
+      "text": "exact published derivatives,",
+      "words": [
+        {
+          "id": "caption-word-114-0",
+          "text": "exact",
+          "start": 122.546,
+          "end": 122.945
+        },
+        {
+          "id": "caption-word-114-1",
+          "text": "published",
+          "start": 123.065,
+          "end": 123.405
+        },
+        {
+          "id": "caption-word-114-2",
+          "text": "derivatives,",
+          "start": 123.445,
+          "end": 124.065
+        }
+      ]
+    },
+    {
+      "id": "caption-group-115",
+      "frame": 9,
+      "start": 124.445,
+      "end": 125.305,
+      "text": "manifests,",
+      "words": [
+        {
+          "id": "caption-word-115-0",
+          "text": "manifests,",
+          "start": 124.445,
+          "end": 125.185
+        }
+      ]
+    },
+    {
+      "id": "caption-group-116",
+      "frame": 9,
+      "start": 125.545,
+      "end": 127.105,
+      "text": "immutable ledger partitions,",
+      "words": [
+        {
+          "id": "caption-word-116-0",
+          "text": "immutable",
+          "start": 125.545,
+          "end": 126.005
+        },
+        {
+          "id": "caption-word-116-1",
+          "text": "ledger",
+          "start": 126.045,
+          "end": 126.305
+        },
+        {
+          "id": "caption-word-116-2",
+          "text": "partitions,",
+          "start": 126.365,
+          "end": 126.985
+        }
+      ]
+    },
+    {
+      "id": "caption-group-117",
+      "frame": 9,
+      "start": 127.385,
+      "end": 128.125,
+      "text": "policies,",
+      "words": [
+        {
+          "id": "caption-word-117-0",
+          "text": "policies,",
+          "start": 127.385,
+          "end": 128.005
+        }
+      ]
+    },
+    {
+      "id": "caption-group-118",
+      "frame": 9,
+      "start": 128.385,
+      "end": 129.105,
+      "text": "projects,",
+      "words": [
+        {
+          "id": "caption-word-118-0",
+          "text": "projects,",
+          "start": 128.385,
+          "end": 128.985
+        }
+      ]
+    },
+    {
+      "id": "caption-group-119",
+      "frame": 9,
+      "start": 129.365,
+      "end": 129.906,
+      "text": "shares,",
+      "words": [
+        {
+          "id": "caption-word-119-0",
+          "text": "shares,",
+          "start": 129.365,
+          "end": 129.786
+        }
+      ]
+    },
+    {
+      "id": "caption-group-120",
+      "frame": 9,
+      "start": 130.125,
+      "end": 131.245,
+      "text": "and recoverable job",
+      "words": [
+        {
+          "id": "caption-word-120-0",
+          "text": "and",
+          "start": 130.125,
+          "end": 130.225
+        },
+        {
+          "id": "caption-word-120-1",
+          "text": "recoverable",
+          "start": 130.265,
+          "end": 130.846
+        },
+        {
+          "id": "caption-word-120-2",
+          "text": "job",
+          "start": 130.945,
+          "end": 131.145
+        }
+      ]
+    },
+    {
+      "id": "caption-group-121",
+      "frame": 9,
+      "start": 131.245,
+      "end": 131.705,
+      "text": "state.",
+      "words": [
+        {
+          "id": "caption-word-121-0",
+          "text": "state.",
+          "start": 131.245,
+          "end": 131.585
+        }
+      ]
+    },
+    {
+      "id": "caption-group-122",
+      "frame": 10,
+      "start": 131.975,
+      "end": 133.395,
+      "text": "Genblaze writes Parquet",
+      "words": [
+        {
+          "id": "caption-word-122-0",
+          "text": "Genblaze",
+          "start": 131.975,
+          "end": 132.535
+        },
+        {
+          "id": "caption-word-122-1",
+          "text": "writes",
+          "start": 132.575,
+          "end": 132.856
+        },
+        {
+          "id": "caption-word-122-2",
+          "text": "Parquet",
+          "start": 132.956,
+          "end": 133.315
+        }
+      ]
+    },
+    {
+      "id": "caption-group-123",
+      "frame": 10,
+      "start": 133.395,
+      "end": 134.495,
+      "text": "telemetry locally;",
+      "words": [
+        {
+          "id": "caption-word-123-0",
+          "text": "telemetry",
+          "start": 133.395,
+          "end": 133.936
+        },
+        {
+          "id": "caption-word-123-1",
+          "text": "locally;",
+          "start": 133.995,
+          "end": 134.375
+        }
+      ]
+    },
+    {
+      "id": "caption-group-124",
+      "frame": 10,
+      "start": 134.956,
+      "end": 136.195,
+      "text": "Dara uploads each",
+      "words": [
+        {
+          "id": "caption-word-124-0",
+          "text": "Dara",
+          "start": 134.956,
+          "end": 135.295
+        },
+        {
+          "id": "caption-word-124-1",
+          "text": "uploads",
+          "start": 135.355,
+          "end": 135.835
+        },
+        {
+          "id": "caption-word-124-2",
+          "text": "each",
+          "start": 135.935,
+          "end": 136.075
+        }
+      ]
+    },
+    {
+      "id": "caption-group-125",
+      "frame": 10,
+      "start": 136.196,
+      "end": 137.215,
+      "text": "closed partition",
+      "words": [
+        {
+          "id": "caption-word-125-0",
+          "text": "closed",
+          "start": 136.196,
+          "end": 136.495
+        },
+        {
+          "id": "caption-word-125-1",
+          "text": "partition",
+          "start": 136.595,
+          "end": 137.095
+        }
+      ]
+    },
+    {
+      "id": "caption-group-126",
+      "frame": 10,
+      "start": 137.435,
+      "end": 137.656,
+      "text": "as an",
+      "words": [
+        {
+          "id": "caption-word-126-0",
+          "text": "as",
+          "start": 137.435,
+          "end": 137.515
+        },
+        {
+          "id": "caption-word-126-1",
+          "text": "an",
+          "start": 137.555,
+          "end": 137.595
+        }
+      ]
+    },
+    {
+      "id": "caption-group-127",
+      "frame": 10,
+      "start": 137.656,
+      "end": 139.395,
+      "text": "immutable B2 object.",
+      "words": [
+        {
+          "id": "caption-word-127-0",
+          "text": "immutable",
+          "start": 137.656,
+          "end": 138.175
+        },
+        {
+          "id": "caption-word-127-1",
+          "text": "B2",
+          "start": 138.275,
+          "end": 138.736
+        },
+        {
+          "id": "caption-word-127-2",
+          "text": "object.",
+          "start": 138.835,
+          "end": 139.275
+        }
+      ]
+    },
+    {
+      "id": "caption-group-128",
+      "frame": 10,
+      "start": 140.095,
+      "end": 141.835,
+      "text": "DuckDB queries those objects",
+      "words": [
+        {
+          "id": "caption-word-128-0",
+          "text": "DuckDB",
+          "start": 140.095,
+          "end": 140.696
+        },
+        {
+          "id": "caption-word-128-1",
+          "text": "queries",
+          "start": 140.795,
+          "end": 141.135
+        },
+        {
+          "id": "caption-word-128-2",
+          "text": "those",
+          "start": 141.175,
+          "end": 141.335
+        },
+        {
+          "id": "caption-word-128-3",
+          "text": "objects",
+          "start": 141.455,
+          "end": 141.795
+        }
+      ]
+    },
+    {
+      "id": "caption-group-129",
+      "frame": 10,
+      "start": 141.835,
+      "end": 142.295,
+      "text": "in place",
+      "words": [
+        {
+          "id": "caption-word-129-0",
+          "text": "in",
+          "start": 141.835,
+          "end": 141.935
+        },
+        {
+          "id": "caption-word-129-1",
+          "text": "place",
+          "start": 141.996,
+          "end": 142.236
+        }
+      ]
+    },
+    {
+      "id": "caption-group-130",
+      "frame": 10,
+      "start": 142.295,
+      "end": 142.895,
+      "text": "for spend",
+      "words": [
+        {
+          "id": "caption-word-130-0",
+          "text": "for",
+          "start": 142.295,
+          "end": 142.435
+        },
+        {
+          "id": "caption-word-130-1",
+          "text": "spend",
+          "start": 142.475,
+          "end": 142.855
+        }
+      ]
+    },
+    {
+      "id": "caption-group-131",
+      "frame": 10,
+      "start": 142.895,
+      "end": 143.715,
+      "text": "and provenance.",
+      "words": [
+        {
+          "id": "caption-word-131-0",
+          "text": "and",
+          "start": 142.895,
+          "end": 142.955
+        },
+        {
+          "id": "caption-word-131-1",
+          "text": "provenance.",
+          "start": 143.055,
+          "end": 143.595
+        }
+      ]
+    },
+    {
+      "id": "caption-group-132",
+      "frame": 10,
+      "start": 144.255,
+      "end": 145.215,
+      "text": "No database.",
+      "words": [
+        {
+          "id": "caption-word-132-0",
+          "text": "No",
+          "start": 144.255,
+          "end": 144.415
+        },
+        {
+          "id": "caption-word-132-1",
+          "text": "database.",
+          "start": 144.535,
+          "end": 145.095
+        }
+      ]
+    },
+    {
+      "id": "caption-group-133",
+      "frame": 10,
+      "start": 145.595,
+      "end": 146.356,
+      "text": "One bucket.",
+      "words": [
+        {
+          "id": "caption-word-133-0",
+          "text": "One",
+          "start": 145.595,
+          "end": 145.755
+        },
+        {
+          "id": "caption-word-133-1",
+          "text": "bucket.",
+          "start": 145.855,
+          "end": 146.236
+        }
+      ]
+    },
+    {
+      "id": "caption-group-134",
+      "frame": 11,
+      "start": 146.705,
+      "end": 147.226,
+      "text": "This is",
+      "words": [
+        {
+          "id": "caption-word-134-0",
+          "text": "This",
+          "start": 146.705,
+          "end": 146.925
+        },
+        {
+          "id": "caption-word-134-1",
+          "text": "is",
+          "start": 147.025,
+          "end": 147.166
+        }
+      ]
+    },
+    {
+      "id": "caption-group-135",
+      "frame": 11,
+      "start": 147.226,
+      "end": 147.666,
+      "text": "the live",
+      "words": [
+        {
+          "id": "caption-word-135-0",
+          "text": "the",
+          "start": 147.226,
+          "end": 147.266
+        },
+        {
+          "id": "caption-word-135-1",
+          "text": "live",
+          "start": 147.345,
+          "end": 147.605
+        }
+      ]
+    },
+    {
+      "id": "caption-group-136",
+      "frame": 11,
+      "start": 147.666,
+      "end": 148.605,
+      "text": "production receipt:",
+      "words": [
+        {
+          "id": "caption-word-136-0",
+          "text": "production",
+          "start": 147.666,
+          "end": 148.046
+        },
+        {
+          "id": "caption-word-136-1",
+          "text": "receipt:",
+          "start": 148.125,
+          "end": 148.485
+        }
+      ]
+    },
+    {
+      "id": "caption-group-137",
+      "frame": 11,
+      "start": 148.965,
+      "end": 150.525,
+      "text": "DuckDB over B2,",
+      "words": [
+        {
+          "id": "caption-word-137-0",
+          "text": "DuckDB",
+          "start": 148.965,
+          "end": 149.585
+        },
+        {
+          "id": "caption-word-137-1",
+          "text": "over",
+          "start": 149.645,
+          "end": 149.766
+        },
+        {
+          "id": "caption-word-137-2",
+          "text": "B2,",
+          "start": 149.925,
+          "end": 150.405
+        }
+      ]
+    },
+    {
+      "id": "caption-group-138",
+      "frame": 11,
+      "start": 150.865,
+      "end": 151.805,
+      "text": "six assets,",
+      "words": [
+        {
+          "id": "caption-word-138-0",
+          "text": "six",
+          "start": 150.865,
+          "end": 151.085
+        },
+        {
+          "id": "caption-word-138-1",
+          "text": "assets,",
+          "start": 151.245,
+          "end": 151.685
+        }
+      ]
+    },
+    {
+      "id": "caption-group-139",
+      "frame": 11,
+      "start": 151.885,
+      "end": 153.045,
+      "text": "nine recorded runs,",
+      "words": [
+        {
+          "id": "caption-word-139-0",
+          "text": "nine",
+          "start": 151.885,
+          "end": 152.125
+        },
+        {
+          "id": "caption-word-139-1",
+          "text": "recorded",
+          "start": 152.165,
+          "end": 152.605
+        },
+        {
+          "id": "caption-word-139-2",
+          "text": "runs,",
+          "start": 152.665,
+          "end": 152.925
+        }
+      ]
+    },
+    {
+      "id": "caption-group-140",
+      "frame": 11,
+      "start": 153.265,
+      "end": 153.745,
+      "text": "and nine",
+      "words": [
+        {
+          "id": "caption-word-140-0",
+          "text": "and",
+          "start": 153.265,
+          "end": 153.405
+        },
+        {
+          "id": "caption-word-140-1",
+          "text": "nine",
+          "start": 153.486,
+          "end": 153.625
+        }
+      ]
+    },
+    {
+      "id": "caption-group-141",
+      "frame": 11,
+      "start": 153.785,
+      "end": 154.265,
+      "text": "point five",
+      "words": [
+        {
+          "id": "caption-word-141-0",
+          "text": "point",
+          "start": 153.785,
+          "end": 154.006
+        },
+        {
+          "id": "caption-word-141-1",
+          "text": "five",
+          "start": 154.046,
+          "end": 154.145
+        }
+      ]
+    },
+    {
+      "id": "caption-group-142",
+      "frame": 11,
+      "start": 154.305,
+      "end": 155.306,
+      "text": "cents of estimated",
+      "words": [
+        {
+          "id": "caption-word-142-0",
+          "text": "cents",
+          "start": 154.305,
+          "end": 154.486
+        },
+        {
+          "id": "caption-word-142-1",
+          "text": "of",
+          "start": 154.546,
+          "end": 154.625
+        },
+        {
+          "id": "caption-word-142-2",
+          "text": "estimated",
+          "start": 154.725,
+          "end": 155.186
+        }
+      ]
+    },
+    {
+      "id": "caption-group-143",
+      "frame": 11,
+      "start": 155.306,
+      "end": 157.446,
+      "text": "spend—alongside every status,",
+      "words": [
+        {
+          "id": "caption-word-143-0",
+          "text": "spend—alongside",
+          "start": 155.306,
+          "end": 156.506
+        },
+        {
+          "id": "caption-word-143-1",
+          "text": "every",
+          "start": 156.645,
+          "end": 156.865
+        },
+        {
+          "id": "caption-word-143-2",
+          "text": "status,",
+          "start": 156.945,
+          "end": 157.326
+        }
+      ]
+    },
+    {
+      "id": "caption-group-144",
+      "frame": 11,
+      "start": 157.745,
+      "end": 158.166,
+      "text": "model,",
+      "words": [
+        {
+          "id": "caption-word-144-0",
+          "text": "model,",
+          "start": 157.745,
+          "end": 158.046
+        }
+      ]
+    },
+    {
+      "id": "caption-group-145",
+      "frame": 11,
+      "start": 158.265,
+      "end": 158.665,
+      "text": "hash,",
+      "words": [
+        {
+          "id": "caption-word-145-0",
+          "text": "hash,",
+          "start": 158.265,
+          "end": 158.565
+        }
+      ]
+    },
+    {
+      "id": "caption-group-146",
+      "frame": 11,
+      "start": 158.665,
+      "end": 159.645,
+      "text": "and lineage edge.",
+      "words": [
+        {
+          "id": "caption-word-146-0",
+          "text": "and",
+          "start": 158.665,
+          "end": 158.745
+        },
+        {
+          "id": "caption-word-146-1",
+          "text": "lineage",
+          "start": 158.825,
+          "end": 159.205
+        },
+        {
+          "id": "caption-word-146-2",
+          "text": "edge.",
+          "start": 159.285,
+          "end": 159.525
+        }
+      ]
+    },
+    {
+      "id": "caption-group-147",
+      "frame": 12,
+      "start": 160.101,
+      "end": 161.341,
+      "text": "Govern before spend.",
+      "words": [
+        {
+          "id": "caption-word-147-0",
+          "text": "Govern",
+          "start": 160.101,
+          "end": 160.402
+        },
+        {
+          "id": "caption-word-147-1",
+          "text": "before",
+          "start": 160.441,
+          "end": 160.701
+        },
+        {
+          "id": "caption-word-147-2",
+          "text": "spend.",
+          "start": 160.801,
+          "end": 161.221
+        }
+      ]
+    },
+    {
+      "id": "caption-group-148",
+      "frame": 12,
+      "start": 161.702,
+      "end": 163.021,
+      "text": "Preserve every attempt.",
+      "words": [
+        {
+          "id": "caption-word-148-0",
+          "text": "Preserve",
+          "start": 161.702,
+          "end": 162.062
+        },
+        {
+          "id": "caption-word-148-1",
+          "text": "every",
+          "start": 162.201,
+          "end": 162.401
+        },
+        {
+          "id": "caption-word-148-2",
+          "text": "attempt.",
+          "start": 162.461,
+          "end": 162.901
+        }
+      ]
+    },
+    {
+      "id": "caption-group-149",
+      "frame": 12,
+      "start": 163.441,
+      "end": 164.721,
+      "text": "Verify what shipped.",
+      "words": [
+        {
+          "id": "caption-word-149-0",
+          "text": "Verify",
+          "start": 163.441,
+          "end": 163.961
+        },
+        {
+          "id": "caption-word-149-1",
+          "text": "what",
+          "start": 164.001,
+          "end": 164.161
+        },
+        {
+          "id": "caption-word-149-2",
+          "text": "shipped.",
+          "start": 164.282,
+          "end": 164.601
+        }
+      ]
+    },
+    {
+      "id": "caption-group-150",
+      "frame": 12,
+      "start": 165.242,
+      "end": 165.741,
+      "text": "Dara.",
+      "words": [
+        {
+          "id": "caption-word-150-0",
+          "text": "Dara.",
+          "start": 165.242,
+          "end": 165.621
+        }
+      ]
+    }
+  ]
+}

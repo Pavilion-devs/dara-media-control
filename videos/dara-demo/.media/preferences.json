@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "preferences": {
+    "destination": {
+      "value": "youtube",
+      "confirmed_in": [
+        "dara-demo"
+      ],
+      "updated_at": "2026-07-29T20:52:39.161Z"
+    },
+    "aspect": {
+      "value": "1920x1080",
+      "confirmed_in": [
+        "dara-demo"
+      ],
+      "updated_at": "2026-07-29T20:52:39.247Z"
+    },
+    "flow": {
+      "value": "automation",
+      "confirmed_in": [
+        "dara-demo"
+      ],
+      "updated_at": "2026-07-29T20:52:39.330Z"
+    },
+    "storyboard": {
+      "value": "no",
+      "confirmed_in": [
+        "dara-demo"
+      ],
+      "updated_at": "2026-07-29T20:52:39.413Z"
+    },
+    "style_preset.product-launch-video": {
+      "value": "broadside",
+      "confirmed_in": [
+        "dara-demo"
+      ],
+      "updated_at": "2026-07-29T20:56:28.826Z"
+    }
+  },
+  "sightings": {}
+}
