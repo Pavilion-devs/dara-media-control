@@ -32,7 +32,7 @@ reorder — measured latency beats assumption.
 |---|---|---|---|
 | 1 | openai | `gpt-image-2` | Active primary; four production successes, one recorded failure |
 | 2 | openai | `gpt-image-2-2026-04-21` | Active snapshot fallback; confirmed present in the deployed account catalog without spending |
-| 3 | replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse fallback implemented and contract-tested; production token and live probe pending |
+| 3 | replicate | `black-forest-labs/flux-1.1-pro` | Active provider-diverse fallback; paid production call persisted and verified in B2 |
 | 4 | openai | `gpt-image-1.5` / `gpt-image-1-mini` | Deprecated and removed from Dara's live chain |
 
 The current OpenAI catalog calls GPT Image 2 the state-of-the-art image model and
@@ -48,14 +48,20 @@ per output image. The token stays server-side in `REPLICATE_API_TOKEN`.
 [Official-model contract](https://replicate.com/docs/topics/models/official-models/) ·
 [FLUX 1.1 Pro API](https://replicate.com/black-forest-labs/flux-1.1-pro/api)
 
-After configuring the token, run the paid production probe once:
+The paid production probe was run once on 2026-07-30:
 
 ```bash
 python -m dara.tools.replicate_b2_probe
 ```
 
-The probe must report `provider=replicate`, both manifest checks true, a B2 asset URL,
-measured duration, and the registered $0.04 cost before T-03 is checked.
+It reported `provider=replicate`, model
+`black-forest-labs/flux-1.1-pro`, 5.518 seconds, registered cost `$0.040000`, and both
+manifest checks true. Run `bf796a04-4e49-4519-ae11-ab31bc54b44b` stored its manifest
+and 433,331-byte PNG under `dara/probes/runs/demo/2026-07-30/` in
+`dara-media-control-2026`. An independent B2 read-back matched asset SHA-256
+`8d6072c64632a5cde5a920830e1c79d815d2e1bfe4dc76767177ac1aea33bf84`
+exactly and revalidated both manifest checks. The production health endpoint then
+reported Replicate configured.
 
 ### Video
 
@@ -87,20 +93,22 @@ not an error state — graceful degradation is a production-readiness signal.
 
 ## Production measurement
 
-Generated on 2026-07-29 by `python -m dara.tools.provider_report` from the durable
-B2 live-run records and trusted Genblaze manifests. Latency covers the actual provider
-step only. Cost is explicitly labelled as a conservative Dara estimate because the
-installed Genblaze OpenAI adapter does not preserve settled image-token usage.
+Generated from durable B2 live-run records and trusted Genblaze manifests on
+2026-07-29, plus the independently read-back Replicate probe on 2026-07-30. Latency
+covers the actual provider step only. OpenAI image cost is explicitly labelled as a
+conservative Dara estimate because the installed Genblaze adapter does not preserve
+settled image-token usage; Replicate's official-model route uses its registered
+per-output price.
 
 | Provider | Model | Modality | Samples | Success / fail | Unit cost | p50 / max latency | >90s |
 |---|---|---|---|---|---|---|---|
 | openai-dalle | `gpt-image-2` | image | 5 | 4 / 1 | $0.010000 estimated | 20.758s / 21.972s | no |
 | openai | `gpt-4.1-mini` | vision QA | 3 | 3 / 0 | $0.005000 estimated | 8.234s / 9.100s | no |
+| replicate | `black-forest-labs/flux-1.1-pro` | image | 1 | 1 / 0 | $0.040000 registered | 5.518s / 5.518s | no |
 
 No active measured model exceeded 90 seconds. The single image failure remains in the
-sample count and ledger rather than being silently discarded. Video, speech, deprecated
-image models, and the Replicate fallback are not presented as measured until a live
-production probe exists.
+sample count and ledger rather than being silently discarded. Video, speech, and
+deprecated image models are not presented as measured production calls.
 
 The current Genblaze/OpenAI adapter does not return a provider-reported image cost, so
 Dara settles these runs from its conservative registry estimate and labels the basis

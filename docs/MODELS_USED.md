@@ -8,7 +8,7 @@ and provenance SDK, not a model provider.
 |---|---|---|---|---|
 | OpenAI | `gpt-image-2` | image | Primary | Production calls persisted and verified in B2 |
 | OpenAI | `gpt-image-2-2026-04-21` | image | Fallback | Configured fallback; account catalog verified |
-| Replicate | `black-forest-labs/flux-1.1-pro` | image | Fallback | Provider adapter and deterministic contract tests; live probe pending |
+| Replicate | `black-forest-labs/flux-1.1-pro` | image | Fallback | Production call persisted and verified in B2 (5.518s; $0.040000) |
 | OpenAI | `sora-2` | video | Primary | Pipeline implemented; deterministic integration proof |
 | OpenAI | `sora-2-pro` | video | Fallback | Configured fallback; deterministic integration proof |
 | OpenAI | `tts-1` | audio | Primary | Pipeline implemented; deterministic integration proof |

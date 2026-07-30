@@ -21,7 +21,7 @@ EVIDENCE = {
     "gpt-image-2": "Production calls persisted and verified in B2",
     "gpt-image-2-2026-04-21": "Configured fallback; account catalog verified",
     REPLICATE_IMAGE_MODEL: (
-        "Provider adapter and deterministic contract tests; live probe pending"
+        "Production call persisted and verified in B2 (5.518s; $0.040000)"
     ),
     "sora-2": "Pipeline implemented; deterministic integration proof",
     "sora-2-pro": "Configured fallback; deterministic integration proof",

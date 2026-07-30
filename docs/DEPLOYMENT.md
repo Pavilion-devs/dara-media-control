@@ -34,6 +34,9 @@ US-East; B2 remains in `us-east-005`.
   root-readable environment file. Neither deployment ships it to the browser.
 - Live generation, B2 access, Genblaze execution, policy checks, verification, and
   ledger queries all run on the VPS.
+- OpenAI and Replicate credentials are server-side only. The production health endpoint
+  reports both providers configured; Replicate's paid FLUX probe persisted a verified
+  asset and manifest to B2 on 2026-07-30.
 
 The current API and web transports are independent account-less Cloudflare quick
 tunnels. They are stable across normal Dara service deployments, but a VPS reboot or an

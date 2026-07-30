@@ -114,15 +114,16 @@ pretends those two hashes should match.
 ## Providers and models
 
 OpenAI is Dara's primary AI provider. Replicate's official FLUX 1.1 Pro route is the
-provider-diverse image fallback; its production credential and live probe are still
-pending. Genblaze is the orchestration and provenance SDK, not a provider. The inventory is generated from
+provider-diverse image fallback; both providers have completed production calls that
+were persisted and verified in B2. Genblaze is the orchestration and provenance SDK,
+not a provider. The inventory is generated from
 [`api/dara/providers.py`](api/dara/providers.py):
 
 | Provider | Model | Use | Evidence |
 |---|---|---|---|
 | OpenAI | `gpt-image-2` | Primary image generation | Production calls persisted and verified in B2 |
 | OpenAI | `gpt-image-2-2026-04-21` | Same-provider image fallback | Configured and account-catalog verified |
-| Replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse image fallback | Adapter and deterministic contract tests; live probe pending |
+| Replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse image fallback | Production call persisted and verified in B2 · 5.518s · $0.040000 |
 | OpenAI | `gpt-4.1-mini` | Prompt expansion and vision QA | Production calls recorded |
 | OpenAI | `sora-2` → `sora-2-pro` | Motion generation | Pipeline and deterministic integration proof |
 | OpenAI | `tts-1` → `tts-1-hd` | Voice generation | Parallel pipeline and deterministic integration proof |
@@ -194,9 +195,9 @@ PYTHONPATH=api api/.venv/bin/python -m dara.tools.list_models
   non-deterministic. Regeneration replays canonical parameters and records lineage.
 - **One writer per job.** B2 has no compare-and-swap transaction for these JSON records;
   concurrent updates to the same job are last-write-wins.
-- **One production-probed AI provider today.** The Replicate FLUX image fallback is
-  implemented and contract-tested, but it remains unavailable until a server-side
-  `REPLICATE_API_TOKEN` is added and its live probe is recorded.
+- **Provider diversity is image-first.** OpenAI and Replicate image routes are both
+  production-probed. Video and speech currently use same-provider OpenAI fallbacks;
+  their deterministic integration proofs are not presented as paid production calls.
 - **Temporary HTTPS transport.** The current account-less Cloudflare tunnel survives API
   deployments but changes after a VPS or tunnel restart. The named-tunnel/custom-domain
   upgrade and recovery procedure are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).

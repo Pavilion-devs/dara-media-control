@@ -66,9 +66,14 @@ Work top to bottom. Each task is one commit.
 - [x] **T-02** Configure an OpenAI API key and confirm this account can access
       `gpt-image-2`, `gpt-image-1.5`, `gpt-image-1`, and `gpt-image-1-mini`.
       OpenAI is Dara's primary live-media provider; NVIDIA is no longer a prerequisite.
-- [ ] **T-03** Add a vision-capable QA evaluator and one provider-diverse image
+- [x] **T-03** Add a vision-capable QA evaluator and one provider-diverse image
       fallback only after the primary OpenAI still pipeline is reliable. Claude may be
       used as the evaluator, but it is not a Genblaze media-generation provider.
+      OpenAI `gpt-4.1-mini` is the production vision evaluator. On 2026-07-30,
+      Replicate `black-forest-labs/flux-1.1-pro` completed a paid Genblaze→B2 probe in
+      5.518 seconds at `$0.040000`; the 433,331-byte asset was read back with an exact
+      SHA-256 match and both manifest verification checks true. The production VPS
+      health endpoint now reports Replicate configured.
 - [x] **T-04** Scaffold `api/` — FastAPI, Pydantic v2, tests, health and policy
       endpoints.
 - [x] **T-05** Scaffold and deploy the web control surface.

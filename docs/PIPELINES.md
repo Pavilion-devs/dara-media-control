@@ -73,7 +73,7 @@ chat(expand)  →  image × variants  →  qa.score  →  [revise → image]*  �
 | Step | Provider chain | Notes |
 |---|---|---|
 | expand | OpenAI `gpt-4.1-mini` | Turns a one-line brief into a structured full prompt. |
-| image | OpenAI `gpt-image-2` → dated `gpt-image-2` snapshot → Replicate `black-forest-labs/flux-1.1-pro` | One Genblaze fallback chain crosses the provider boundary; the Replicate live probe remains T-03's final gate. |
+| image | OpenAI `gpt-image-2` → dated `gpt-image-2` snapshot → Replicate `black-forest-labs/flux-1.1-pro` | One Genblaze fallback chain crosses the provider boundary; T-03's paid Replicate→B2 probe verified the live route. |
 | qa | OpenAI `gpt-4.1-mini` vision | Structured evaluator used in the production still pipeline; Claude remains an optional custom evaluator, not a media provider. |
 | publish | — | Embed and validate a local candidate, run `PRE_PUBLISH`, then store under `published/` and index both hashes |
 
