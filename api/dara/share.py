@@ -79,6 +79,7 @@ class ShareRecord(BaseModel):
     token: str
     tenant_id: str
     job_id: str
+    created_by_actor_id: str | None = None
     assets: list[SharedAsset]
     redaction: ShareRedaction = Field(default_factory=ShareRedaction)
     created_at: datetime
@@ -133,6 +134,7 @@ class ShareService:
         *,
         asset_ids: tuple[str, ...],
         expires_in_days: int,
+        actor_id: str | None = None,
     ) -> ShareRecord:
         if run.status != "succeeded" or run.genblaze_run_id is None:
             raise ShareIntegrityError("Only a completed, trusted run can be shared.")
@@ -162,6 +164,7 @@ class ShareService:
             token=token,
             tenant_id=run.tenant_id,
             job_id=run.job_id,
+            created_by_actor_id=actor_id,
             assets=shared_assets,
             created_at=now,
             expires_at=now + timedelta(days=expires_in_days),

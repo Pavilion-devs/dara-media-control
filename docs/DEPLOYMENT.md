@@ -59,7 +59,7 @@ The following checks passed against production:
 2. Restarting `dara-api` left the `cloudflared-dara` process ID unchanged and the same
    public hostname healthy.
 3. The Sites production deployment applied environment revision 5 successfully.
-4. The signed-in production Ledger loaded live DuckDB-over-B2 data: 9 accounted runs,
+4. The production Ledger loaded live DuckDB-over-B2 data: 9 accounted runs,
    6 published assets, `$0.095000` spend, and a populated July 2026 monthly row.
 5. The live monthly query regression found during deployment is covered by
    `test_spend_by_month_groups_timestamp_rows`.
@@ -130,6 +130,13 @@ React, the RSC runtime, Vite, Wrangler, and the Cloudflare Vite plugin are pinne
 tested patch releases in `package-lock.json`; patched nested PostCSS and Sharp releases
 are enforced through package overrides. Empty Drizzle starter scaffolding was removed:
 Dara has no application database, matching the deployed one-bucket architecture.
+
+On 2026-07-30, the no-sign-in hardening, rebuilt UI, live run history, and hybrid
+hash/upload verification passed the expanded local gate: 78 Python tests, ESLint,
+TypeScript checking, the five-stage Vinext build, and nine rendered-application tests.
+The web regression includes the shipped 1.1 MB proof crossing the Vinext request
+boundary without the former 413. The next production deployment will publish these
+changes together after the branch is frozen.
 
 ## Latency
 

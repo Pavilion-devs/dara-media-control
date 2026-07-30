@@ -7,6 +7,7 @@ import unittest
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from genblaze_core import Asset, Modality, Pipeline
@@ -14,6 +15,7 @@ from genblaze_core.media import SmartEmbedder
 from genblaze_core.testing import MockProvider
 from PIL import Image
 
+import dara.main as main_module
 from dara.main import (
     DaraApiError,
     VerifyRateLimiter,
@@ -259,6 +261,32 @@ class VerifyEndpointTests(unittest.TestCase):
                 app.dependency_overrides.clear()
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"]["code"], "INVALID_REQUEST")
+
+    def test_hash_lookup_has_a_separate_per_client_rate_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = create_fixture(Path(temporary))
+            app.dependency_overrides[get_verifier] = lambda: fixture.verifier
+            try:
+                with (
+                    patch.object(
+                        main_module,
+                        "verify_rate_limiter",
+                        VerifyRateLimiter(),
+                    ),
+                    patch.dict(
+                        "os.environ",
+                        {"DARA_VERIFY_HASH_RATE_LIMIT_PER_MIN": "1"},
+                    ),
+                    TestClient(app) as client,
+                ):
+                    first = client.get(f"/v1/verify/{fixture.published_sha256}")
+                    second = client.get(f"/v1/verify/{fixture.published_sha256}")
+            finally:
+                app.dependency_overrides.clear()
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 429)
+        self.assertEqual(second.json()["error"]["code"], "RATE_LIMITED")
 
     def test_verify_rate_limit_is_per_client(self) -> None:
         limiter = VerifyRateLimiter()

@@ -121,10 +121,11 @@ is the difference between "demo" and "production readiness."
 
 ## Demo mode
 
-Default state for any unauthenticated visitor. Seeded runs in `api/seeds/` are replayed
-through the same SSE event shape with realistic inter-step delays, so the UI code path is
-identical to live generation. Live generation requires an explicit action and is subject
-to a global daily spend cap enforced by the policy engine itself.
+The public landing page routes visitors to `/studio`, where demo replay is the default.
+Seeded runs in `api/seeds/` are replayed through the same event shape with realistic
+inter-step delays, so the UI code path is identical to live generation. Live generation
+requires an explicit action and is subject to both the anonymous action quota and the
+global daily spend cap enforced by the policy engine itself.
 
 The seed set must include at least: two policy-blocked runs, one run where QA failed and
 the revision passed, one multi-provider fallback event, and one run per pipeline.

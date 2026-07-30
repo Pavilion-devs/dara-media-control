@@ -192,6 +192,49 @@ class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
 
 
 class LiveRunEndpointTests(unittest.TestCase):
+    def test_dara_configuration_names_override_legacy_kiln_aliases(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "DARA_TENANT_ID": "dara-workspace",
+                "KILN_TENANT_ID": "legacy-workspace",
+            },
+            clear=True,
+        ):
+            self.assertEqual(main_module.active_tenant_id(), "dara-workspace")
+        with patch.dict(
+            "os.environ",
+            {"KILN_TENANT_ID": "legacy-workspace"},
+            clear=True,
+        ):
+            self.assertEqual(main_module.active_tenant_id(), "legacy-workspace")
+
+    def test_public_action_rate_limiter_is_scoped_by_anonymous_actor(self) -> None:
+        limiter = main_module.PublicActionRateLimiter()
+        actor = "anon_" + "c" * 32
+        limiter.check(
+            actor,
+            action="generation",
+            limit=1,
+            window_seconds=60,
+        )
+        with self.assertRaises(main_module.DaraApiError) as raised:
+            limiter.check(
+                actor,
+                action="generation",
+                limit=1,
+                window_seconds=60,
+            )
+
+        self.assertEqual(raised.exception.status_code, 429)
+        self.assertEqual(raised.exception.code, "RATE_LIMITED")
+        limiter.check(
+            "anon_" + "d" * 32,
+            action="generation",
+            limit=1,
+            window_seconds=60,
+        )
+
     def test_live_run_executes_in_background_and_persists_events(self) -> None:
         run_store = MemoryLiveRunStore()
         policy_store = MemoryJobStore()
@@ -243,7 +286,10 @@ class LiveRunEndpointTests(unittest.TestCase):
             with TestClient(main_module.app) as client:
                 created = client.post(
                     "/v1/runs",
-                    headers={"Authorization": "Bearer test-token"},
+                    headers={
+                        "Authorization": "Bearer test-token",
+                        "X-Dara-Actor": "anon_" + "b" * 32,
+                    },
                     json={
                         "prompt": "A quiet editorial product photograph",
                         "aspect_ratio": "1:1",
@@ -264,6 +310,10 @@ class LiveRunEndpointTests(unittest.TestCase):
                         break
                     time.sleep(0.01)
 
+        stored = asyncio.run(run_store.get("demo", job_id))
+        self.assertIsNotNone(stored)
+        self.assertEqual(stored and stored.actor_id, "anon_" + "b" * 32)
+        self.assertNotIn("actor_id", payload)
         self.assertEqual(payload["status"], "succeeded")
         self.assertEqual(payload["published_sha256"], "c" * 64)
         self.assertEqual(payload["actual_cost_usd"], "0.010000")
@@ -275,6 +325,93 @@ class LiveRunEndpointTests(unittest.TestCase):
             "pre_flight",
         )
         self.assertGreaterEqual(len(payload["events"]), 4)
+
+    def test_live_run_list_is_filtered_newest_first_and_cursor_paginated(
+        self,
+    ) -> None:
+        run_store = MemoryLiveRunStore()
+        base = LiveRunRecord(
+            job_id="job_00000000000000000001",
+            project_id="prj_alpha",
+            prompt="A controlled live-history record",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.020000"),
+            worst_case_cost_usd=Decimal("0.060000"),
+            status="succeeded",
+            created_at=datetime(2026, 7, 28, 12, tzinfo=UTC),
+            updated_at=datetime(2026, 7, 28, 12, tzinfo=UTC),
+        )
+        records = (
+            base,
+            base.model_copy(
+                update={
+                    "job_id": "job_00000000000000000002",
+                    "project_id": "prj_beta",
+                    "status": "blocked",
+                    "created_at": datetime(2026, 7, 29, 12, tzinfo=UTC),
+                    "updated_at": datetime(2026, 7, 29, 12, tzinfo=UTC),
+                },
+                deep=True,
+            ),
+            base.model_copy(
+                update={
+                    "job_id": "job_00000000000000000003",
+                    "created_at": datetime(2026, 7, 30, 12, tzinfo=UTC),
+                    "updated_at": datetime(2026, 7, 30, 12, tzinfo=UTC),
+                },
+                deep=True,
+            ),
+        )
+        for record in records:
+            asyncio.run(run_store.put(record))
+
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+            TestClient(main_module.app) as client,
+        ):
+            first = client.get(
+                "/v1/runs?limit=2",
+                headers={"Authorization": "Bearer test-token"},
+            )
+            cursor = first.json()["next_cursor"]
+            second = client.get(
+                f"/v1/runs?limit=2&cursor={cursor}",
+                headers={"Authorization": "Bearer test-token"},
+            )
+            filtered = client.get(
+                "/v1/runs?project_id=prj_alpha&status=succeeded",
+                headers={"Authorization": "Bearer test-token"},
+            )
+            invalid = client.get(
+                "/v1/runs?cursor=not-a-cursor",
+                headers={"Authorization": "Bearer test-token"},
+            )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(
+            [item["job_id"] for item in first.json()["items"]],
+            [
+                "job_00000000000000000003",
+                "job_00000000000000000002",
+            ],
+        )
+        self.assertIsInstance(cursor, str)
+        self.assertEqual(
+            [item["job_id"] for item in second.json()["items"]],
+            ["job_00000000000000000001"],
+        )
+        self.assertIsNone(second.json()["next_cursor"])
+        self.assertEqual(
+            [item["job_id"] for item in filtered.json()["items"]],
+            [
+                "job_00000000000000000003",
+                "job_00000000000000000001",
+            ],
+        )
+        self.assertEqual(invalid.status_code, 400)
+        self.assertEqual(invalid.json()["error"]["code"], "INVALID_CURSOR")
 
     def test_live_run_is_disabled_fail_closed(self) -> None:
         with patch.dict(
@@ -360,12 +497,14 @@ class LiveRunEndpointTests(unittest.TestCase):
         async def fake_queue(
             request: main_module.LiveRunRequest,
             *,
+            actor_id: str | None = None,
             parent_job_id: str | None = None,
             source_manifest_hash: str | None = None,
             prompt_is_expanded: bool = False,
         ) -> dict[str, object]:
             captured.update(
                 request=request,
+                actor_id=actor_id,
                 parent_job_id=parent_job_id,
                 source_manifest_hash=source_manifest_hash,
                 prompt_is_expanded=prompt_is_expanded,
@@ -381,7 +520,10 @@ class LiveRunEndpointTests(unittest.TestCase):
             with TestClient(main_module.app) as client:
                 response = client.post(
                     f"/v1/regenerate/{original.job_id}",
-                    headers={"Authorization": "Bearer test-token"},
+                    headers={
+                        "Authorization": "Bearer test-token",
+                        "X-Dara-Actor": "anon_" + "a" * 32,
+                    },
                 )
 
         self.assertEqual(response.status_code, 202)
@@ -389,6 +531,7 @@ class LiveRunEndpointTests(unittest.TestCase):
         assert isinstance(request, main_module.LiveRunRequest)
         self.assertEqual(request.prompt, manifest.run.steps[0].prompt)
         self.assertEqual(request.aspect_ratio, "1:1")
+        self.assertEqual(captured["actor_id"], "anon_" + "a" * 32)
         self.assertEqual(captured["parent_job_id"], original.job_id)
         self.assertEqual(
             captured["source_manifest_hash"],

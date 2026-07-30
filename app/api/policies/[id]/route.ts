@@ -17,16 +17,15 @@ function error(message: string, status: number) {
 }
 
 export async function GET(request: Request) {
-  const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
-  const token = process.env.DARA_API_TOKEN;
-  if (!apiUrl || !token) {
-    return error("The live policy engine is not connected.", 503);
-  }
-
   const segments = new URL(request.url).pathname.split("/").filter(Boolean);
   const policyId = decodeURIComponent(segments.at(-1) ?? "");
   if (!/^pol_[a-z0-9_-]{2,64}$/.test(policyId)) {
     return error("The policy identifier is invalid.", 400);
+  }
+  const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
+  const token = process.env.DARA_API_TOKEN;
+  if (!apiUrl || !token) {
+    return error("The live policy engine is not connected.", 503);
   }
 
   const upstream = await fetch(

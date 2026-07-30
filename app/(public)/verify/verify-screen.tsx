@@ -176,6 +176,25 @@ export function VerifyScreen() {
     if (!staged) return;
     setPhase("checking");
     setMessage("");
+    try {
+      const lookupResponse = await fetch(`/api/verify/${staged.sha256}`, {
+        cache: "no-store",
+      });
+      if (lookupResponse.ok) {
+        const lookup = verificationResponseSchema.parse(
+          await lookupResponse.json(),
+        );
+        if (lookup.verification === "trusted-match") {
+          setResult(lookup);
+          setMode("live");
+          setPhase("done");
+          return;
+        }
+      }
+    } catch {
+      // Hash lookup is the fast path. Full file inspection below remains the
+      // authority for changed, foreign, or previously unseen files.
+    }
     const body = new FormData();
     body.set("file", staged.file);
     try {

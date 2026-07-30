@@ -19,12 +19,28 @@ export async function POST(request: Request) {
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   if (!apiUrl) return unavailable();
 
-  const formData = await request.formData();
-  const upstream = await fetch(`${apiUrl}/v1/verify`, {
+  if (!request.body) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Choose a file to verify.",
+          details: {},
+          request_id: null,
+        },
+      },
+      { status: 400 },
+    );
+  }
+  const contentType = request.headers.get("content-type");
+  const init: RequestInit & { duplex: "half" } = {
     method: "POST",
-    body: formData,
+    body: request.body,
     cache: "no-store",
-  });
+    duplex: "half",
+    headers: contentType ? { "Content-Type": contentType } : undefined,
+  };
+  const upstream = await fetch(`${apiUrl}/v1/verify`, init);
   const body = await upstream.text();
   return new Response(body, {
     status: upstream.status,

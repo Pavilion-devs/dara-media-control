@@ -53,6 +53,7 @@ class LiveRunRecord(BaseModel):
     schema_version: int = 1
     job_id: str
     tenant_id: str = "demo"
+    actor_id: str | None = None
     project_id: str
     pipeline_id: str = "still-campaign"
     mode: Literal["live"] = "live"

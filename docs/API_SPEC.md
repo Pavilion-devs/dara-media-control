@@ -2,13 +2,17 @@
 
 FastAPI, `/v1` prefix. JSON in, JSON out. OpenAPI at `/docs`.
 
-## Auth
+## Access and server authentication
 
-- **Public, no auth:** `POST /v1/verify`, `GET /v1/verify/{sha256}`, `GET /v1/share/{token}`, `GET /healthz`
-- **Workspace token:** everything else. `Authorization: Bearer <KILN_API_TOKEN>`.
-  There are no user accounts in this submission, but the API is not unauthenticated.
-  One shared token protects the demo workspace; the frontend holds it server-side only
-  and proxies through Next.js route handlers. It never reaches the browser.
+- **Browser-facing product:** public, with no account or sign-in requirement.
+- **Python workspace API:** protected by `Authorization: Bearer <DARA_API_TOKEN>`.
+  The Next.js server holds that shared token and proxies browser requests; it never
+  reaches the browser.
+- **Anonymous controls:** the web server HMACs the provider-supplied connecting address
+  into an `anon_…` actor ID. The API uses that pseudonym for mutation quotas and stores
+  it on new run/share audit records without persisting the raw IP.
+- **Paid generation:** additionally requires `DARA_LIVE_GENERATION_ENABLED=true` and
+  remains bounded by policy reservation plus the durable daily spend cap.
 
 ## Error model
 
@@ -92,7 +96,19 @@ the persisted record — do not lose events on a flaky connection, which is exac
 judge on hotel wifi will have.
 
 ### `GET /v1/runs`
-Filter by `project_id`, `status`, `pipeline_id`, date range. Cursor paginated.
+Returns newest-first durable live-run records:
+
+```json
+{
+  "items": ["LiveRun"],
+  "next_cursor": "opaque-or-null"
+}
+```
+
+Optional filters are `project_id`, `status`, `pipeline_id`, `from`, and `to`. `limit`
+is 1–100, defaults to 25, and `cursor` continues with a stable created-time/job-id
+keyset. The public Next.js proxy is `GET /api/runs`; the workspace bearer token remains
+server-side.
 
 ### `POST /v1/runs/{job_id}/cancel`
 

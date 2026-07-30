@@ -96,19 +96,86 @@ test("server-renders the token-scoped disclosure shell without private demo cont
 });
 
 test("ships product assets and response validation without starter files", async () => {
-  const [packageJson, verifyRoute, schema] = await Promise.all([
+  const [
+    packageJson,
+    verifyRoute,
+    verifyLookupRoute,
+    verifyScreen,
+    schema,
+    nextConfig,
+  ] = await Promise.all([
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../app/api/verify/route.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/api/verify/[sha256]/route.ts", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../app/(public)/verify/verify-screen.tsx", import.meta.url),
+      "utf8",
+    ),
     readFile(new URL("../app/verification-schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../next.config.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(packageJson, /"zod":/);
   assert.match(verifyRoute, /DARA_API_URL/);
+  assert.match(verifyRoute, /body: request\.body/);
+  assert.doesNotMatch(verifyRoute, /request\.formData/);
+  assert.match(verifyLookupRoute, /\/v1\/verify\/\$\{sha256\}/);
+  assert.match(verifyScreen, /fetch\(`\/api\/verify\/\$\{staged\.sha256\}`/);
+  assert.match(nextConfig, /bodySizeLimit: "100mb"/);
   assert.match(schema, /verificationResponseSchema/);
   await access(new URL("../public/dara-verified-sample.png", import.meta.url));
   await assert.rejects(
     access(new URL("../app/_sites-preview", import.meta.url)),
   );
+});
+
+test("connects Runs to paginated live history without blending fixtures", async () => {
+  const [route, screen, schema] = await Promise.all([
+    readFile(new URL("../app/api/runs/route.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/(app)/runs/runs-screen.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../app/run-schema.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(route, /export async function GET/);
+  assert.match(route, /\/v1\/runs\$\{query\}/);
+  assert.match(screen, /fetch\("\/api\/runs\?limit=50"/);
+  assert.match(screen, /Live B2 history/);
+  assert.match(screen, /never blended into these committed totals/);
+  assert.match(schema, /liveRunListSchema/);
+});
+
+test("allows the shipped verification proof through the web request boundary", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `verify-upload-${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const sample = await readFile(
+    new URL("../public/dara-verified-sample.png", import.meta.url),
+  );
+  const body = new FormData();
+  body.set("file", new Blob([sample], { type: "image/png" }), "proof.png");
+
+  const response = await worker.fetch(
+    new Request("http://localhost/api/verify", { method: "POST", body }),
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+
+  // No API URL is configured in this isolated render, so the route returns 503.
+  // The regression is that Vinext must not reject this 1.1 MB proof as 413 first.
+  assert.equal(response.status, 503);
 });
 
 test("keeps every browser-facing data route public and anonymously attributed", async () => {

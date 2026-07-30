@@ -16,6 +16,29 @@ function unavailable(message: string, status = 503) {
   );
 }
 
+export async function GET(request: Request) {
+  const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
+  const token = process.env.DARA_API_TOKEN;
+  if (!apiUrl || !token) {
+    return unavailable("Live run history is not connected on this deployment.");
+  }
+  const query = new URL(request.url).search;
+  const upstream = await fetch(`${apiUrl}/v1/runs${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "X-Dara-Actor": await anonymousActor(request),
+    },
+    cache: "no-store",
+  });
+  return new Response(await upstream.text(), {
+    status: upstream.status,
+    headers: {
+      "content-type": upstream.headers.get("content-type") ?? "application/json",
+      "x-request-id": upstream.headers.get("x-request-id") ?? "",
+    },
+  });
+}
+
 export async function POST(request: Request) {
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   const token = process.env.DARA_API_TOKEN;

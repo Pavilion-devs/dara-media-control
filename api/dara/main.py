@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import ipaddress
 import json
 import logging
 import os
+import re
 import secrets
 import tempfile
 import time
@@ -57,6 +60,7 @@ from .jobs import (
     LiveRunStore,
     MemoryLiveRunStore,
     RunAttempt,
+    RunStatus,
 )
 from .ledger import QUERY_SQL, AccountingRecord, get_ledger, write_accounting_record
 from .pipelines.still import (
@@ -127,6 +131,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+def env_with_legacy(primary: str, legacy: str, default: str) -> str:
+    return os.getenv(primary) or os.getenv(legacy) or default
+
+
+def active_tenant_id() -> str:
+    return env_with_legacy("DARA_TENANT_ID", "KILN_TENANT_ID", "demo")
+
+
 def build_job_store() -> JobStore:
     required = ("B2_KEY_ID", "B2_APP_KEY", "B2_BUCKET", "B2_REGION")
     if all(os.getenv(name) for name in required):
@@ -187,6 +200,77 @@ class VerifyRateLimiter:
 
 
 verify_rate_limiter = VerifyRateLimiter()
+
+
+class PublicActionRateLimiter:
+    def __init__(self) -> None:
+        self._attempts: defaultdict[str, deque[float]] = defaultdict(deque)
+        self._lock = Lock()
+
+    def check(
+        self,
+        actor_id: str | None,
+        *,
+        action: str,
+        limit: int,
+        window_seconds: int,
+    ) -> None:
+        if actor_id is None:
+            return
+        now = time.monotonic()
+        key = f"{action}:{actor_id}"
+        with self._lock:
+            attempts = self._attempts[key]
+            while attempts and attempts[0] <= now - window_seconds:
+                attempts.popleft()
+            if len(attempts) >= limit:
+                retry_after = max(1, int(window_seconds - (now - attempts[0])))
+                raise DaraApiError(
+                    429,
+                    "RATE_LIMITED",
+                    "This public action is temporarily rate-limited. Try again shortly.",
+                    {
+                        "action": action,
+                        "retry_after_s": retry_after,
+                    },
+                )
+            attempts.append(now)
+
+
+public_action_rate_limiter = PublicActionRateLimiter()
+ANONYMOUS_ACTOR_PATTERN = re.compile(r"^anon_[0-9a-f]{32}$")
+
+
+def trusted_anonymous_actor(value: str | None) -> str | None:
+    if value is None or not ANONYMOUS_ACTOR_PATTERN.fullmatch(value):
+        return None
+    return value
+
+
+def positive_env_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+def enforce_public_action_limit(
+    actor_header: str | None,
+    *,
+    action: str,
+    limit_env: str,
+    default_limit: int,
+    window_seconds: int,
+) -> str | None:
+    actor_id = trusted_anonymous_actor(actor_header)
+    public_action_rate_limiter.check(
+        actor_id,
+        action=action,
+        limit=positive_env_int(limit_env, default_limit),
+        window_seconds=window_seconds,
+    )
+    return actor_id
 
 
 def verification_client_id(request: Request) -> str:
@@ -328,7 +412,7 @@ policy_store = build_policy_store()
 
 
 async def seed_and_hydrate_policies() -> None:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     resolved: dict[str, Policy] = {}
     for seeded in SEEDED_POLICIES:
         persisted = await policy_store.get_policy(
@@ -435,6 +519,31 @@ class LiveRunRequest(BaseModel):
     variants: Literal[1] = 1
 
 
+def encode_run_cursor(run: LiveRunRecord) -> str:
+    raw = json.dumps(
+        [run.created_at.isoformat(), run.job_id],
+        separators=(",", ":"),
+    ).encode()
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def decode_run_cursor(value: str) -> tuple[datetime, str]:
+    try:
+        padding = "=" * (-len(value) % 4)
+        decoded = base64.urlsafe_b64decode(value + padding)
+        created_at_value, job_id = json.loads(decoded)
+        created_at = datetime.fromisoformat(created_at_value)
+        if created_at.tzinfo is None or not isinstance(job_id, str):
+            raise ValueError
+    except (ValueError, TypeError, json.JSONDecodeError, binascii.Error) as exc:
+        raise DaraApiError(
+            400,
+            "INVALID_CURSOR",
+            "The run-history cursor is invalid.",
+        ) from exc
+    return created_at, job_id
+
+
 def get_policy(policy_id: str) -> Policy:
     resolved = POLICIES.get(policy_id)
     if resolved is None:
@@ -467,7 +576,7 @@ def policy_payload(value: Policy) -> dict[str, object]:
 
 
 async def live_run_payload(run: LiveRunRecord) -> dict[str, object]:
-    payload = run.model_dump(mode="json")
+    payload = run.model_dump(mode="json", exclude={"actor_id"})
     payload["expected_cost_usd"] = f"{run.expected_cost_usd:.6f}"
     payload["worst_case_cost_usd"] = f"{run.worst_case_cost_usd:.6f}"
     payload["actual_cost_usd"] = (
@@ -489,7 +598,7 @@ async def live_run_payload(run: LiveRunRecord) -> dict[str, object]:
 
 
 async def reconcile_orphaned_runs() -> int:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     runs = await live_run_store.list(tenant_id)
     orphaned = 0
     for run in runs:
@@ -527,7 +636,7 @@ async def hydrate_daily_spend_cap() -> Decimal:
     when they reached provider execution. This is intentionally pessimistic:
     after a crash Dara must not silently forget spend that may have occurred.
     """
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     today = datetime.now(UTC).date()
     runs = await live_run_store.list(tenant_id)
     committed = money("0")
@@ -600,7 +709,7 @@ async def record_policy_decisions(
 
 
 async def execute_live_still(job_id: str) -> None:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     run = await live_run_store.get(tenant_id, job_id)
     if run is None:
         return
@@ -877,7 +986,7 @@ async def list_models() -> dict[str, object]:
 async def list_policies(
     _: Annotated[None, Depends(require_workspace_token)],
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     values = await policy_store.list_policies(tenant_id)
     return {"items": [policy_payload(value) for value in values]}
 
@@ -887,7 +996,7 @@ async def read_policy(
     policy_id: str,
     _: Annotated[None, Depends(require_workspace_token)],
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     resolved = await policy_store.get_policy(tenant_id, policy_id)
     if resolved is None:
         raise DaraApiError(404, "POLICY_NOT_FOUND", "Policy not found.")
@@ -895,7 +1004,7 @@ async def read_policy(
 
 
 def validate_policy_tenant(value: Policy) -> None:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     if value.tenant_id != tenant_id:
         raise DaraApiError(
             403,
@@ -1042,6 +1151,7 @@ async def ledger_query(
 async def queue_live_run(
     request: LiveRunRequest,
     *,
+    actor_id: str | None = None,
     parent_job_id: str | None = None,
     source_manifest_hash: str | None = None,
     prompt_is_expanded: bool = False,
@@ -1052,8 +1162,15 @@ async def queue_live_run(
             "LIVE_GENERATION_DISABLED",
             "Live generation is temporarily disabled. Demo replay remains available.",
         )
+    actor_id = enforce_public_action_limit(
+        actor_id,
+        action="generation",
+        limit_env="DARA_GENERATION_RATE_LIMIT_PER_HOUR",
+        default_limit=6,
+        window_seconds=3600,
+    )
 
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     job_id = f"job_{secrets.token_hex(10)}"
     image_route = ROUTES[Modality.IMAGE]
     plan = RunPlan(
@@ -1120,6 +1237,7 @@ async def queue_live_run(
         blocked_run = LiveRunRecord(
             job_id=job_id,
             tenant_id=tenant_id,
+            actor_id=actor_id,
             project_id=request.project_id,
             prompt=request.prompt,
             prompt_is_expanded=prompt_is_expanded,
@@ -1187,6 +1305,7 @@ async def queue_live_run(
     live_run = LiveRunRecord(
         job_id=job_id,
         tenant_id=tenant_id,
+        actor_id=actor_id,
         project_id=request.project_id,
         prompt=request.prompt,
         prompt_is_expanded=prompt_is_expanded,
@@ -1219,8 +1338,55 @@ async def queue_live_run(
 async def create_live_run(
     request: LiveRunRequest,
     _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
 ) -> dict[str, object]:
-    return await queue_live_run(request)
+    actor_id = trusted_anonymous_actor(actor_header)
+    return await queue_live_run(request, actor_id=actor_id)
+
+
+@app.get("/v1/runs")
+async def list_live_runs(
+    _: Annotated[None, Depends(require_workspace_token)],
+    project_id: str | None = None,
+    status: RunStatus | None = None,
+    pipeline_id: str | None = None,
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    cursor: str | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+) -> dict[str, object]:
+    if from_date is not None and to_date is not None and from_date > to_date:
+        raise DaraApiError(400, "INVALID_DATE_RANGE", "`from` must not follow `to`.")
+    runs = await live_run_store.list(active_tenant_id())
+    filtered = [
+        run
+        for run in runs
+        if (project_id is None or run.project_id == project_id)
+        and (status is None or run.status == status)
+        and (pipeline_id is None or run.pipeline_id == pipeline_id)
+        and (from_date is None or run.created_at.astimezone(UTC).date() >= from_date)
+        and (to_date is None or run.created_at.astimezone(UTC).date() <= to_date)
+    ]
+    filtered.sort(
+        key=lambda run: (run.created_at, run.job_id),
+        reverse=True,
+    )
+    if cursor is not None:
+        cursor_key = decode_run_cursor(cursor)
+        filtered = [
+            run
+            for run in filtered
+            if (run.created_at, run.job_id) < cursor_key
+        ]
+    page = filtered[:limit]
+    return {
+        "items": await asyncio.gather(*(live_run_payload(run) for run in page)),
+        "next_cursor": (
+            encode_run_cursor(page[-1])
+            if len(filtered) > limit and page
+            else None
+        ),
+    }
 
 
 @app.get("/v1/runs/{job_id}")
@@ -1228,7 +1394,7 @@ async def read_live_run(
     job_id: str,
     _: Annotated[None, Depends(require_workspace_token)],
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     run = await live_run_store.get(tenant_id, job_id)
     if run is None:
         raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
@@ -1260,8 +1426,10 @@ async def trusted_manifest_for(run: LiveRunRecord) -> Manifest:
 async def regenerate_live_run(
     job_id: str,
     _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    actor_id = trusted_anonymous_actor(actor_header)
+    tenant_id = active_tenant_id()
     original = await live_run_store.get(tenant_id, job_id)
     if original is None:
         raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
@@ -1305,6 +1473,7 @@ async def regenerate_live_run(
     )
     return await queue_live_run(
         request,
+        actor_id=actor_id,
         parent_job_id=original.job_id,
         source_manifest_hash=manifest.canonical_hash,
         prompt_is_expanded=True,
@@ -1317,7 +1486,7 @@ async def diff_live_runs(
     against: str,
     _: Annotated[None, Depends(require_workspace_token)],
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     current, other = await asyncio.gather(
         live_run_store.get(tenant_id, job_id),
         live_run_store.get(tenant_id, against),
@@ -1399,7 +1568,7 @@ async def stream_live_run_events(
         Header(alias="Last-Event-ID"),
     ] = None,
 ) -> StreamingResponse:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     try:
         starting_seq = max(0, int(last_event_id or "0"))
     except ValueError:
@@ -1456,8 +1625,16 @@ async def create_share(
     request: ShareCreateRequest,
     _: Annotated[None, Depends(require_workspace_token)],
     service: Annotated[ShareService, Depends(get_share_service)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    actor_id = enforce_public_action_limit(
+        actor_header,
+        action="share",
+        limit_env="DARA_SHARE_RATE_LIMIT_PER_HOUR",
+        default_limit=20,
+        window_seconds=3600,
+    )
+    tenant_id = active_tenant_id()
     run = await live_run_store.get(tenant_id, request.job_id)
     if run is None:
         raise DaraApiError(404, "NOT_FOUND", "Completed run not found.")
@@ -1487,6 +1664,7 @@ async def create_share(
             run,
             asset_ids=request.asset_ids,
             expires_in_days=request.expires_in_days,
+            actor_id=actor_id,
         )
     except ShareIntegrityError as exc:
         raise DaraApiError(409, "SHARE_NOT_READY", str(exc)) from exc
@@ -1539,9 +1717,19 @@ async def verify_upload(
     verifier: Annotated[Verifier, Depends(get_verifier)],
 ) -> VerificationResponse:
     client_id = verification_client_id(request)
-    limit = int(os.getenv("KILN_VERIFY_RATE_LIMIT_PER_MIN", "10"))
-    verify_rate_limiter.check(client_id, limit=limit)
-    max_bytes = int(os.getenv("KILN_MAX_UPLOAD_MB", "100")) * 1024 * 1024
+    limit = int(
+        env_with_legacy(
+            "DARA_VERIFY_RATE_LIMIT_PER_MIN",
+            "KILN_VERIFY_RATE_LIMIT_PER_MIN",
+            "10",
+        )
+    )
+    verify_rate_limiter.check(f"upload:{client_id}", limit=limit)
+    max_bytes = (
+        int(env_with_legacy("DARA_MAX_UPLOAD_MB", "KILN_MAX_UPLOAD_MB", "100"))
+        * 1024
+        * 1024
+    )
     suffix = Path(file.filename or "upload").suffix
     temporary_path: Path | None = None
     try:
@@ -1582,9 +1770,19 @@ async def verify_upload(
 
 @app.get("/v1/verify/{sha256}", response_model=VerificationResponse)
 async def verify_hash(
+    request: Request,
     sha256: str,
     verifier: Annotated[Verifier, Depends(get_verifier)],
 ) -> VerificationResponse:
+    client_id = verification_client_id(request)
+    limit = int(
+        env_with_legacy(
+            "DARA_VERIFY_HASH_RATE_LIMIT_PER_MIN",
+            "KILN_VERIFY_HASH_RATE_LIMIT_PER_MIN",
+            "30",
+        )
+    )
+    verify_rate_limiter.check(f"hash:{client_id}", limit=limit)
     try:
         return await asyncio.to_thread(verifier.lookup_hash, sha256)
     except InvalidHashError as exc:
@@ -1602,7 +1800,16 @@ async def simulate(
     policy_id: str,
     request: SimulateRequest,
     _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
 ) -> dict[str, object]:
+    actor_id = enforce_public_action_limit(
+        actor_header,
+        action="policy-simulation",
+        limit_env="DARA_POLICY_SIMULATION_RATE_LIMIT_PER_MINUTE",
+        default_limit=60,
+        window_seconds=60,
+    )
+    logger.info("Policy simulation actor=%s policy=%s", actor_id, policy_id)
     estimate, decision = await engine.simulate(
         get_policy(policy_id),
         request.to_plan(),
@@ -1663,7 +1870,7 @@ async def get_job(
     job_id: str,
     _: Annotated[None, Depends(require_workspace_token)],
 ) -> dict[str, object]:
-    tenant_id = os.getenv("KILN_TENANT_ID", "demo")
+    tenant_id = active_tenant_id()
     job = await store.get_job(tenant_id, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found.")

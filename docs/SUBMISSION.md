@@ -12,9 +12,8 @@ Deadline **Aug 3 2026, 5:00pm EDT**. Judging Aug 5–11. Winners on or around Au
       `docs/MODELS_USED.md` and incorporated into `docs/DEVPOST.md`
 - [ ] Demo video under 3 minutes, public on YouTube, no third-party trademarks or
       copyrighted music
-- [x] No test account required for the judge path. Exact route-by-route instructions
-      are in `docs/JUDGE_ACCESS.md`; only optional live-spend mutations request
-      ChatGPT sign-in.
+- [x] No test account required anywhere in Dara. Exact route-by-route instructions
+      and anonymous spend controls are in `docs/JUDGE_ACCESS.md`.
 - [x] Optional but do it: SDK feedback as GitHub issues on the Genblaze repo
 
 The app must stay free, unrestricted, and reachable until judging ends on Aug 11. Do not

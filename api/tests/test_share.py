@@ -123,6 +123,7 @@ class ShareServiceTests(unittest.TestCase):
                 run,
                 asset_ids=(run.asset_id,),
                 expires_in_days=30,
+                actor_id="anon_" + "e" * 32,
             )
             pointer = json.loads(backend.objects[record.assets[0].pointer_key])
             public = service.read_public(record.token)
@@ -135,6 +136,7 @@ class ShareServiceTests(unittest.TestCase):
         self.assertNotIn("params", json.dumps(pointer))
         self.assertEqual(pointer["canonical_hash"], record.assets[0].source_manifest_hash)
         self.assertEqual(public.assets[0].verification, "record-matched")
+        self.assertEqual(record.created_by_actor_id, "anon_" + "e" * 32)
         self.assertEqual(public.assets[0].shared_sha256, record.assets[0].shared_sha256)
         self.assertEqual(public.view_count, 1)
         persisted = storage.get_json(share_key(record.token), type(record))

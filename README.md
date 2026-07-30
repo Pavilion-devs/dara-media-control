@@ -7,9 +7,10 @@ provenance, and an honest spend ledger built on Genblaze and Backblaze B2.**
 [Deployment evidence](docs/DEPLOYMENT.md) ·
 [Trust model](docs/PRD.md#the-trust-model)
 
-> No test account is required. Studio demo replay, Verify, Assets, and the aggregate
-> live Ledger are public; signing in with ChatGPT is only for actions that can start
-> live provider spend.
+> No test account is required. Dara is public end to end, including policy previews,
+> live runs, regeneration, disclosure links, Verify, Assets, and the live Ledger.
+> Paid generation remains protected by a disabled-by-default kill switch, anonymous
+> action quotas, and the durable daily spend cap.
 
 ## The problem
 
@@ -67,7 +68,7 @@ work that did not ship.
 | Criterion | Where to look | Evidence |
 |---|---|---|
 | **Real-world utility** | [`docs/PRD.md`](docs/PRD.md), [`app/verify/page.tsx`](app/verify/page.tsx), [`app/ledger/page.tsx`](app/ledger/page.tsx) | A named buyer and five concrete questions; verify and ledger remain useful without starting generation. |
-| **Production readiness** | [`api/dara/policy/`](api/dara/policy/), [`api/dara/jobs.py`](api/dara/jobs.py), [`api/dara/main.py`](api/dara/main.py), [`api/tests/`](api/tests/) | Pre-spend policy blocks, atomic reservations, B2-backed restart recovery, rate limits, typed errors, fallback routes, 72 zero-network regressions plus 17 subtests, and measured deployment evidence. |
+| **Production readiness** | [`api/dara/policy/`](api/dara/policy/), [`api/dara/jobs.py`](api/dara/jobs.py), [`api/dara/main.py`](api/dara/main.py), [`api/tests/`](api/tests/) | Pre-spend policy blocks, atomic reservations, B2-backed restart recovery, anonymous action quotas, typed errors, fallback routes, a zero-network regression suite, and measured deployment evidence. |
 | **B2 storage and data orchestration** | [`api/dara/storage.py`](api/dara/storage.py), [`api/dara/ledger.py`](api/dara/ledger.py), [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | One B2 bucket holds source assets, delivered derivatives, manifests, job/policy/share state, hash indexes, and immutable Parquet. There is no application database. |
 | **Use of Genblaze** | [`api/dara/pipelines/`](api/dara/pipelines/), [`api/dara/verify.py`](api/dara/verify.py), [`api/dara/share.py`](api/dara/share.py) | Multi-step pipelines, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id`, `ObjectStorageSink`, `ParquetSink`, `EmbedPolicy`, manifest embed/extract/verify, `ModelRegistry`, `astream()`, `abatch_run()`, replay semantics, and `LoggingTracer`. |
 
@@ -149,7 +150,9 @@ npm ci
 
 For the zero-spend demo, leave `DARA_LIVE_GENERATION_ENABLED=false`. B2 credentials are
 required for durable state and the live ledger; `OPENAI_API_KEY` is required only for
-explicit live generation.
+explicit live generation. Browser-facing API routes require no account. The web server
+derives a pseudonymous actor ID from the connecting address for abuse controls and
+mutation audit records; raw IP addresses and ChatGPT identity are not persisted.
 
 Start the API:
 
@@ -169,7 +172,8 @@ set +a
 npm run dev
 ```
 
-Open `http://localhost:3000`. The committed demo replay is available without making a
+Open `http://localhost:3000` for the public landing page, then
+`http://localhost:3000/studio` for the committed demo replay. The replay makes no
 provider call.
 
 ## Verify the build

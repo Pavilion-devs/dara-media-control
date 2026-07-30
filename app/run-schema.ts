@@ -84,6 +84,11 @@ export const liveRunSchema = z.object({
   error_message: z.string().nullable(),
 });
 
+export const liveRunListSchema = z.object({
+  items: z.array(liveRunSchema),
+  next_cursor: z.string().nullable(),
+});
+
 export const regenerationDiffSchema = z.object({
   original: liveRunSchema,
   regenerated: liveRunSchema,
@@ -101,4 +106,5 @@ export const regenerationDiffSchema = z.object({
 });
 
 export type LiveRun = z.infer<typeof liveRunSchema>;
+export type LiveRunList = z.infer<typeof liveRunListSchema>;
 export type RegenerationDiff = z.infer<typeof regenerationDiffSchema>;

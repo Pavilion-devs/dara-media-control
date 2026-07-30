@@ -195,10 +195,12 @@ Work top to bottom. Each task is one commit.
       61-second event clock. The screen explicitly labels the fixture, shows zero
       settled spend, and keeps live OpenAI generation behind a separate
       spend-labelled control.
-- [x] **T-41** Rate limits: per-IP on verify, global daily spend cap on live
-      generation. The verifier trusts Cloudflare forwarding only from the local
-      tunnel peer; direct clients cannot spoof it. Policy admission holds a
-      per-tenant lock across worst-case reservation. On restart Dara rebuilds
+- [x] **T-41** Rate limits: per-IP on verify; pseudonymous per-actor quotas on
+      policy simulation, live generation/regeneration, and disclosure creation;
+      plus a global daily spend cap on live generation. The web server HMACs the
+      provider-supplied connecting address and never persists a raw IP. The verifier
+      trusts Cloudflare forwarding only from the local tunnel peer. Policy admission
+      holds a per-tenant lock across worst-case reservation. On restart Dara rebuilds
       today's committed amount from durable B2 live-run records and pessimistically
       charges the full reservation for failed runs whose provider execution began
       but whose settled cost is unknown.
@@ -209,10 +211,13 @@ Work top to bottom. Each task is one commit.
       Production health, an API-restart/tunnel-stability check, live DuckDB-over-B2
       ledger data, and eight non-US latency samples passed. Median health latency was
       486 ms, p95 was 506 ms, and controlled API restart-to-ready time was 13 seconds.
-- [x] **T-43** No test account is required for the judge path. Demo replay, verification,
-      asset viewing, and aggregate DuckDB-over-B2 ledger reads are anonymous; only
-      optional live-spend mutations request ChatGPT sign-in. Exact route-by-route
-      instructions live in `docs/JUDGE_ACCESS.md`.
+- [x] **T-43** No test account is required. Demo replay, policy preview, live-run
+      creation/listing/status/events/regeneration/diff, disclosure creation,
+      verification, asset viewing, and aggregate DuckDB-over-B2 ledger reads are
+      anonymous. The Runs screen separates live B2 history from fixtures; Verify uses
+      local SHA-256 plus hash lookup before streaming unknown files for inspection.
+      Paid mutations remain bounded by the kill switch, per-actor quota, and daily
+      spend cap. Exact route-by-route instructions live in `docs/JUDGE_ACCESS.md`.
 - [x] **T-44** README rewritten per `docs/SUBMISSION.md` with real production
       screenshots, the four-criteria mapping, the deployed architecture, the B2
       object layout, exact local setup and verification commands, an honest limitations
