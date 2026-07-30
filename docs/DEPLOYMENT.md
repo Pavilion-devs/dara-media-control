@@ -98,9 +98,17 @@ summary, model, project, and month views in one `GROUPING SETS` query over Parqu
 the API reuses that result for 60 seconds and serializes cold singleton initialization.
 The allowlisted query endpoints remain available for focused analysis.
 
-This continuity path does not supersede the live ledger requirement. The operator must
-restore the Backblaze download/Class B allowance before recording the final demo and
-before submission, then reconfirm the `LIVE · DUCKDB OVER B2` state in a clean browser.
+This continuity path does not supersede the live ledger requirement.
+
+At 2026-07-30 00:01 UTC, Backblaze opened the new daily accounting window. An API-only
+restart cleared the previous cooldown while the public web-service and web-tunnel
+process IDs remained unchanged. The first controlled public dashboard request returned
+HTTP 200 from a fresh DuckDB-over-B2 query: 9 runs, 6 approved assets, `$0.095000`
+spend, `$0.015000` prevented spend, the model/month aggregates, and all six exact
+project totals. A clean judge-facing browser then rendered `LIVE · DUCKDB OVER B2`
+with no warnings or errors. The recorded-proof path remains available for a future B2
+outage or cap event, but live ledger continuity is restored for recording and
+submission.
 
 ### Fresh-clone and dependency audit
 
