@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ActiveEvent, EventStream, type RunEvent } from "@/components/dara/event-stream";
 import { derivePhases } from "@/components/dara/run-phases";
+import { ShareAction } from "@/components/dara/share-action";
 import {
   Badge,
   Button,
@@ -792,6 +793,12 @@ export function StudioScreen() {
                 </Button>
               </div>
             </div>
+          ) : null}
+
+          {/* Sharing needs a real job_id from the live run store, so it is
+              offered only on a completed live run. */}
+          {live && liveRun?.status === "succeeded" && liveRun.asset_id ? (
+            <ShareAction assetId={liveRun.asset_id} jobId={liveRun.job_id} />
           ) : null}
         </PanelBody>
       </Panel>

@@ -2,6 +2,7 @@ import {
   BarChart3,
   FileCheck2,
   Images,
+  ListOrdered,
   ShieldCheck,
   Wand2,
   type LucideIcon,
@@ -23,6 +24,7 @@ export type NavItem = {
  */
 export const appNav: NavItem[] = [
   { href: "/studio", label: "Studio", icon: Wand2 },
+  { href: "/runs", label: "Runs", icon: ListOrdered },
   { href: "/assets/ast_nw_003", label: "Assets", icon: Images, prefix: "/assets" },
   { href: "/ledger", label: "Ledger", icon: BarChart3 },
   { href: "/policies", label: "Policies", icon: ShieldCheck },
