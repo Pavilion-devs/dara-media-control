@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getChatGPTUser } from "../../../../chatgpt-auth";
+import { anonymousActor } from "../../../../anonymous-actor";
 
 function error(message: string, status: number) {
   return NextResponse.json(
@@ -17,9 +17,6 @@ function error(message: string, status: number) {
 }
 
 export async function GET(request: Request) {
-  const user = await getChatGPTUser();
-  if (!user) return error("Sign in to compare Dara runs.", 401);
-
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   const token = process.env.DARA_API_TOKEN;
   if (!apiUrl || !token) return error("The regeneration diff is not connected.", 503);
@@ -40,7 +37,7 @@ export async function GET(request: Request) {
     {
       headers: {
         Authorization: `Bearer ${token}`,
-        "X-Dara-Actor": user.email,
+        "X-Dara-Actor": await anonymousActor(request),
       },
       cache: "no-store",
     },

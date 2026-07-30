@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { anonymousActor } from "../../../anonymous-actor";
 
 const allowedQueries = new Set([
   "spend_by_model",
@@ -13,7 +13,6 @@ const allowedQueries = new Set([
 ]);
 
 export async function GET(request: Request) {
-  const user = await getChatGPTUser();
   const url = new URL(request.url);
   const queryId = url.searchParams.get("q") ?? "";
   if (!allowedQueries.has(queryId)) {
@@ -33,7 +32,7 @@ export async function GET(request: Request) {
   const upstream = await fetch(`${apiUrl}/v1/ledger/query${url.search}`, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "X-Dara-Actor": user?.email ?? "public-judge",
+      "X-Dara-Actor": await anonymousActor(request),
     },
     cache: "no-store",
   });

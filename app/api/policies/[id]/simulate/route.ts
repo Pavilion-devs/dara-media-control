@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getChatGPTUser } from "../../../../chatgpt-auth";
+import { anonymousActor } from "../../../../anonymous-actor";
 
 function error(message: string, status: number) {
   return NextResponse.json(
@@ -17,9 +17,6 @@ function error(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
-  if (!user) return error("Sign in to preview a Dara policy.", 401);
-
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   const token = process.env.DARA_API_TOKEN;
   if (!apiUrl || !token) {
@@ -31,6 +28,7 @@ export async function POST(request: Request) {
   if (!/^pol_[a-z0-9_-]{2,64}$/.test(policyId)) {
     return error("The policy identifier is invalid.", 400);
   }
+  const actor = await anonymousActor(request);
 
   const upstream = await fetch(
     `${apiUrl}/v1/policies/${encodeURIComponent(policyId)}/simulate`,
@@ -39,7 +37,7 @@ export async function POST(request: Request) {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "X-Dara-Actor": user.email,
+        "X-Dara-Actor": actor,
       },
       body: await request.text(),
       cache: "no-store",

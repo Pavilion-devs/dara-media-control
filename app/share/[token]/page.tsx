@@ -1,4 +1,4 @@
-import { ShareView } from "../../ui";
+import { ShareScreen } from "./share-screen";
 
 export default async function SharePage({
   params,
@@ -6,5 +6,5 @@ export default async function SharePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  return <ShareView token={token} />;
+  return <ShareScreen token={token} />;
 }

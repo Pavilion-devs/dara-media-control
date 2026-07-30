@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getChatGPTUser } from "../../../../chatgpt-auth";
+import { anonymousActor } from "../../../../anonymous-actor";
 
 function error(message: string, status: number) {
   return NextResponse.json(
@@ -17,9 +17,6 @@ function error(message: string, status: number) {
 }
 
 export async function GET(request: Request) {
-  const user = await getChatGPTUser();
-  if (!user) return error("Sign in to stream a live Dara generation.", 401);
-
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   const token = process.env.DARA_API_TOKEN;
   if (!apiUrl || !token) {
@@ -34,7 +31,7 @@ export async function GET(request: Request) {
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    "X-Dara-Actor": user.email,
+    "X-Dara-Actor": await anonymousActor(request),
   };
   const lastEventId = request.headers.get("last-event-id");
   if (lastEventId) headers["Last-Event-ID"] = lastEventId;

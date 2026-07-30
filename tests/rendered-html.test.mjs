@@ -26,14 +26,31 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the Dara control plane", async () => {
+test("server-renders the public landing page", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<title>Dara — Governed media generation<\/title>/i);
-  assert.match(html, />DARA</);
+  assert.match(html, /Make the work\./);
+  assert.match(html, /Keep the/);
+  assert.match(html, /Open Studio/);
+  assert.match(html, /Verify a file/);
+  // The landing must state the trust boundary rather than overclaim.
+  assert.match(html, /Not an adversarial authenticity proof/);
+  // No operator chrome or seeded run internals leak onto the public page.
+  assert.doesNotMatch(html, /Demo workspace · B2 connected/);
+  assert.doesNotMatch(html, /Seeded QA loop fixture/);
+});
+
+test("server-renders the Dara control plane", async () => {
+  const response = await render("/studio");
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
+
+  const html = await response.text();
+  assert.match(html, /<title>Dara — Governed media generation<\/title>/i);
   assert.match(html, /Make the work\./);
   assert.match(html, /Keep the record\./);
   assert.match(html, /Checking policy/);
@@ -94,10 +111,45 @@ test("ships product assets and response validation without starter files", async
   );
 });
 
+test("keeps every browser-facing data route public and anonymously attributed", async () => {
+  const routePaths = [
+    "../app/api/ledger/dashboard/route.ts",
+    "../app/api/ledger/query/route.ts",
+    "../app/api/ledger/summary/route.ts",
+    "../app/api/policies/[id]/simulate/route.ts",
+    "../app/api/runs/route.ts",
+    "../app/api/runs/[id]/route.ts",
+    "../app/api/runs/[id]/regenerate/route.ts",
+    "../app/api/runs/[id]/diff/route.ts",
+    "../app/api/runs/[id]/events/route.ts",
+    "../app/api/shares/route.ts",
+  ];
+  const sources = await Promise.all(
+    routePaths.map((path) => readFile(new URL(path, import.meta.url), "utf8")),
+  );
+
+  for (const source of sources) {
+    assert.doesNotMatch(source, /getChatGPTUser|Sign in to/);
+    assert.match(source, /anonymousActor/);
+  }
+
+  const packageJson = await readFile(
+    new URL("../package.json", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    packageJson,
+    /"test": "npm run typecheck && npm run build && node --test/,
+  );
+});
+
 test("ships the verified ledger continuity snapshot without invented spend", async () => {
   const [proof, ledgerUi, dashboardRoute] = await Promise.all([
     readFile(new URL("../app/ledger-proof.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/ui.tsx", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/(app)/ledger/ledger-screen.tsx", import.meta.url),
+      "utf8",
+    ),
     readFile(new URL("../app/api/ledger/dashboard/route.ts", import.meta.url), "utf8"),
   ]);
 

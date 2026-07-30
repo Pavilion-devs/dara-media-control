@@ -1,6 +1,25 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Manrope, Space_Mono } from "next/font/google";
 import "./globals.css";
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-manrope",
+  display: "swap",
+});
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
+  display: "swap",
+});
+
+// Resolve the stored theme before first paint so the toggle never flashes the
+// wrong surface. Inlined because it must run ahead of hydration.
+const themeScript = `(()=>{try{const t=localStorage.getItem("dara-theme");if(t==="light"||t==="dark"){document.documentElement.dataset.theme=t}}catch{}})()`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -36,7 +55,16 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    // The theme script sets data-theme before hydration by design, so React
+    // must not try to reconcile that attribute away.
+    <html
+      className={`${manrope.variable} ${spaceMono.variable}`}
+      lang="en"
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>{children}</body>
     </html>
   );

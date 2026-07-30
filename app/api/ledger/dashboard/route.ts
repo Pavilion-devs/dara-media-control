@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { anonymousActor } from "../../../anonymous-actor";
 
 export async function GET(request: Request) {
-  const user = await getChatGPTUser();
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   const token = process.env.DARA_API_TOKEN;
   if (!apiUrl || !token) {
@@ -16,7 +15,7 @@ export async function GET(request: Request) {
   const upstream = await fetch(`${apiUrl}/v1/ledger/dashboard${query}`, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "X-Dara-Actor": user?.email ?? "public-judge",
+      "X-Dara-Actor": await anonymousActor(request),
     },
     cache: "no-store",
   });

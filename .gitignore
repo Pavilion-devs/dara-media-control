@@ -58,3 +58,6 @@ next-env.d.ts
 /videos/dara-demo/snapshots/
 /videos/dara-demo/renders/
 /videos/dara-demo/*.mp4
+
+# TypeScript incremental build info
+tsconfig.tsbuildinfo

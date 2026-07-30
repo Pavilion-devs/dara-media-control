@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { anonymousActor } from "../../anonymous-actor";
 
 function error(message: string, status: number) {
   return NextResponse.json(
@@ -17,9 +17,6 @@ function error(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
-  const user = await getChatGPTUser();
-  if (!user) return error("Sign in to create a Dara disclosure link.", 401);
-
   const apiUrl = process.env.DARA_API_URL?.replace(/\/$/, "");
   const token = process.env.DARA_API_TOKEN;
   if (!apiUrl || !token) {
@@ -30,7 +27,7 @@ export async function POST(request: Request) {
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
-      "X-Dara-Actor": user.email,
+      "X-Dara-Actor": await anonymousActor(request),
     },
     body: await request.text(),
     cache: "no-store",
