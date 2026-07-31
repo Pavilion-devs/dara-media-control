@@ -2,7 +2,7 @@
 
 ## Working URL
 
-`https://diamonds-jessica-accidents-icq.trycloudflare.com`
+`https://usedara.xyz`
 
 ## Account
 

@@ -24,7 +24,7 @@ not like a generic SaaS commercial.
 
 ## Assets
 
-- `https://diamonds-jessica-accidents-icq.trycloudflare.com` — public judge deployment
+- `https://usedara.xyz` — public judge deployment
   for the production Studio, Ledger, Verify, and Assets routes.
 - `../../docs/assets/tour-studio.jpg` — fallback production Studio capture.
 - `../../docs/assets/tour-ledger.jpg` — fallback live Ledger capture.

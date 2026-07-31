@@ -1,6 +1,6 @@
 # Dara — Devpost submission copy
 
-Live application: https://diamonds-jessica-accidents-icq.trycloudflare.com
+Live application: https://usedara.xyz
 Public source: https://github.com/Pavilion-devs/dara-media-control
 
 ## What it does

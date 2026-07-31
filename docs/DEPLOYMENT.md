@@ -1,34 +1,36 @@
 # DEPLOYMENT EVIDENCE
 
-Verified on **2026-07-29**.
+Verified on **2026-07-31**.
 
 ## Production topology
 
 | Concern | Deployed choice | Evidence |
 |---|---|---|
-| Web | TierHive VPS `Dara`, public judge service | `https://diamonds-jessica-accidents-icq.trycloudflare.com` |
+| Web | TierHive VPS `Dara`, public judge service | `https://usedara.xyz` |
 | Private preview | OpenAI Sites, owner-only | `https://dara-media-control.asaborodaniel.chatgpt.site` |
 | API | TierHive VPS `Dara`, Ubuntu 24.04, London, UK | FastAPI is an always-on `dara-api` systemd service |
-| HTTPS transport | Cloudflare tunnel terminating at `127.0.0.1:8000` | The API listener is loopback-only; provider and B2 credentials remain on the VPS |
+| HTTPS transport | TierHive regional HAProxy with Let's Encrypt TLS | Vercel DNS points `usedara.xyz` to `51.195.191.88`; HAProxy forwards to private backend `10.3.245.5:3000` |
 | Persistence | Backblaze B2 `dara-media-control-2026`, `us-east-005` | Jobs, policies, assets, manifests, shares, and Parquet accounting all use this bucket |
 
 This supersedes the original T-42 placeholder choices of Vercel plus Fly.io/Railway.
 The user selected TierHive for the API and OpenAI Sites for the initial web application.
 When the Sites workspace refused public publishing at the platform level, T-48 deployed
-the same validated Vinext application as a separate loopback-only Node service on the
-Dara VPS and exposed it through an independent HTTPS tunnel. The owner-only Sites
-deployment remains a private preview. The deployed application region is London, not
-US-East; B2 remains in `us-east-005`.
+the same validated Vinext application as a separate Node service on the Dara VPS. The
+owner-only Sites deployment remains a private preview. The production application now
+uses `usedara.xyz`, TierHive's London HAProxy, and a private VPS backend. The deployed
+application region is London, not US-East; B2 remains in `us-east-005`.
 
 ## Runtime configuration
 
 - `dara-api` starts Uvicorn on `127.0.0.1:8000` and loads secrets from
   `/etc/dara-api.env`.
 - `dara-web` starts the self-contained Vinext production server on
-  `127.0.0.1:3000` and proxies to the API over loopback.
+  `10.3.245.5:3000`, reachable only on the TierHive private subnet, and proxies to the
+  API over loopback.
 - `cloudflared-dara` is independent of the API lifecycle. Restarting or redeploying
   `dara-api` no longer restarts the tunnel or changes its hostname.
-- `cloudflared-dara-web` is a separate always-on service for the public judge URL.
+- `cloudflared-dara-web` is retained temporarily but is obsolete and is not the
+  production web transport.
 - OpenAI Sites stores `DARA_API_TOKEN` as a secret and `DARA_API_URL` as a runtime
   variable for the private preview. The VPS web service loads the same token from a
   root-readable environment file. Neither deployment ships it to the browser.
@@ -38,17 +40,11 @@ US-East; B2 remains in `us-east-005`.
   reports both providers configured; Replicate's paid FLUX probe persisted a verified
   asset and manifest to B2 on 2026-07-30.
 
-The current API and web transports are independent account-less Cloudflare quick
-tunnels. They are stable across normal Dara service deployments, but a VPS reboot or an
-intentional tunnel restart will issue new hostnames. Before the judging window, replace
-them with named tunnels/custom domains or update the affected URL and redeploy. This is
-an explicit transport limitation, not hidden application state.
-
-TierHive's HAProxy control plane was inspected on 2026-07-30. It can provide regional
-SSL termination for a user-controlled hostname after its DNS record is pointed at the
-assigned proxy, but no domain is dedicated to Dara yet. Existing unrelated HAProxy
-domains were left untouched; replacing the quick tunnel therefore requires an explicit
-hostname choice and DNS authorization.
+On 2026-07-31, `usedara.xyz` was validated in TierHive with its dedicated TXT record.
+Vercel DNS now has a single apex A record pointing to TierHive's London proxy at
+`51.195.191.88`. TierHive terminates TLS and forwards traffic to `10.3.245.5:3000`;
+its control plane reports the backend healthy and SSL active through 2026-10-28.
+The previous account-less web quick tunnel is no longer part of the production path.
 
 ## Verification
 
@@ -73,6 +69,15 @@ The following checks passed against production:
    browser-console warnings, or errors. The temporary B2 cap was still active, so
    Ledger correctly rendered its dated `RECORDED PROOF` continuity state rather than
    labelling the snapshot live.
+9. On 2026-07-31, `http://usedara.xyz` redirected to HTTPS, the certificate validated,
+   and `https://usedara.xyz` returned HTTP 200.
+10. The landing page, Studio, Policies, Runs, Ledger, Verify, and the anonymous policy,
+    run-history, and ledger API routes returned successfully through the custom domain.
+11. A cookie-free policy simulation returned HTTP 200 with the live cost preview, and
+    hash verification of the shipped proof returned a trusted match with identical
+    uploaded and recorded SHA-256 values.
+12. A fresh production browser rendered `LIVE · DUCKDB OVER B2` with 9 accounted runs
+    and 6 published assets, while Runs reported 8 live durable records.
 
 ### B2 cap continuity check
 
@@ -135,8 +140,9 @@ On 2026-07-30, the no-sign-in hardening, rebuilt UI, live run history, and hybri
 hash/upload verification passed the expanded local gate: 78 Python tests, ESLint,
 TypeScript checking, the five-stage Vinext build, and nine rendered-application tests.
 The web regression includes the shipped 1.1 MB proof crossing the Vinext request
-boundary without the former 413. The next production deployment will publish these
-changes together after the branch is frozen.
+boundary without the former 413. On 2026-07-31, these changes were deployed together
+from release `e2e60b7`; the same gate passed immediately before deployment with 78
+Python tests and all nine rendered-application tests.
 
 ## Latency
 
@@ -158,13 +164,11 @@ generation remains dominated by provider execution time and streams progress sep
 ## Operator checks
 
 ```bash
-systemctl is-active dara-api dara-web cloudflared-dara cloudflared-dara-web
+systemctl is-active dara-api dara-web
 curl -fsS http://127.0.0.1:8000/healthz
 journalctl -u dara-web -n 100 --no-pager
 journalctl -u dara-api -n 100 --no-pager
-journalctl -u cloudflared-dara -n 100 --no-pager
-journalctl -u cloudflared-dara-web -n 100 --no-pager
 ```
 
-After any host or tunnel restart, confirm the public health endpoint and the production
+After any host or HAProxy change, confirm the public health endpoint and the production
 Ledger before presenting Dara.

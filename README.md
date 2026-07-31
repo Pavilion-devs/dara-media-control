@@ -3,7 +3,7 @@
 **Dara is the control plane for AI-generated media: governed pipelines, verifiable
 provenance, and an honest spend ledger built on Genblaze and Backblaze B2.**
 
-[Live application](https://diamonds-jessica-accidents-icq.trycloudflare.com) ·
+[Live application](https://usedara.xyz) ·
 [Deployment evidence](docs/DEPLOYMENT.md) ·
 [Trust model](docs/PRD.md#the-trust-model)
 
