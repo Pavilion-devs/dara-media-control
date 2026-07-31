@@ -181,33 +181,26 @@ export function VerifyScreen() {
     if (!staged) return;
     setPhase("checking");
     setMessage("");
-    try {
-      const lookupResponse = await fetch(`/api/verify/${staged.sha256}`, {
-        cache: "no-store",
-      });
-      if (lookupResponse.ok) {
-        const lookup = verificationResponseSchema.parse(
-          await lookupResponse.json(),
-        );
-        if (lookup.verification === "trusted-match") {
-          setResult(lookup);
-          setMode("live");
-          setPhase("done");
-          return;
-        }
-      }
-    } catch {
-      // Hash lookup is the fast path. Full file inspection below remains the
-      // authority for changed, foreign, or previously unseen files.
-    }
     const body = new FormData();
     body.set("file", staged.file);
     try {
       // Route through the Next handler so the API bearer token stays server-side.
       const response = await fetch("/api/verify", { method: "POST", body });
-      // The edge rejects oversized bodies before the route runs, and answers in
-      // plain text rather than the JSON error envelope.
+      // If an edge rejects a large upload before the route runs, fall back to
+      // the local hash. Normal files must reach full inspection so an embedded
+      // manifest is not mislabeled as a hash-only discovery.
       if (response.status === 413) {
+        const lookupResponse = await fetch(`/api/verify/${staged.sha256}`, {
+          cache: "no-store",
+        });
+        if (lookupResponse.ok) {
+          setResult(
+            verificationResponseSchema.parse(await lookupResponse.json()),
+          );
+          setMode("live");
+          setPhase("done");
+          return;
+        }
         throw new Error(
           `This deployment will not accept a ${formatBytes(staged.file.size)} upload. The SHA-256 above was still computed locally and is correct.`,
         );

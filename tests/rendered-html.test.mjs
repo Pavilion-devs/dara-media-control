@@ -131,6 +131,11 @@ test("ships product assets and response validation without starter files", async
   assert.doesNotMatch(verifyRoute, /request\.formData/);
   assert.match(verifyLookupRoute, /\/v1\/verify\/\$\{sha256\}/);
   assert.match(verifyScreen, /fetch\(`\/api\/verify\/\$\{staged\.sha256\}`/);
+  assert.ok(
+    verifyScreen.indexOf('fetch("/api/verify", { method: "POST", body })') <
+      verifyScreen.indexOf("fetch(`/api/verify/${staged.sha256}`"),
+    "full-file inspection must run before the hash-only fallback",
+  );
   assert.match(nextConfig, /bodySizeLimit: "100mb"/);
   assert.match(schema, /verificationResponseSchema/);
   await access(new URL("../public/dara-verified-sample.png", import.meta.url));
