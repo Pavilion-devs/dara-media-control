@@ -5,6 +5,8 @@ import os
 from collections.abc import Mapping
 from typing import Any, Protocol, TypeVar
 
+from genblaze_core.exceptions import StorageError
+from genblaze_core.storage.errors import StorageErrorCode
 from genblaze_s3 import S3StorageBackend
 from pydantic import BaseModel
 
@@ -90,9 +92,15 @@ class DaraStorage:
 
     def get_json(self, key: str, model: type[ModelT]) -> ModelT | None:
         try:
-            if not self._backend.exists(key):
-                return None
             return model.model_validate_json(self._backend.get(key))
+        except KeyError:
+            return None
+        except StorageError as exc:
+            if exc.error_code == StorageErrorCode.NOT_FOUND:
+                return None
+            raise StorageUnavailableError(
+                f"Unable to read trusted object {key}"
+            ) from exc
         except StorageUnavailableError:
             raise
         except Exception as exc:
@@ -118,9 +126,15 @@ class DaraStorage:
 
     def get_bytes(self, key: str) -> bytes | None:
         try:
-            if not self._backend.exists(key):
-                return None
             return self._backend.get(key)
+        except KeyError:
+            return None
+        except StorageError as exc:
+            if exc.error_code == StorageErrorCode.NOT_FOUND:
+                return None
+            raise StorageUnavailableError(
+                f"Unable to read trusted object {key}"
+            ) from exc
         except Exception as exc:
             raise StorageUnavailableError(f"Unable to read trusted object {key}") from exc
 

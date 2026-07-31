@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import time
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Literal, Protocol
@@ -137,6 +139,13 @@ def live_run_key(tenant_id: str, job_id: str) -> str:
 class B2LiveRunStore:
     def __init__(self, storage: DaraStorage) -> None:
         self.storage = storage
+        self._cache: dict[str, LiveRunRecord] = {}
+        self._cache_loaded_at = 0.0
+        self._cache_lock = asyncio.Lock()
+
+    def _cache_is_fresh(self) -> bool:
+        ttl = max(0, int(os.getenv("DARA_RUN_CACHE_SECONDS", "300")))
+        return bool(self._cache_loaded_at) and time.monotonic() - self._cache_loaded_at < ttl
 
     async def put(self, run: LiveRunRecord) -> None:
         await asyncio.to_thread(
@@ -144,28 +153,47 @@ class B2LiveRunStore:
             live_run_key(run.tenant_id, run.job_id),
             run,
         )
+        self._cache[run.job_id] = run.model_copy(deep=True)
 
     async def get(self, tenant_id: str, job_id: str) -> LiveRunRecord | None:
-        return await asyncio.to_thread(
+        cached = self._cache.get(job_id)
+        if cached is not None and cached.tenant_id == tenant_id:
+            return cached.model_copy(deep=True)
+        record = await asyncio.to_thread(
             self.storage.get_json,
             live_run_key(tenant_id, job_id),
             LiveRunRecord,
         )
+        if record is not None:
+            self._cache[job_id] = record.model_copy(deep=True)
+        return record
 
     async def list(self, tenant_id: str) -> list[LiveRunRecord]:
-        prefix = f"dara/state/live-runs/{tenant_id}/"
-        keys = await asyncio.to_thread(self.storage.list_prefix, prefix)
-        records = await asyncio.gather(
-            *(
-                asyncio.to_thread(
-                    self.storage.get_json,
-                    key,
-                    LiveRunRecord,
+        async with self._cache_lock:
+            if not self._cache_is_fresh():
+                prefix = f"dara/state/live-runs/{tenant_id}/"
+                keys = await asyncio.to_thread(self.storage.list_prefix, prefix)
+                records = await asyncio.gather(
+                    *(
+                        asyncio.to_thread(
+                            self.storage.get_json,
+                            key,
+                            LiveRunRecord,
+                        )
+                        for key in keys
+                    )
                 )
-                for key in keys
-            )
-        )
-        return [record for record in records if record is not None]
+                self._cache = {
+                    record.job_id: record.model_copy(deep=True)
+                    for record in records
+                    if record is not None
+                }
+                self._cache_loaded_at = time.monotonic()
+        return [
+            record.model_copy(deep=True)
+            for record in self._cache.values()
+            if record.tenant_id == tenant_id
+        ]
 
 
 class MemoryLiveRunStore:
