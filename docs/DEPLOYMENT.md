@@ -138,11 +138,17 @@ Dara has no application database, matching the deployed one-bucket architecture.
 
 On 2026-07-30, the no-sign-in hardening, rebuilt UI, live run history, and hybrid
 hash/upload verification passed the expanded local gate: 78 Python tests, ESLint,
-TypeScript checking, the five-stage Vinext build, and nine rendered-application tests.
-The web regression includes the shipped 1.1 MB proof crossing the Vinext request
-boundary without the former 413. On 2026-07-31, these changes were deployed together
-from release `e2e60b7`; the same gate passed immediately before deployment with 78
-Python tests and all nine rendered-application tests.
+TypeScript checking, the five-stage Vinext build, and the rendered-application tests.
+The web regression includes the shipped proof crossing the Vinext request boundary
+without the former 413.
+
+On 2026-07-31, release `c422783` was deployed after the redesigned UI was exercised in
+real desktop and 390×844 mobile browser sessions. Studio, Policies, live Runs, a live
+run event stream, Asset proof, live DuckDB/B2 Ledger, full-file Verify, and a redacted
+public disclosure all passed. Root navigation resolves to Studio, `/about` retains the
+marketing page, every tested mobile route has zero horizontal overflow, and the browser
+console remained clean. The same release passed 78 Python tests plus the complete web
+gate, including all ten rendered-application tests.
 
 ## Latency
 

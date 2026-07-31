@@ -36,24 +36,29 @@ const demoRecord: VerificationResponse = {
   storage_status: "available",
   verified: true,
   uploaded_sha256:
-    "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25",
+    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
   expected_published_sha256:
-    "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25",
+    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
   manifest: {
     canonical_hash:
-      "13dc9b8ae977809a90ffcc5b3971a011dc5cbac8c8505df2e7f131fa8a9e9b28",
+      "d7bc702cafdbbe4b48eef3df2e4c92c0e6b0e2eb4d16b8a72086a4f3ba116f58",
     hash_matches: true,
     declared_hashes_match: true,
-    run_id: "f1a3332d-5727-4644-976a-2f7c09c74e82",
-    created_at: "2026-07-29T12:31:10Z",
+    run_id: "a2a6bc2c-8869-4809-a07e-0fc706f3d4c5",
+    created_at: "2026-07-29T19:42:24.645595Z",
     steps: [
       {
         provider: "openai-dalle",
         model: "gpt-image-2",
         modality: "image",
-        prompt: "Dara command center with a visible provenance thread",
-        params: { size: "1024x1024", quality: "low", output_format: "png" },
-        cost_usd: null,
+        prompt: null,
+        params: {
+          n: 1,
+          size: "1024x1024",
+          quality: "low",
+          output_format: "png",
+        },
+        cost_usd: "0.010000",
       },
     ],
     parent_run_id: null,
@@ -61,8 +66,8 @@ const demoRecord: VerificationResponse = {
   },
   lineage: [
     {
-      run_id: "f1a3332d-5727-4644-976a-2f7c09c74e82",
-      at: "2026-07-29T12:31:10Z",
+      run_id: "a2a6bc2c-8869-4809-a07e-0fc706f3d4c5",
+      at: "2026-07-29T19:42:24.645595Z",
       relationship: "generated",
       provider: "openai-dalle",
       model: "gpt-image-2",

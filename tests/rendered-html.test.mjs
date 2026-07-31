@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -82,7 +83,7 @@ test("server-renders the real verified demo record", async () => {
   assert.match(html, /Trusted published record match/);
   assert.match(
     html,
-    /efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25/,
+    /900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca/,
   );
   assert.match(html, /openai-dalle/);
   assert.match(html, /gpt-image-2/);
@@ -178,6 +179,10 @@ test("allows the shipped verification proof through the web request boundary", a
   const sample = await readFile(
     new URL("../public/dara-verified-sample.png", import.meta.url),
   );
+  assert.equal(
+    createHash("sha256").update(sample).digest("hex"),
+    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
+  );
   const body = new FormData();
   body.set("file", new Blob([sample], { type: "image/png" }), "proof.png");
 
@@ -195,7 +200,7 @@ test("allows the shipped verification proof through the web request boundary", a
   );
 
   // No API URL is configured in this isolated render, so the route returns 503.
-  // The regression is that Vinext must not reject this 1.1 MB proof as 413 first.
+  // The regression is that Vinext must not reject this 1.2 MB proof as 413 first.
   assert.equal(response.status, 503);
 });
 

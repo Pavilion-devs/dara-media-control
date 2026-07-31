@@ -7,15 +7,15 @@ import { Badge, CopyRow, Panel, PanelBody, PanelHead } from "@/components/ui";
  * evidence from a specific production run, not a synthetic sample.
  */
 const asset = {
-  id: "9856ED41",
+  id: "B9885F41",
   publishedSha256:
-    "efaf24d3c4cbeeb2497acd5fcba1e485be529a0ece944190c4caef8720244c25",
+    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
   sourceSha256:
-    "97f3532e4b5c8a1d6e0f2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c7d5f3164",
+    "83c597a8937c372ae6f606d3ab974d986aa434cf0d0bfa0f538be11dbed35eeb",
   provider: "openai-dalle",
   model: "gpt-image-2",
-  manifestKey: "b2://dara/manifests/f1a3332d-5727-4644-976a-2f7c09c74e82.json",
-  latency: "29.369s",
+  manifestKey: "d7bc702cafdbbe4b48eef3df2e4c92c0e6b0e2eb4d16b8a72086a4f3ba116f58",
+  latency: "Recorded live",
   previewUrl: "/dara-verified-sample.png",
 };
 
@@ -126,7 +126,7 @@ export function AssetScreen({ id }: { id: string }) {
                 label="Published hash (delivered)"
                 value={asset.publishedSha256}
               />
-              <CopyRow label="Manifest" value={asset.manifestKey} />
+              <CopyRow label="Manifest hash" value={asset.manifestKey} />
             </PanelBody>
           </Panel>
         </div>
