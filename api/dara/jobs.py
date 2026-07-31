@@ -144,7 +144,7 @@ class B2LiveRunStore:
         self._cache_lock = asyncio.Lock()
 
     def _cache_is_fresh(self) -> bool:
-        ttl = max(0, int(os.getenv("DARA_RUN_CACHE_SECONDS", "300")))
+        ttl = max(0, int(os.getenv("DARA_RUN_CACHE_SECONDS", "3600")))
         return bool(self._cache_loaded_at) and time.monotonic() - self._cache_loaded_at < ttl
 
     async def put(self, run: LiveRunRecord) -> None:

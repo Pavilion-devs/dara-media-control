@@ -306,7 +306,7 @@ class Ledger:
         cache_key = (from_date, to_date, project_id)
         cache_ttl_seconds = max(
             0,
-            int(os.getenv("DARA_LEDGER_CACHE_SECONDS", "300")),
+            int(os.getenv("DARA_LEDGER_CACHE_SECONDS", "3600")),
         )
         with self.lock:
             dashboard_cache = getattr(self, "_dashboard_cache", {})
