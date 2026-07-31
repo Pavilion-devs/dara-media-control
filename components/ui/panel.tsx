@@ -17,7 +17,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-2xl border border-line bg-surface",
+        "min-w-0 overflow-hidden rounded-2xl border border-line bg-surface",
         className,
       )}
     >
@@ -59,5 +59,5 @@ export function PanelBody({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn("p-5", className)}>{children}</div>;
+  return <div className={cn("min-w-0 p-5", className)}>{children}</div>;
 }

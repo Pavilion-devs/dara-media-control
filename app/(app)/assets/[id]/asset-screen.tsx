@@ -52,7 +52,7 @@ const lineage: LineageNode[] = [
 
 export function AssetScreen({ id }: { id: string }) {
   return (
-    <div className="grid gap-6">
+    <div className="min-w-0 grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 font-mono text-xs uppercase tracking-widest text-subtle">
@@ -89,8 +89,8 @@ export function AssetScreen({ id }: { id: string }) {
         </PanelBody>
       </Panel>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
-        <div className="grid content-start gap-6">
+      <div className="min-w-0 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="min-w-0 grid content-start gap-6">
           {/* B2 signs delivered asset URLs at runtime; no static allowlist applies. */}
           <img
             alt="Dara provenance proof generated with OpenAI GPT Image 2"
@@ -100,7 +100,7 @@ export function AssetScreen({ id }: { id: string }) {
           <Panel>
             <PanelHead title="Record" />
             <PanelBody className="grid gap-4">
-              <dl className="grid gap-3">
+              <dl className="min-w-0 grid gap-3">
                 {[
                   { label: "Provider / model", value: `${asset.provider} / ${asset.model}` },
                   { label: "Provider latency", value: asset.latency },
@@ -110,7 +110,9 @@ export function AssetScreen({ id }: { id: string }) {
                     key={row.label}
                   >
                     <dt className="text-xs text-subtle">{row.label}</dt>
-                    <dd className="font-mono text-sm text-ink">{row.value}</dd>
+                    <dd className="min-w-0 truncate font-mono text-sm text-ink">
+                      {row.value}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -129,7 +131,7 @@ export function AssetScreen({ id }: { id: string }) {
           </Panel>
         </div>
 
-        <div className="grid content-start gap-6">
+        <div className="min-w-0 grid content-start gap-6">
           <Panel>
             <PanelHead
               title="Lineage"

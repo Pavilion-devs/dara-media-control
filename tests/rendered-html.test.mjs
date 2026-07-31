@@ -26,8 +26,14 @@ async function render(pathname = "/") {
   );
 }
 
-test("server-renders the public landing page", async () => {
+test("routes the judge entry point directly to Studio", async () => {
   const response = await render();
+  assert.equal(response.status, 307);
+  assert.equal(new URL(response.headers.get("location")).pathname, "/studio");
+});
+
+test("server-renders the public product overview", async () => {
+  const response = await render("/about");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
@@ -133,13 +139,21 @@ test("ships product assets and response validation without starter files", async
 });
 
 test("connects Runs to paginated live history without blending fixtures", async () => {
-  const [route, screen, schema] = await Promise.all([
+  const [route, screen, schema, regeneration, versionTree] = await Promise.all([
     readFile(new URL("../app/api/runs/route.ts", import.meta.url), "utf8"),
     readFile(
       new URL("../app/(app)/runs/runs-screen.tsx", import.meta.url),
       "utf8",
     ),
     readFile(new URL("../app/run-schema.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../components/dara/regeneration-action.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(
+      new URL("../components/dara/version-tree.tsx", import.meta.url),
+      "utf8",
+    ),
   ]);
 
   assert.match(route, /export async function GET/);
@@ -147,7 +161,14 @@ test("connects Runs to paginated live history without blending fixtures", async 
   assert.match(screen, /fetch\("\/api\/runs\?limit=50"/);
   assert.match(screen, /Live B2 history/);
   assert.match(screen, /never blended into these committed totals/);
+  assert.match(screen, /RegenerationAction/);
+  assert.match(screen, /VersionTree/);
   assert.match(schema, /liveRunListSchema/);
+  assert.match(regeneration, /\/regenerate/);
+  assert.match(regeneration, /\/diff\?against=/);
+  assert.match(regeneration, /Confirm · reserve/);
+  assert.match(regeneration, /Recorded parameter diff/);
+  assert.match(versionTree, /parentId/);
 });
 
 test("allows the shipped verification proof through the web request boundary", async () => {

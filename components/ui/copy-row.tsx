@@ -42,13 +42,13 @@ export function CopyRow({
   }
 
   return (
-    <div className={cn("grid gap-1", className)}>
+    <div className={cn("min-w-0 grid gap-1", className)}>
       {label ? (
         <span className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
           {label}
         </span>
       ) : null}
-      <div className="flex items-center gap-2">
+      <div className="min-w-0 flex items-center gap-2">
         <code className="min-w-0 flex-1 truncate rounded-lg border border-line bg-inset px-3 py-2 font-mono text-xs text-muted">
           {display ?? value}
         </code>

@@ -13,6 +13,8 @@ import { useEffect, useMemo, useState } from "react";
 import { EventStream, type RunEvent } from "@/components/dara/event-stream";
 import { derivePhases } from "@/components/dara/run-phases";
 import { ShareAction } from "@/components/dara/share-action";
+import { RegenerationAction } from "@/components/dara/regeneration-action";
+import { VersionTree } from "@/components/dara/version-tree";
 import {
   Badge,
   Button,
@@ -225,7 +227,13 @@ const liveStatusTone: Record<LiveRun["status"], Tone> = {
   blocked: "block",
 };
 
-function LiveRunRow({ run }: { run: LiveRun }) {
+function LiveRunRow({
+  relatedRun,
+  run,
+}: {
+  relatedRun?: LiveRun;
+  run: LiveRun;
+}) {
   const [open, setOpen] = useState(false);
   const events = useMemo(() => toLiveRunEvents(run), [run]);
   const phases = derivePhases(
@@ -302,8 +310,28 @@ function LiveRunRow({ run }: { run: LiveRun }) {
             ))}
           </dl>
           <EventStream events={events} />
+          {run.attempts.length ? (
+            <div>
+              <p className="mb-3 text-sm font-semibold text-ink">Version tree</p>
+              <VersionTree
+                nodes={run.attempts.map((attempt) => ({
+                  id: attempt.genblaze_run_id,
+                  parentId: attempt.parent_run_id,
+                  status: attempt.status,
+                  label: `Attempt ${attempt.attempt}`,
+                  prompt: attempt.prompt,
+                  provider: attempt.provider,
+                  model: attempt.model,
+                  qaScore: attempt.qa_score,
+                }))}
+              />
+            </div>
+          ) : null}
           {run.status === "succeeded" && run.asset_id ? (
-            <ShareAction assetId={run.asset_id} jobId={run.job_id} />
+            <>
+              <RegenerationAction relatedRun={relatedRun} run={run} />
+              <ShareAction assetId={run.asset_id} jobId={run.job_id} />
+            </>
           ) : null}
         </div>
       ) : null}
@@ -420,7 +448,15 @@ export function RunsScreen() {
             <>
               <Panel>
                 {liveRuns.map((run) => (
-                  <LiveRunRow key={run.job_id} run={run} />
+                  <LiveRunRow
+                    key={run.job_id}
+                    relatedRun={liveRuns.find(
+                      (candidate) =>
+                        candidate.parent_job_id === run.job_id
+                        || run.parent_job_id === candidate.job_id,
+                    )}
+                    run={run}
+                  />
                 ))}
               </Panel>
               {nextCursor ? (

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActiveEvent, EventStream, type RunEvent } from "@/components/dara/event-stream";
 import { derivePhases } from "@/components/dara/run-phases";
 import { ShareAction } from "@/components/dara/share-action";
+import { VersionTree, type VersionNode } from "@/components/dara/version-tree";
 import {
   Badge,
   Button,
@@ -463,6 +464,57 @@ export function StudioScreen() {
         cost: demoRun.cost_usd,
         attempts: demoRun.qa_attempts,
       };
+  const versions: VersionNode[] = live
+    ? (liveRun?.attempts ?? []).map((attempt) => ({
+        id: attempt.genblaze_run_id,
+        parentId: attempt.parent_run_id,
+        status: attempt.status,
+        label: `Attempt ${attempt.attempt}`,
+        prompt: attempt.prompt,
+        provider: attempt.provider,
+        model: attempt.model,
+        qaScore: attempt.qa_score,
+      }))
+    : demoRun.seed_id === demoCorpus.default_seed_id
+      ? [
+          {
+            id: "attempt-01",
+            parentId: null,
+            status: "rejected",
+            label: "Attempt 1",
+            prompt: "First deterministic candidate · linen texture and rim detail failed QA.",
+            provider: "genblaze-testing",
+            model: "mock-image-v1",
+            qaScore: 0.58,
+          },
+          {
+            id: "attempt-02",
+            parentId: "attempt-01",
+            status: "approved",
+            label: "Attempt 2",
+            prompt: "Revised prompt · linked to attempt 1 by parent_run_id.",
+            provider: "genblaze-testing",
+            model: "mock-image-v1",
+            qaScore: 0.92,
+          },
+        ]
+      : [
+          {
+            id: demoRun.seed_id,
+            parentId: null,
+            status:
+              demoRun.outcome === "succeeded"
+                ? "approved"
+                : demoRun.outcome === "blocked"
+                  ? "rejected"
+                  : "failed",
+            label: "Recorded run",
+            prompt: demoRun.brief,
+            provider: demoRun.provider,
+            model: demoRun.model,
+            qaScore: demoRun.qa_score,
+          },
+        ];
 
   return (
     <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
@@ -762,6 +814,18 @@ export function StudioScreen() {
           ) : null}
 
           <EventStream events={events} />
+
+          {finished && versions.length ? (
+            <div>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-ink">Version tree</p>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">
+                  {versions.length} recorded attempt{versions.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <VersionTree nodes={versions} />
+            </div>
+          ) : null}
 
           {finished && !blockedRun ? (
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-verified/25 bg-verified/10 p-4">
