@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { isRunId } from "../../../../run-id";
+
 import { anonymousActor } from "../../../../anonymous-actor";
 
 export async function POST(request: Request) {
   const jobId = decodeURIComponent(
     new URL(request.url).pathname.split("/").filter(Boolean).at(-2) ?? "",
   );
-  if (!/^job_[A-Za-z0-9_-]{8,80}$/.test(jobId)) {
+  if (!isRunId(jobId)) {
     return NextResponse.json(
       { error: { code: "INVALID_RUN", message: "The run identifier is invalid.", details: {}, request_id: null } },
       { status: 400 },

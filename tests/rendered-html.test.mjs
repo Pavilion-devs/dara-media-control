@@ -242,6 +242,24 @@ test("keeps every browser-facing data route public and anonymously attributed", 
   );
 });
 
+test("accepts both legacy and production run identifiers on every run route", async () => {
+  const routePaths = [
+    "../app/api/runs/[id]/route.ts",
+    "../app/api/runs/[id]/events/route.ts",
+    "../app/api/runs/[id]/regenerate/route.ts",
+    "../app/api/runs/[id]/diff/route.ts",
+    "../app/api/runs/[id]/cancel/route.ts",
+  ];
+  const [helper, ...routes] = await Promise.all([
+    readFile(new URL("../app/run-id.ts", import.meta.url), "utf8"),
+    ...routePaths.map((path) => readFile(new URL(path, import.meta.url), "utf8")),
+  ]);
+
+  assert.match(helper, /A-Za-z0-9_-/);
+  assert.match(helper, /\{8,80\}/);
+  for (const route of routes) assert.match(route, /isRunId/);
+});
+
 test("ships the verified ledger continuity snapshot without invented spend", async () => {
   const [proof, ledgerUi, dashboardRoute] = await Promise.all([
     readFile(new URL("../app/ledger-proof.ts", import.meta.url), "utf8"),

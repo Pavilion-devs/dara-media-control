@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { anonymousActor } from "../../../anonymous-actor";
+import { isRunId } from "../../../run-id";
 
 function error(message: string, status: number) {
   return NextResponse.json(
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
 
   const pathname = new URL(request.url).pathname;
   const jobId = decodeURIComponent(pathname.split("/").filter(Boolean).at(-1) ?? "");
-  if (!/^job_[0-9a-f]{20}$/.test(jobId)) {
+  if (!isRunId(jobId)) {
     return error("The live job identifier is invalid.", 400);
   }
 

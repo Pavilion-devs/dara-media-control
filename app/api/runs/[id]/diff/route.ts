@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { anonymousActor } from "../../../../anonymous-actor";
+import { isRunId } from "../../../../run-id";
 
 function error(message: string, status: number) {
   return NextResponse.json(
@@ -26,8 +27,8 @@ export async function GET(request: Request) {
   const jobId = decodeURIComponent(segments.at(-2) ?? "");
   const against = url.searchParams.get("against") ?? "";
   if (
-    !/^job_[0-9a-f]{20}$/.test(jobId)
-    || !/^job_[0-9a-f]{20}$/.test(against)
+    !isRunId(jobId)
+    || !isRunId(against)
   ) {
     return error("The live job identifier is invalid.", 400);
   }
