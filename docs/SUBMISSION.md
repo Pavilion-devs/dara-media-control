@@ -31,7 +31,7 @@ the first thirty seconds. No intro card, no logo animation, no "hi, my name is."
 | 0:25–1:00 | **Generate.** Submit a brief. Live estimate updates before committing. Step stream runs. A `step.failover` fires and the fallback catches it. QA scores below threshold, revises the prompt, second attempt passes. | Studio, step stream, version tree |
 | 1:00–1:25 | **Govern.** Switch to the locked policy. Submit the same brief. Blocked, with the reason and the cost that was not spent. Say the words: "no provider was called." | Studio, policy block state |
 | 1:25–2:00 | **Verify — the money shot.** Download the published embedded asset. Drop it into the public verify page: its whole-file hash matches the trusted `published_sha256` in B2 and full lineage renders. Then flip one byte and drop it again: the trusted comparison diverges visibly. Do not imply that Genblaze's pre-embed `asset.sha256` is the whole-file hash of the embedded derivative. | Verify page, both states |
-| 2:00–2:20 | **Regenerate.** Open an asset from March in the ledger, hit regenerate, show the reconstructed parameters and the side-by-side. | Asset detail |
+| 2:00–2:20 | **Regenerate.** Expand a completed live run, authorize regeneration from its manifest, then show the linked child, reconstructed parameters, and side-by-side. | Runs |
 | 2:20–2:40 | **The B2 story.** Bucket layout on screen: Genblaze-bound source assets, exact embedded deliverables, manifests, immutable Parquet partitions, and job state. Show one local `ParquetSink` output uploaded to B2, then DuckDB querying it in place. "No database. One bucket." | B2 console, ledger |
 | 2:40–2:50 | **Close.** Cost per approved asset and spend prevented, on screen. No sign-off, no thanks. | Ledger headline numbers |
 

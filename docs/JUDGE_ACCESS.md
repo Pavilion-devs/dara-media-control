@@ -14,7 +14,9 @@ Open the URL and use these routes directly:
    Select **Run verified demo** to replay the QA fail-revise-pass event stream. It does
    not contact an AI provider.
 2. **Runs** (`/runs`) — shows live durable run history separately from the labelled
-   production-proof and deterministic-fixture corpus.
+   production-proof and deterministic-fixture corpus. Expand a completed live record
+   to inspect every attempt, issue a redacted disclosure, or explicitly authorize
+   manifest-based regeneration and view its parameter diff.
 3. **Policies** (`/policies`) — reads the active policy documents and every enforced
    constraint from the live engine.
 4. **Ledger** (`/ledger`) — reads live aggregate accounting from immutable Parquet in Backblaze B2.
@@ -22,7 +24,8 @@ Open the URL and use these routes directly:
 5. **Verify** (`/verify`) — the page opens with a trusted published-record proof. Files
    are hashed locally, checked by hash, then uploaded only when full manifest inspection
    is needed. Verification never calls a generation provider.
-6. **Assets** (`/assets/ast_nw_003`) — opens the seeded lineage and regeneration view.
+6. **Assets** (`/assets/ast_nw_003`) — opens the seeded published-asset proof with its
+   lineage, source hash, delivered hash, cost basis, and version history.
 
 ## Optional live generation
 

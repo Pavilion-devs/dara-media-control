@@ -137,7 +137,8 @@ Work top to bottom. Each task is one commit.
 - [x] **T-26** SSE endpoint streaming pipeline step events via `astream()`.
 - [x] **T-27** Studio screen: brief form, policy selector, live step stream, result.
 - [x] **T-28** Version tree component — every attempt including failures, linked by
-      parent run.
+      parent run. The rebuilt UI renders the deterministic fail-revise-pass tree in
+      Studio and actual Genblaze attempt IDs and `parent_run_id` links for live runs.
 
 ### Phase 4 — ledger and regeneration (M4, M5)
 
@@ -155,7 +156,9 @@ Work top to bottom. Each task is one commit.
       `genblaze_run_id`, reconstruct params from the manifest, re-run, link Dara jobs via
       `parent_job_id` and Genblaze runs via `parent_run_id`.
 - [x] **T-34** Regeneration diff view: original vs regenerated, side by side, with a
-      parameter diff table.
+      parameter diff table. Completed live rows now require a second explicit
+      spend-confirmation click, poll the linked child run, and render the verified
+      original/child comparison from the live diff endpoint.
 
 ### Phase 5 — remaining pipelines and sharing
 
@@ -194,7 +197,8 @@ Work top to bottom. Each task is one commit.
       QA-revision fixture using accelerated timers while displaying the realistic
       61-second event clock. The screen explicitly labels the fixture, shows zero
       settled spend, and keeps live OpenAI generation behind a separate
-      spend-labelled control.
+      spend-labelled control. `/` redirects to this Studio state; the product overview
+      remains available at `/about`.
 - [x] **T-41** Rate limits: per-IP on verify; pseudonymous per-actor quotas on
       policy simulation, live generation/regeneration, and disclosure creation;
       plus a global daily spend cap on live generation. The web server HMACs the
@@ -207,7 +211,8 @@ Work top to bottom. Each task is one commit.
 - [x] **T-42** Deployment target superseded by the user-selected stack and verified in
       `docs/DEPLOYMENT.md`: the API runs as an always-on service on a TierHive VPS in
       London, the private preview runs on OpenAI Sites, the public judge web service
-      runs separately on the same VPS, and B2 remains in `us-east-005`.
+      runs separately on the same VPS behind TierHive HAProxy at `usedara.xyz`, and B2
+      remains in `us-east-005`.
       Production health, an API-restart/tunnel-stability check, live DuckDB-over-B2
       ledger data, and eight non-US latency samples passed. Median health latency was
       486 ms, p95 was 506 ms, and controlled API restart-to-ready time was 13 seconds.

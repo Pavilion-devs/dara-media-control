@@ -121,7 +121,8 @@ is the difference between "demo" and "production readiness."
 
 ## Demo mode
 
-The public landing page routes visitors to `/studio`, where demo replay is the default.
+The root route redirects visitors to `/studio`, where demo replay is the default. The
+public product overview remains available at `/about`.
 Seeded runs in `api/seeds/` are replayed through the same event shape with realistic
 inter-step delays, so the UI code path is identical to live generation. Live generation
 requires an explicit action and is subject to both the anonymous action quota and the
@@ -134,20 +135,20 @@ the revision passed, one multi-provider fallback event, and one run per pipeline
 
 | Concern | Choice |
 |---|---|
-| Frontend | TierHive VPS, London, separate loopback-only Node service behind HTTPS tunnel |
+| Frontend | TierHive VPS, London, private-subnet Node service behind regional HAProxy |
 | API | TierHive VPS, London, single instance, 2 vCPU / 3GB RAM |
 | Region rationale | User-selected existing VPS provider; measured rather than represented as US-East |
-| HTTPS | Cloudflare tunnel to a loopback-only API listener |
+| HTTPS | `usedara.xyz` → Vercel DNS → TierHive London HAProxy → private web listener |
 | Persistence | Backblaze B2, `us-east-005` |
 | Secrets | Platform secret store only. Never in the repo, never in `web/` |
 | Browser boundary | The server-side proxy holds the API token; the browser never receives it |
 | Rate limits | Per-IP on `/v1/verify`; global daily cap on live generation |
 | Health | `GET /healthz` reports B2 configuration and SDK/provider readiness |
 
-The verify limiter derives the public client address from Cloudflare forwarding headers
-only when the TCP peer is the local tunnel process; direct callers cannot spoof another
-address. The daily cap survives a process restart: startup rebuilds settled spend from
-today's B2-backed live-run records and charges the full reservation for any failed run
+The web boundary derives a pseudonymous actor from TierHive's forwarded client address
+and never sends the raw address to the API or B2. The daily cap survives a process
+restart: startup rebuilds settled spend from today's B2-backed live-run records and
+charges the full reservation for any failed run
 that reached provider execution without a known settled cost.
 
 Measured deployment and latency evidence, including the explicitly documented quick-

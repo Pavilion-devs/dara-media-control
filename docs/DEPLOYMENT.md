@@ -71,7 +71,7 @@ The following checks passed against production:
    labelling the snapshot live.
 9. On 2026-07-31, `http://usedara.xyz` redirected to HTTPS, the certificate validated,
    and `https://usedara.xyz` returned HTTP 200.
-10. The landing page, Studio, Policies, Runs, Ledger, Verify, and the anonymous policy,
+10. The product overview, Studio, Policies, Runs, Ledger, Verify, and the anonymous policy,
     run-history, and ledger API routes returned successfully through the custom domain.
 11. A cookie-free policy simulation returned HTTP 200 with the live cost preview, and
     hash verification of the shipped proof returned a trusted match with identical

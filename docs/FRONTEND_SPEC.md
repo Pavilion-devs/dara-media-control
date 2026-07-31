@@ -51,7 +51,9 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
 
 ### Public shell
 
-- `/` — product landing page. Explains the three pillars and links into Studio and
+- `/` — redirects directly to Studio's zero-spend deterministic replay, preserving the
+  judge-entry acceptance criterion.
+- `/about` — product overview. Explains the three pillars and links into Studio and
   Verify without leaking operator fixtures.
 - `/verify` — public verification. Hashes locally first, checks the trusted hash index,
   and uploads only changed, foreign, or unknown files for full embedded-manifest
@@ -66,8 +68,10 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
   remains visible before the run starts; live events stream from the durable run.
 - `/runs` — live B2-backed run history plus a separately labelled committed evidence
   corpus. Live records and fixture totals are never blended. Completed live runs can
-  issue client disclosure links.
-- `/assets/[id]` — lineage, attempts, hashes, parameters, cost, regeneration, and diff.
+  issue client disclosure links, explicitly authorize manifest-based regeneration,
+  and render the original/child output plus recorded parameter diff.
+- `/assets/[id]` — the seeded published-asset proof: lineage, source and delivered
+  hashes, provider latency, cost basis, and version history.
 - `/ledger` — live DuckDB-over-B2 accounting with an honestly labelled recorded-proof
   fallback during storage outages.
 - `/policies` — the active policy documents, four enforcement points, constraints, and

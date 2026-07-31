@@ -88,12 +88,13 @@ FastAPI + Genblaze on TierHive, London
                               the only datastore
 ```
 
-The web server and Python API are separate always-on services on the same VPS and bind
-only to loopback; independent HTTPS tunnels expose them. The API remains a single
-instance because admission control and job execution use in-process locks. Durable state
-is in B2, so restart reconciliation can fail orphaned work safely and rebuild the daily
-spend commitment. A multi-instance API would require an external transactional
-coordinator.
+The web server and Python API are separate always-on services on the same VPS. The API
+binds only to loopback; the web server binds to the TierHive private subnet and is
+exposed by TierHive's regional HAProxy at `https://usedara.xyz`. Provider and B2 secrets
+never cross that server boundary. The API remains a single instance because admission
+control and job execution use in-process locks. Durable state is in B2, so restart
+reconciliation can fail orphaned work safely and rebuild the daily spend commitment. A
+multi-instance API would require an external transactional coordinator.
 
 ### One bucket, distinct byte roles
 
@@ -172,9 +173,8 @@ set +a
 npm run dev
 ```
 
-Open `http://localhost:3000` for the public landing page, then
-`http://localhost:3000/studio` for the committed demo replay. The replay makes no
-provider call.
+Open `http://localhost:3000` for the committed Studio demo replay. The product overview
+remains at `http://localhost:3000/about`. The replay makes no provider call.
 
 ## Verify the build
 
@@ -202,9 +202,9 @@ PYTHONPATH=api api/.venv/bin/python -m dara.tools.list_models
 - **Provider diversity is image-first.** OpenAI and Replicate image routes are both
   production-probed. Video and speech currently use same-provider OpenAI fallbacks;
   their deterministic integration proofs are not presented as paid production calls.
-- **Temporary HTTPS transport.** The current account-less Cloudflare tunnel survives API
-  deployments but changes after a VPS or tunnel restart. The named-tunnel/custom-domain
-  upgrade and recovery procedure are documented in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+- **Single-region ingress.** `usedara.xyz` terminates TLS through TierHive's London
+  HAProxy and reaches one private VPS backend. B2 remains durable in `us-east-005`, but
+  the interactive control plane does not yet fail over to a second compute region.
 
 ## Genblaze feedback
 
