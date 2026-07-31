@@ -16,7 +16,7 @@ from dara.policy import money
 from dara.providers import ROUTES, provider_name_for_model
 from dara.storage import DaraStorage
 from dara.tools.seed_production_evidence import step_cost
-from dara.verify import manifest_key
+from dara.verify import AssetRef, asset_ref_key, manifest_key
 
 
 def parse_args() -> argparse.Namespace:
@@ -82,9 +82,17 @@ async def reconcile(job_id: str, *, execute: bool) -> dict[str, object]:
         model="accounting/v1",
     )
     await store.put(run)
+    if run.asset_id is not None:
+        reference = storage.get_json(asset_ref_key(run.asset_id), AssetRef)
+        if reference is None or reference.run_id != manifest.run.run_id:
+            raise RuntimeError("The run's trusted asset reference is missing or mismatched.")
+        reference.cost_usd = f"{actual:.6f}"
+        reference.cost_basis = overall_basis
+        storage.put_json(asset_ref_key(reference.asset_id), reference)
     return {
         "job_id": job_id,
         "actual_cost_usd": f"{actual:.6f}",
+        "asset_id": run.asset_id,
         "steps": [
             {
                 "model": step.model,
