@@ -91,9 +91,12 @@ QUERY_SQL = {
         GROUP BY 1 ORDER BY 1
     """,
     "cost_per_approved_asset": """
-        SELECT COUNT(*) AS runs, COUNT(*) FILTER (approved) AS approved_assets,
+        SELECT COUNT(*) AS runs,
+               COUNT(DISTINCT asset_id) FILTER (approved) AS approved_assets,
                CAST(COALESCE(SUM(cost_usd), 0) AS DECIMAL(18,6)) AS total_usd,
-               CAST(COALESCE(SUM(cost_usd) / NULLIF(COUNT(*) FILTER (approved), 0), 0)
+               CAST(COALESCE(
+                    SUM(cost_usd)
+                    / NULLIF(COUNT(DISTINCT asset_id) FILTER (approved), 0), 0)
                     AS DECIMAL(18,6)) AS cost_per_approved_asset_usd
         FROM accounting
         WHERE created_at >= ? AND created_at < ? AND (? IS NULL OR project_id = ?)
@@ -156,13 +159,14 @@ DASHBOARD_SQL = """
         project_id,
         accounting_month,
         COUNT(*) AS runs,
-        COUNT(*) FILTER (approved) AS approved_assets,
+        COUNT(DISTINCT asset_id) FILTER (approved) AS approved_assets,
         COUNT(asset_id) AS published_assets,
         CAST(COALESCE(SUM(cost_usd), 0) AS DECIMAL(18,6)) AS total_usd,
         CAST(COALESCE(AVG(cost_usd), 0) AS DECIMAL(18,6)) AS mean_usd,
         CAST(
             COALESCE(
-                SUM(cost_usd) / NULLIF(COUNT(*) FILTER (approved), 0),
+                SUM(cost_usd)
+                / NULLIF(COUNT(DISTINCT asset_id) FILTER (approved), 0),
                 0
             ) AS DECIMAL(18,6)
         ) AS cost_per_approved_asset_usd,

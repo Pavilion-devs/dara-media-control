@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from genblaze_core import Asset, FFmpegCompositor
+from genblaze_core import Asset
 from genblaze_core.testing import (
     MockAudioProvider,
     MockProvider,
@@ -15,6 +15,7 @@ from genblaze_core.testing import (
 )
 
 from dara.pipelines.motion import (
+    DaraMotionCompositor,
     MotionProviders,
     MotionSpec,
     build_motion_pipeline,
@@ -39,6 +40,23 @@ class MotionPipelineTests(unittest.TestCase):
             output_dir = Path(temporary)
             video_path = output_dir / "video.mp4"
             audio_path = output_dir / "narration.m4a"
+            keyframe_path = output_dir / "keyframe.png"
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-loglevel",
+                    "error",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "color=c=navy:s=300x200",
+                    "-frames:v",
+                    "1",
+                    "-y",
+                    str(keyframe_path),
+                ],
+                check=True,
+            )
             subprocess.run(
                 [
                     "ffmpeg",
@@ -78,9 +96,9 @@ class MotionPipelineTests(unittest.TestCase):
                 name="mock-image",
                 assets=[
                     Asset(
-                        url="memory://keyframe.png",
+                        url=keyframe_path.resolve().as_uri(),
                         media_type="image/png",
-                        sha256="1" * 64,
+                        sha256=hashlib.sha256(keyframe_path.read_bytes()).hexdigest(),
                     )
                 ],
                 cost_usd=0.01,
@@ -105,31 +123,35 @@ class MotionPipelineTests(unittest.TestCase):
                     image=keyframe,
                     video=video,
                     audio=audio,
-                    compositor=FFmpegCompositor(output_dir=output_dir),
+                    compositor=DaraMotionCompositor(output_dir=output_dir),
                 ),
             )
 
             result = pipeline.run(raise_on_failure=True)
 
-            self.assertEqual(len(result.run.steps), 4)
-            self.assertEqual(video.received_steps[0].inputs[0].media_type, "image/png")
-            composite_inputs = result.run.steps[3].inputs
+            self.assertEqual(len(result.run.steps), 5)
+            self.assertEqual(video.received_steps[0].inputs, [])
+            normalized = result.run.steps[1].assets[0]
+            self.assertEqual(normalized.media_type, "image/png")
+            self.assertEqual(normalized.width, 1280)
+            self.assertEqual(normalized.height, 720)
+            composite_inputs = result.run.steps[4].inputs
             self.assertEqual(
                 {item.media_type.split("/", 1)[0] for item in composite_inputs},
-                {"video", "audio"},
+                {"image", "video", "audio"},
             )
-            composite = result.run.steps[3].assets[0]
+            composite = result.run.steps[4].assets[0]
             self.assertEqual(composite.media_type, "video/mp4")
             self.assertTrue(Path(composite.url.removeprefix("file://")).exists())
             self.assertTrue(result.manifest.verify_hash())
             self.assertTrue(result.manifest.verify())
             self.assertEqual(
-                result.run.steps[3].metadata["_input_from"],
-                [1, 2],
+                result.run.steps[4].metadata["_input_from"],
+                [1, 2, 3],
             )
             self.assertTrue(result.run.steps[0].metadata["_fallback_models"])
-            self.assertTrue(result.run.steps[1].metadata["_fallback_models"])
             self.assertTrue(result.run.steps[2].metadata["_fallback_models"])
+            self.assertTrue(result.run.steps[3].metadata["_fallback_models"])
 
 
 if __name__ == "__main__":

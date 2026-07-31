@@ -226,9 +226,12 @@ staging directory. Dara uploads each completed table to the partitioned keys abo
 the sink closes. Dara also writes its own `accounting` table: one immutable row per paid
 attempt when attempt-level cost exists, otherwise one terminal run row. The record
 includes `source_job_id`, provider/model, `primary_model`, `failover_count`, status,
-cost and basis, saved cost, approval, QA, asset id, and timestamp. Blocked work records
-zero cost plus `saved_cost_usd`; cancelled in-flight work records the conservative full
-reservation when upstream spend is uncertain.
+cost and basis, saved cost, approval contribution, QA, asset id, and timestamp. For a
+multi-step delivered asset, every contributing billable step is approved for waste
+purposes but only the final row carries `asset_id`; summary denominators count distinct
+approved asset IDs, never step rows. Blocked work records zero cost plus
+`saved_cost_usd`; cancelled in-flight work records the conservative full reservation
+when upstream spend is uncertain.
 
 Partition all ledger writes by year and month in the object path so DuckDB can prune.
 Use one immutable file per run/job rather than appending to or overwriting a shared

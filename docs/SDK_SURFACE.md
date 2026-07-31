@@ -107,7 +107,7 @@ It uses `gpt-image-2` at low quality for a low-cost smoke test, then persists th
 generated image and manifest under `dara/live/`.
 
 The motion pipeline has a zero-network executable test that runs the full
-image → image-to-video → narration → FFmpeg fan-in graph with mock generative
+generated still + text-to-video + narration → FFmpeg fan-in graph with mock generative
 providers and real local media composition:
 
 ```bash

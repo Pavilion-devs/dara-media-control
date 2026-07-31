@@ -23,10 +23,13 @@ EVIDENCE = {
     REPLICATE_IMAGE_MODEL: (
         "Production call persisted and verified in B2 (5.518s; $0.040000)"
     ),
-    "sora-2": "Pipeline implemented; deterministic integration proof",
-    "sora-2-pro": "Configured fallback; deterministic integration proof",
-    "tts-1": "Pipeline implemented; deterministic integration proof",
-    "tts-1-hd": "Configured fallback; deterministic integration proof",
+    "sora-2": (
+        "Production 4s motion call persisted and verified in B2 "
+        "($0.400000 estimated)"
+    ),
+    "sora-2-pro": "Configured fallback; account catalog verified",
+    "tts-1": "Production calls persisted and verified in B2",
+    "tts-1-hd": "Configured fallback; account catalog verified",
     "gpt-4.1-mini": "Production prompt-expansion and vision-QA calls",
 }
 
@@ -89,8 +92,9 @@ def render_markdown() -> str:
     rows.extend(
         [
             "",
-            "The motion pipeline also uses Genblaze `FFmpegCompositor` for deterministic",
-            "local audio/video fan-in. Committed demo fixtures use visibly named mock",
+            "The motion pipeline also uses a Dara compositor built on Genblaze's FFmpeg",
+            "provider primitives for local still/video/audio fan-in. Those local steps",
+            "are recorded at $0. Committed demo fixtures use visibly named mock",
             "providers and never masquerade as live AI-provider execution.",
             "",
         ]

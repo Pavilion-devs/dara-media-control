@@ -996,17 +996,39 @@ async def execute_live_still(job_id: str) -> None:
             ),
             None,
         )
-        run.error_code = "POLICY_BLOCKED"
-        run.error_message = (
-            blocking.message
-            if blocking is not None
-            else "A policy gate rejected the live run."
-        )
+        qa_rejected = any(
+            violation.code in {"QA_BELOW_THRESHOLD", "MAX_ATTEMPTS_REACHED"}
+            for decision in exc.decisions
+            for violation in decision.violations
+        ) and any(attempt.status == "rejected" for attempt in run.attempts)
+        if qa_rejected:
+            rejected = [attempt for attempt in run.attempts if attempt.status == "rejected"]
+            run.qa_status = "failed"
+            run.qa_score = rejected[-1].qa_score
+            run.qa_attempts = len(rejected)
+            run.qa_issues = [
+                violation.message
+                for decision in exc.decisions
+                for violation in decision.violations
+                if violation.code in {"QA_BELOW_THRESHOLD", "MAX_ATTEMPTS_REACHED"}
+            ]
+            run.error_code = "QA_REJECTED"
+            run.error_message = (
+                "No candidate passed Dara's visual QA gate. Every attempt remains "
+                "recorded in B2; the unapproved images were not published."
+            )
+        else:
+            run.error_code = "POLICY_BLOCKED"
+            run.error_message = (
+                blocking.message
+                if blocking is not None
+                else "A policy gate rejected the live run."
+            )
         run.append_event(
             "run.failed",
             run.error_message,
             provider="dara",
-            model="policy/v1",
+            model="qa/v1" if qa_rejected else "policy/v1",
         )
         await persist_accounting(run)
         policy_job = await store.get_job(run.tenant_id, run.job_id)

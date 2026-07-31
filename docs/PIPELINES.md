@@ -1,7 +1,10 @@
 # PIPELINES
 
-Three templates. Each is a Genblaze `Pipeline` with fallback chains, a QA loop, and both
-sinks attached.
+Three pipeline definitions share the provider registry and fallback conventions.
+`still-campaign` is wired into the public job path; `motion-spot` and `voiceover-pack`
+also have paid end-to-end production proofs with embedded manifests, B2 objects, live
+run records, and per-step accounting. The visual QA loop belongs to the still pipeline,
+not every pipeline.
 
 > **Before implementing:** confirm every Genblaze symbol used here exists in the installed
 > version (`AGENTS.md`, T-06). Where reality differs from this spec, follow reality and
@@ -29,8 +32,9 @@ job's staging directory. Never treat `ParquetSink("ledger/")` as an S3 destinati
 never overwrite a shared monthly Parquet object.
 
 Construct a fresh `ObjectStorageSink` per run; Genblaze closes it after the run. After
-the hierarchical write succeeds, use the storage backend's server-side `copy()` to write
-each source asset to its content-addressable key and drop an
+the hierarchical write succeeds, Dara reads the trusted source once through its typed
+storage boundary, verifies the bytes against the manifest, writes them to the
+content-addressable key, and drops an
 `index/sha/{source_sha256}.json` pointer. Do not reuse the closed sink or run the result
 through a second sink. Both source layouts must exist — `DATA_MODEL.md` explains why.
 Publish is a separate byte transition: embed into a derivative, compute
@@ -82,26 +86,28 @@ faster and a better use of the async API than a loop.
 
 ## P2 — `motion-spot` (P1)
 
-Brief → keyframe image → image-to-video → narration → composite.
+Brief → generated keyframe + text-to-video + narration → composite.
 
 ```
-chat(expand) → image(keyframe) → video(image2video) → audio(tts) → composite → publish
-                                          ↘                    ↗
-                                           input_from fan-in
+image(keyframe) → normalize ───────────────┐
+video(text-to-video) ──────────────────────┼→ composite → publish
+audio(tts) ────────────────────────────────┘
 ```
 
 | Step | Provider chain | Notes |
 |---|---|---|
-| keyframe | OpenAI `gpt-image-2` → dated `gpt-image-2` snapshot | Reuses the central image route and registry |
-| video | OpenAI `sora-2` → `sora-2-pro` | Fixed at 4s / 720p. Video is the expensive and slow step; the policy engine must gate it. |
+| keyframe | OpenAI `gpt-image-2` → dated `gpt-image-2` snapshot | Reuses the central image route and registry; normalized to exact 1280×720 locally |
+| video | OpenAI `sora-2` → `sora-2-pro` | Fixed at 4s / 720p text-to-video. This account rejects image-to-video/inpaint, so Dara does not send the keyframe as a Sora reference. |
 | narration | OpenAI `tts-1` → `tts-1-hd` | Script comes from the expanded brief |
-| composite | Genblaze `FFmpegCompositor` | Real `input_from=[video, audio]` fan-in, exercised with FFmpeg |
+| composite | Dara compositor on Genblaze FFmpeg primitives | Real `input_from=[normalized image, video, audio]` fan-in; prepends the still and muxes narration |
 
-Video is where the demo breaks if you are careless. Hard per-step timeout, guaranteed
-fallback to a still, and pre-generated seeds so the demo never depends on a live video
-call succeeding.
+Video is where a demo breaks if handled carelessly. The current graph has hard provider
+timeouts and a same-provider Sora fallback. Production run
+`e0ed245d-5c9f-4092-87f9-549b48f2efc1` completed all five steps, embedded and
+re-extracted the MP4 manifest, persisted the source and derivative to B2, and recorded
+`$0.410780` provider spend. Local normalization and composition are explicitly `$0`.
 
-## P3 — `voiceover-pack` (P2, first to cut)
+## P3 — `voiceover-pack`
 
 Script → N voices in parallel → publish as a set. Cheap, fast, reliable — a good filler
 if video proves unworkable.
@@ -110,6 +116,9 @@ Implemented as a single-step OpenAI `tts-1` → `tts-1-hd` pipeline expanded by
 `abatch_run(items=...)`. Each item overrides `voice`, receives an ordered pack index,
 and runs under a bounded concurrency semaphore. The regression uses a thread-safe mock
 provider to prove at least two variants overlap and verifies every resulting manifest.
+Nine approved production voice assets now have inline MP3 provenance, trusted B2 hashes,
+live-run records, and per-call accounting; two earlier publication failures also remain
+visible as paid failed attempts rather than being erased.
 
 ## P4 — `regenerate` (P1)
 

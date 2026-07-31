@@ -82,10 +82,33 @@ async def build_report(
     image_failures = 0
     all_qa_latencies: list[float] = []
     qa_failures = 0
+    routed: dict[str, tuple[list[float], int]] = {
+        "black-forest-labs/flux-1.1-pro": ([], 0),
+        "sora-2": ([], 0),
+        "tts-1": ([], 0),
+    }
     for run in runs:
-        all_qa_latencies.extend(qa_latencies(run))
-        if run.qa_status == "failed":
-            qa_failures += max(1, run.qa_attempts)
+        run_qa_latencies = qa_latencies(run)
+        scored_attempts = [
+            attempt for attempt in run.attempts if attempt.qa_score is not None
+        ]
+        if len(scored_attempts) == len(run_qa_latencies):
+            all_qa_latencies.extend(
+                latency
+                for latency, attempt in zip(
+                    run_qa_latencies,
+                    scored_attempts,
+                    strict=True,
+                )
+                if attempt.status == "approved"
+            )
+            qa_failures += sum(
+                attempt.status == "rejected" for attempt in scored_attempts
+            )
+        elif run.qa_status == "failed":
+            qa_failures += max(1, run.qa_attempts, len(run_qa_latencies))
+        else:
+            all_qa_latencies.extend(run_qa_latencies)
         if run.genblaze_run_id is None:
             if run.error_code == "PROVIDER_ERROR":
                 image_failures += 1
@@ -97,14 +120,21 @@ async def build_report(
         )
         if manifest is None or not manifest.run.steps:
             continue
-        step = manifest.run.steps[0]
-        if step.model != "gpt-image-2":
-            continue
-        latency = seconds(step.started_at, step.completed_at)
-        if latency is not None:
-            image_latencies.append(latency)
+        for step in manifest.run.steps:
+            latency = seconds(step.started_at, step.completed_at)
+            if step.model == "gpt-image-2":
+                if latency is not None:
+                    image_latencies.append(latency)
+                continue
+            if step.model not in routed:
+                continue
+            latencies, failures = routed[step.model]
+            if step.status.value == "succeeded" and latency is not None:
+                latencies.append(latency)
+            else:
+                routed[step.model] = (latencies, failures + 1)
 
-    return [
+    results = [
         measurement(
             provider="openai-dalle",
             model="gpt-image-2",
@@ -127,6 +157,41 @@ async def build_report(
             cost_basis="Dara conservative structured-evaluation reservation",
         ),
     ]
+    specifications = {
+        "black-forest-labs/flux-1.1-pro": (
+            "replicate",
+            "image",
+            Decimal("0.040000"),
+            "registered per-output price",
+        ),
+        "sora-2": (
+            "openai-sora",
+            "video",
+            Decimal("0.100000"),
+            "registry estimate per output second",
+        ),
+        "tts-1": (
+            "openai-tts",
+            "audio",
+            Decimal("0.015000"),
+            "provider-reported price per 1K input characters",
+        ),
+    }
+    for model, (provider, modality, unit_cost, basis) in specifications.items():
+        latencies, failures = routed[model]
+        if latencies or failures:
+            results.append(
+                measurement(
+                    provider=provider,
+                    model=model,
+                    modality=modality,
+                    latencies=latencies,
+                    failures=failures,
+                    unit_cost_usd=unit_cost,
+                    cost_basis=basis,
+                )
+            )
+    return results
 
 
 async def main() -> None:

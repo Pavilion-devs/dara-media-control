@@ -162,12 +162,14 @@ Work top to bottom. Each task is one commit.
 
 ### Phase 5 — remaining pipelines and sharing
 
-- [x] **T-35** `pipelines/motion.py`: image → image-to-video → narration →
-      FFmpeg composite. The zero-network regression executes the four-step Genblaze
-      graph with real MP4/AAC composition, verifies `input_from` fan-in and fallback
-      metadata, and validates both manifest checks. The production VPS has FFmpeg
-      6.1.1 and the configured OpenAI account exposes the routed image, Sora, and TTS
-      models; paid seed execution remains part of T-39.
+- [x] **T-35** `pipelines/motion.py`: generated still → exact 720p normalization +
+      Sora text-to-video + narration → FFmpeg composite. The five-step Genblaze graph
+      prepends the generated still to the Sora clip and muxes narration, so every input
+      contributes to the delivered MP4. The account does not permit Sora image-to-video;
+      Dara records that limitation instead of claiming inpaint support. Run
+      `e0ed245d-5c9f-4092-87f9-549b48f2efc1` completed the paid graph, embedded and
+      re-extracted its manifest, persisted to B2, and reconciled to `$0.410780` total
+      provider spend. The zero-network regression exercises the same composition path.
 - [x] **T-36** `pipelines/voice.py`: script → multi-voice TTS. Voice variants
       execute through Genblaze `abatch_run(items=...)` with bounded true
       concurrency, per-variant metadata, OpenAI `tts-1` → `tts-1-hd` fallback,
@@ -242,6 +244,25 @@ Work top to bottom. Each task is one commit.
       Image response usage
       ([#240](https://github.com/backblaze-labs/genblaze/issues/240)).
 
+### Production evidence hardening
+
+- [x] **T-50** Replace prototype-scale accounting evidence with actual provider-backed
+      client-project records: OpenAI and Replicate, still plus a complete motion and
+      voice proof, paid rejected attempts, a provider-diverse fallback recovery, and
+      policy-blocked expensive work. Every timestamp must be the real execution time;
+      do not backdate rows merely to manufacture a monthly chart. The live ledger must
+      show attempt-level unapproved spend and more than one provider/model before this
+      box is checked. Completed 2026-07-31 with 20 client records across Northwind,
+      Atlas, and Field Notes: 12 approved assets, three zero-cost expensive-video
+      blocks (`$4.800000` prevented), three paid QA rejections, two OpenAI→Replicate
+      recoveries, production motion and voice, and `$0.723650` recorded client spend.
+      The all-project live DuckDB ledger reads `$0.818650` spend, `$4.815000` prevented,
+      and 27.1593% spend on unshipped work. All dates are actual July execution dates,
+      so the monthly chart intentionally has one truthful bar.
+- [ ] **T-51** Deploy this hardening release and repeat the cookie-free desktop/mobile
+      route, console, verification-upload, live ledger, and cancellation checks against
+      `usedara.xyz`. Record the release id and observed results in `docs/DEPLOYMENT.md`.
+
 ### Phase 7 — submit (M7)
 
 - [ ] **T-46** Record the demo video to the beat sheet in `docs/SUBMISSION.md`.
@@ -263,7 +284,7 @@ authorized: Dara is being built against the full checklist above.
 
 1. `voiceover-pack` pipeline
 2. Regeneration diff view (keep regeneration itself, drop the visual diff)
-3. `motion-spot` video pipeline (falls back to still images only)
+3. `motion-spot` video pipeline
 4. Share links
 5. ─── do not cut below this line ───
 6. Ledger, policy engine, verify page, one working pipeline

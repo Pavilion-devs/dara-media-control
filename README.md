@@ -33,7 +33,10 @@ Replay is the default and creates no new provider spend. It opens on a verified
 production OpenAI/B2 record with its original estimated cost visible; the committed
 13-run corpus also includes clearly marked deterministic fixtures for still, motion,
 voice, regeneration, policy blocks, and a QA fail-revise-pass path. Live generation is
-a separate, spend-labelled action with two-step confirmation.
+a separate, spend-labelled action with two-step confirmation. The live B2 evidence
+corpus contains 20 current client-project runs: 12 approved assets, three zero-cost
+policy blocks, three paid QA rejections, two provider-diverse recoveries, production
+voice, and a complete production motion package.
 
 ### 2. Verify the delivered bytes
 
@@ -134,8 +137,8 @@ not a provider. The inventory is generated from
 | OpenAI | `gpt-image-2-2026-04-21` | Same-provider image fallback | Configured and account-catalog verified |
 | Replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse image fallback | Production call persisted and verified in B2 · 5.518s · $0.040000 |
 | OpenAI | `gpt-4.1-mini` | Prompt expansion and vision QA | Production calls recorded |
-| OpenAI | `sora-2` → `sora-2-pro` | Motion generation | Pipeline and deterministic integration proof |
-| OpenAI | `tts-1` → `tts-1-hd` | Voice generation | Parallel pipeline and deterministic integration proof |
+| OpenAI | `sora-2` → `sora-2-pro` | Motion generation | Verified 4s production call · `$0.400000` estimated provider cost |
+| OpenAI | `tts-1` → `tts-1-hd` | Voice generation | Production MP3 calls persisted, embedded, and verified in B2 |
 
 See [`docs/MODELS_USED.md`](docs/MODELS_USED.md) for the generated submission table and
 [`docs/PROVIDERS.md`](docs/PROVIDERS.md) for measurement and cost-basis details.
@@ -207,8 +210,11 @@ PYTHONPATH=api api/.venv/bin/python -m dara.tools.list_models
 - **One writer per job.** B2 has no compare-and-swap transaction for these JSON records;
   concurrent updates to the same job are last-write-wins.
 - **Provider diversity is image-first.** OpenAI and Replicate image routes are both
-  production-probed. Video and speech currently use same-provider OpenAI fallbacks;
-  their deterministic integration proofs are not presented as paid production calls.
+  production-probed, including two deliberate cross-provider recoveries. Video and
+  speech have paid production proofs but currently use same-provider OpenAI fallbacks.
+- **No fabricated history.** All 20 client evidence records retain their real July 2026
+  execution timestamps. The monthly chart therefore has one honest bar; Dara does not
+  backdate rows to manufacture a longer operating history.
 - **Single-region ingress.** `usedara.xyz` terminates TLS through TierHive's London
   HAProxy and reaches one private VPS backend. B2 remains durable in `us-east-005`, but
   the interactive control plane does not yet fail over to a second compute region.

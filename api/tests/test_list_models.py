@@ -26,14 +26,15 @@ class ModelInventoryTests(unittest.TestCase):
             },
         )
 
-    def test_markdown_distinguishes_production_and_integration_evidence(self) -> None:
+    def test_markdown_distinguishes_called_and_catalog_only_models(self) -> None:
         report = render_markdown()
         self.assertIn("Production calls persisted and verified in B2", report)
         self.assertIn(
             "Production call persisted and verified in B2 (5.518s; $0.040000)",
             report,
         )
-        self.assertIn("deterministic integration proof", report)
+        self.assertIn("Production 4s motion call persisted and verified in B2", report)
+        self.assertIn("Configured fallback; account catalog verified", report)
         self.assertIn("not a model provider", report)
 
 

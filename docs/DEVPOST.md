@@ -27,10 +27,11 @@ Dara is the control plane that makes those answers part of the media pipeline.
   not ship.
 
 The default experience replays a verified production OpenAI/B2 record with its original
-estimated cost visible and creates no new provider spend. The committed 13-run corpus
-also includes two production policy blocks and a clearly marked deterministic
-fail-revise-pass QA path. Live generation is a separate, explicitly spend-labelled,
-two-confirmation action.
+estimated cost visible and creates no new provider spend. The live B2 evidence corpus
+contains 20 current records across the three client projects: 12 approved assets, three
+zero-cost expensive-video blocks, three paid QA rejections, two OpenAI→Replicate
+recoveries, production voice, and a complete production motion package. Live generation
+is a separate, explicitly spend-labelled, two-confirmation action.
 
 ## How it uses Backblaze B2
 
@@ -119,18 +120,20 @@ calls persisted and verified in B2. Genblaze is the orchestration and provenance
 | OpenAI | `gpt-image-2-2026-04-21` | Image | Same-provider snapshot fallback | Configured and verified in the account catalog |
 | Replicate | `black-forest-labs/flux-1.1-pro` | Image | Provider-diverse fallback | Production call persisted and verified in B2 · 5.518s · $0.040000 |
 | OpenAI | `gpt-4.1-mini` | Text and vision | Prompt expansion and visual QA | Production prompt-expansion and QA calls |
-| OpenAI | `sora-2` | Video | Primary motion generation | Implemented pipeline and deterministic integration proof |
-| OpenAI | `sora-2-pro` | Video | Motion fallback | Configured pipeline fallback and deterministic integration proof |
-| OpenAI | `tts-1` | Audio | Primary speech generation | Implemented parallel voice pipeline and deterministic integration proof |
-| OpenAI | `tts-1-hd` | Audio | Speech fallback | Configured pipeline fallback and deterministic integration proof |
+| OpenAI | `sora-2` | Video | Primary motion generation | Paid 4s production call persisted and verified in B2 · `$0.400000` estimated |
+| OpenAI | `sora-2-pro` | Video | Motion fallback | Configured fallback and verified in the account catalog |
+| OpenAI | `tts-1` | Audio | Primary speech generation | Production MP3 calls persisted, embedded, and verified in B2 |
+| OpenAI | `tts-1-hd` | Audio | Speech fallback | Configured fallback and verified in the account catalog |
 
-The production measurement set contains five `gpt-image-2` calls—four successes and one
-recorded failure—and three successful `gpt-4.1-mini` visual-QA calls. Failed work remains
-in the ledger instead of disappearing from cost-per-approved-asset calculations.
+The production measurement set contains eight trusted-manifest `gpt-image-2` samples,
+two Replicate fallback successes, one 86.652-second Sora render, eleven TTS samples, and
+eight visual-QA evaluations including three paid rejections. Failed work remains in the
+ledger instead of disappearing from cost-per-approved-asset calculations.
 
 Committed demo fixtures use visibly named mock providers and are never presented as live
-provider execution. The Replicate evidence is a separate paid call whose stored bytes
-and Genblaze manifest were read back from B2 and independently verified.
+provider execution. The live DuckDB-over-B2 ledger currently reads `$0.818650` total
+spend, `$4.815000` prevented, 18 approved assets, and 27.1593% of spend on unshipped
+work. All execution dates remain truthful; the monthly chart has one July 2026 bar.
 
 ## What we'd build next
 

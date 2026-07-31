@@ -5,7 +5,8 @@
 GMI Cloud hackathon credits are exhausted, so every live call must be deliberately
 budgeted. Dara uses the official `genblaze-openai` adapter as its primary provider:
 GPT Image for images, Sora for video, and OpenAI TTS for speech. The first
-`gpt-image-2` runs have completed and persisted successfully to B2.
+`gpt-image-2`, Replicate FLUX, `sora-2`, and `tts-1` runs have completed and
+persisted successfully to B2.
 
 ## Credit strategy — do this first
 
@@ -30,7 +31,7 @@ reorder — measured latency beats assumption.
 
 | Rank | Provider | Model | Status |
 |---|---|---|---|
-| 1 | openai | `gpt-image-2` | Active primary; four production successes, one recorded failure |
+| 1 | openai | `gpt-image-2` | Active primary; production successes and paid rejected attempts are both accounted |
 | 2 | openai | `gpt-image-2-2026-04-21` | Active snapshot fallback; confirmed present in the deployed account catalog without spending |
 | 3 | replicate | `black-forest-labs/flux-1.1-pro` | Active provider-diverse fallback; paid production call persisted and verified in B2 |
 | 4 | openai | `gpt-image-1.5` / `gpt-image-1-mini` | Deprecated and removed from Dara's live chain |
@@ -67,18 +68,20 @@ reported Replicate configured.
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | openai | `sora-2` | Primary candidate; must be probed and policy-gated |
-| 2 | replicate or google | To be measured | Provider-diverse fallback |
-| 3 | — | still fallback | If both fail, degrade to the keyframe still and say so in the UI |
+| 1 | openai | `sora-2` | Active primary; paid 4s production run persisted and verified in B2 |
+| 2 | openai | `sora-2-pro` | Configured same-provider fallback; account catalog verified |
+| 3 | — | generated still + local composite | Dara prepends the generated still to the text-to-video result; the current OpenAI organisation does not permit image-to-video/inpaint |
 
-Video is the highest-risk path in the project. Treat the still fallback as a real feature,
-not an error state — graceful degradation is a production-readiness signal.
+Video is the highest-risk path in the project. Production run
+`e0ed245d-5c9f-4092-87f9-549b48f2efc1` completed in 86.652 seconds for the Sora step;
+the full five-step package recorded `$0.410780` after local FFmpeg steps were reconciled
+to `$0`.
 
 ### Audio
 
 | Rank | Provider | Model | Notes |
 |---|---|---|---|
-| 1 | openai | `tts-1` | Active primary using the existing key; $0.015 per 1K input characters |
+| 1 | openai | `tts-1` | Active primary; production MP3 assets persisted and verified; $0.015 per 1K input characters |
 | 2 | openai | `tts-1-hd` | Same-provider quality fallback; $0.030 per 1K input characters |
 | 3 | elevenlabs | To be measured | Provider-diverse voice fallback |
 | 4 | — | no narration | Graceful degradation for motion output |
@@ -93,8 +96,8 @@ not an error state — graceful degradation is a production-readiness signal.
 
 ## Production measurement
 
-Generated from durable B2 live-run records and trusted Genblaze manifests on
-2026-07-29, plus the independently read-back Replicate probe on 2026-07-30. Latency
+Generated from durable B2 live-run records and trusted Genblaze manifests through
+2026-07-31. Latency
 covers the actual provider step only. OpenAI image cost is explicitly labelled as a
 conservative Dara estimate because the installed Genblaze adapter does not preserve
 settled image-token usage; Replicate's official-model route uses its registered
@@ -102,13 +105,16 @@ per-output price.
 
 | Provider | Model | Modality | Samples | Success / fail | Unit cost | p50 / max latency | >90s |
 |---|---|---|---|---|---|---|---|
-| openai-dalle | `gpt-image-2` | image | 5 | 4 / 1 | $0.010000 estimated | 20.758s / 21.972s | no |
-| openai | `gpt-4.1-mini` | vision QA | 3 | 3 / 0 | $0.005000 estimated | 8.234s / 9.100s | no |
-| replicate | `black-forest-labs/flux-1.1-pro` | image | 1 | 1 / 0 | $0.040000 registered | 5.518s / 5.518s | no |
+| openai-dalle | `gpt-image-2` | image | 8 | 7 / 1 | $0.010000 estimated | 20.500s / 24.204s | no |
+| openai | `gpt-4.1-mini` | vision QA | 8 | 5 / 3 | $0.005000 estimated | 8.633s / 9.100s approved calls | no |
+| replicate | `black-forest-labs/flux-1.1-pro` | image | 2 | 2 / 0 | $0.040000 registered | 6.738s / 7.151s | no |
+| openai-sora | `sora-2` | video | 1 | 1 / 0 | $0.100000 / output second, estimated | 86.652s / 86.652s | no |
+| openai-tts | `tts-1` | audio | 11 | 11 / 0 | $0.015000 / 1K chars | 2.056s / 3.808s | no |
 
-No active measured model exceeded 90 seconds. The single image failure remains in the
-sample count and ledger rather than being silently discarded. Video, speech, and
-deprecated image models are not presented as measured production calls.
+No active measured provider step exceeded 90 seconds. The single image failure, three
+paid QA rejections, and two post-provider publication failures remain recorded rather
+than being silently discarded. Deprecated image models and uncalled fallback models are
+not presented as measured production calls.
 
 The current Genblaze/OpenAI adapter does not return a provider-reported image cost, so
 Dara settles these runs from its conservative registry estimate and labels the basis
