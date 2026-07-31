@@ -18,7 +18,39 @@ const seededAsset = {
   manifestKey: "d7bc702cafdbbe4b48eef3df2e4c92c0e6b0e2eb4d16b8a72086a4f3ba116f58",
   latency: "Recorded live",
   previewUrl: "/dara-verified-sample.png",
+  mimeType: "image/png",
 };
+
+function AssetPreview({
+  mimeType,
+  model,
+  previewUrl,
+  provider,
+}: {
+  mimeType: string;
+  model: string;
+  previewUrl: string;
+  provider: string;
+}) {
+  const label = `Dara provenance proof generated with ${provider} ${model}`;
+  const frame =
+    "aspect-[4/3] w-full rounded-2xl border border-line bg-inset object-cover";
+
+  if (mimeType.startsWith("video/")) {
+    return <video aria-label={label} className={frame} controls src={previewUrl} />;
+  }
+  if (mimeType.startsWith("audio/")) {
+    return (
+      <div className="grid min-h-48 content-center gap-4 rounded-2xl border border-line bg-inset p-8">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
+          Audio provenance proof
+        </p>
+        <audio aria-label={label} className="w-full" controls src={previewUrl} />
+      </div>
+    );
+  }
+  return <img alt={label} className={frame} src={previewUrl} />;
+}
 
 const seededLineage: LineageNode[] = [
   {
@@ -63,6 +95,7 @@ export function AssetScreen({ id, record }: { id: string; record: AssetRecord | 
         manifestKey: record.verification?.manifest?.canonical_hash ?? record.asset.run_id,
         latency: `${record.asset.cost_basis} cost · $${record.asset.cost_usd}`,
         previewUrl: record.asset_url,
+        mimeType: record.asset.mime_type,
       }
     : seededAsset;
   const lineage: LineageNode[] = record?.verification
@@ -115,10 +148,11 @@ export function AssetScreen({ id, record }: { id: string; record: AssetRecord | 
       <div className="min-w-0 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="min-w-0 grid content-start gap-6">
           {/* B2 signs delivered asset URLs at runtime; no static allowlist applies. */}
-          <img
-            alt={`Dara provenance proof generated with ${asset.provider} ${asset.model}`}
-            className="aspect-[4/3] w-full rounded-2xl border border-line bg-inset object-cover"
-            src={asset.previewUrl}
+          <AssetPreview
+            mimeType={asset.mimeType}
+            model={asset.model}
+            previewUrl={asset.previewUrl}
+            provider={asset.provider}
           />
           <Panel>
             <PanelHead title="Record" />
