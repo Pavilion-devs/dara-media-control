@@ -142,13 +142,15 @@ TypeScript checking, the five-stage Vinext build, and the rendered-application t
 The web regression includes the shipped proof crossing the Vinext request boundary
 without the former 413.
 
-On 2026-07-31, release `c422783` was deployed after the redesigned UI was exercised in
+On 2026-07-31, release `2b55043` was deployed after the redesigned UI was exercised in
 real desktop and 390×844 mobile browser sessions. Studio, Policies, live Runs, a live
 run event stream, Asset proof, live DuckDB/B2 Ledger, full-file Verify, and a redacted
 public disclosure all passed. Root navigation resolves to Studio, `/about` retains the
 marketing page, every tested mobile route has zero horizontal overflow, and the browser
 console remained clean. The same release passed 78 Python tests plus the complete web
-gate, including all ten rendered-application tests.
+gate, including all ten rendered-application tests. The shipped 1.2 MB proof was then
+uploaded through the browser and returned `embedded`, `trusted-match`, valid canonical
+integrity, and the expected B2 published hash.
 
 ## Latency
 

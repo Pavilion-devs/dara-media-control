@@ -219,8 +219,9 @@ Work top to bottom. Each task is one commit.
 - [x] **T-43** No test account is required. Demo replay, policy preview, live-run
       creation/listing/status/events/regeneration/diff, disclosure creation,
       verification, asset viewing, and aggregate DuckDB-over-B2 ledger reads are
-      anonymous. The Runs screen separates live B2 history from fixtures; Verify uses
-      local SHA-256 plus hash lookup before streaming unknown files for inspection.
+      anonymous. The Runs screen separates live B2 history from fixtures; Verify hashes
+      locally, streams normal files for full embedded-manifest inspection, and reserves
+      hash-only lookup for an edge upload-limit fallback.
       Paid mutations remain bounded by the kill switch, per-actor quota, and daily
       spend cap. Exact route-by-route instructions live in `docs/JUDGE_ACCESS.md`.
 - [x] **T-44** README rewritten per `docs/SUBMISSION.md` with real production
