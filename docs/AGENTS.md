@@ -71,10 +71,9 @@ dara/
 │   │   └── routers/           one module per API surface
 │   ├── seeds/                 pre-generated demo runs (committed)
 │   └── tests/
-└── web/                   Next.js 15 App Router + TypeScript + Tailwind
-    ├── app/
-    ├── components/
-    └── lib/
+├── app/                   Next.js App Router routes and server-side API proxies
+├── components/            Shared UI, Dara domain, and shell components
+└── worker/                Vinext/Cloudflare-compatible web entry
 ```
 
 ## Working rules

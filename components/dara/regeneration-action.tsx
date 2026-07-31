@@ -185,7 +185,7 @@ export function RegenerationAction({
       setChild(current);
 
       for (let attempt = 0; attempt < 90; attempt += 1) {
-        if (["succeeded", "failed", "blocked"].includes(current.status)) break;
+        if (["succeeded", "failed", "blocked", "cancelled"].includes(current.status)) break;
         await new Promise((resolve) => setTimeout(resolve, 2000));
         const poll = await fetch(
           `/api/runs/${encodeURIComponent(current.job_id)}`,

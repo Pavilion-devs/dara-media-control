@@ -19,6 +19,12 @@ type Dashboard = {
   months: LedgerQuery;
 };
 
+const clientProjectNames: Record<string, string> = {
+  prj_northwind_q3: "Northwind — Q3 campaign",
+  prj_atlas_brand: "Atlas Hotels — Brand film",
+  prj_field_launch: "Field Notes — Product launch",
+};
+
 function Metric({
   label,
   value,
@@ -82,6 +88,11 @@ export function LedgerScreen() {
   const summary = live.summary;
   const wastePercent =
     (Number(summary.waste_ratio) * 100).toFixed(1);
+  const wasteSpend = Number(summary.total_spend_usd) * Number(summary.waste_ratio);
+  const clientProjectRows = live.projects.rows
+    .filter((row) => typeof row[0] === "string" && row[0] in clientProjectNames)
+    .map((row) => [clientProjectNames[String(row[0])], ...row.slice(1)]);
+  const clientProjectColumns = ["project", ...live.projects.columns.slice(1)];
 
   return (
     <div className="grid gap-6">
@@ -112,25 +123,28 @@ export function LedgerScreen() {
           }
           emphasis
           label="Cost / approved asset"
-          value={`$${summary.cost_per_approved_asset_usd}`}
+          value={`$${Number(summary.cost_per_approved_asset_usd).toFixed(2)}`}
         />
         <Metric
           detail="Policy-blocked work · zero provider calls were made."
           label="Spend prevented"
-          value={`$${summary.spend_prevented_usd}`}
+          value={`$${Number(summary.spend_prevented_usd).toFixed(2)}`}
         />
         <Metric
-          detail={
-            `${summary.approved_assets} of ${summary.run_count} runs produced a published asset.`
-          }
-          label="Waste ratio"
-          value={`${wastePercent}%`}
+          detail={`$${wasteSpend.toFixed(6)} of $${summary.total_spend_usd} settled spend.`}
+          label="Spend on unapproved work"
+          value={`$${wasteSpend.toFixed(2)}`}
         />
       </div>
 
+      <p className="text-sm text-muted">
+        Published outcome: {summary.approved_assets} of {summary.run_count} accounted
+        attempts produced an approved asset. Unapproved-spend share: {wastePercent}%.
+      </p>
+
       <p className="font-mono text-xs text-subtle">
         {ledgerState === "live"
-          ? `Generated ${new Date(summary.generated_at).toLocaleTimeString()} · total spend $${summary.total_spend_usd}`
+          ? `Generated ${new Date(summary.generated_at).toISOString()} · total spend $${summary.total_spend_usd}`
           : "Live ledger unavailable · verified B2 snapshot from 29 Jul 2026"}
       </p>
 
@@ -148,9 +162,9 @@ export function LedgerScreen() {
         <Panel>
           <PanelHead title="Spend by project" />
           <DataTable
-            columns={live.projects.columns ?? []}
-            empty="No project spend recorded."
-            rows={live.projects.rows ?? []}
+            columns={clientProjectColumns}
+            empty="No client-project spend is recorded yet. Internal probes stay out of this view."
+            rows={clientProjectRows}
           />
         </Panel>
         <Panel>

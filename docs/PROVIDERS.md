@@ -150,7 +150,7 @@ either even when individual smoke tests succeed.
 
 1. All seeded runs are pre-generated and committed to `api/seeds/`. Demo mode never calls
    a provider.
-2. Live generation is capped by `pol_locked`: $0.10 per run, images only, 1:1 only,
+2. The locked demonstration policy caps a run at $0.02, images only, 1:1 only,
    1 variant. This is the same seeded policy defined in `POLICY_ENGINE.md`; do not create
    a fourth policy name only for this document.
 3. A global daily spend ceiling enforced by the policy engine itself. When it trips, live

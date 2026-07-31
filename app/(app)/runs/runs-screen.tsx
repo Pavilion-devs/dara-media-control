@@ -225,6 +225,7 @@ const liveStatusTone: Record<LiveRun["status"], Tone> = {
   succeeded: "allow",
   failed: "block",
   blocked: "block",
+  cancelled: "neutral",
 };
 
 function LiveRunRow({

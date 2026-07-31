@@ -52,17 +52,11 @@ its `details.violations` drive the UI. Say plainly in the message that nothing w
 ```jsonc
 // request
 {
-  "pipeline_id": "still-campaign",
   "project_id": "prj_northwind_q3",
   "policy_id": "pol_standard",        // optional; defaults to the project's policy
-  "brief": {
-    "prompt": "hero shot of a ceramic bowl on linen, morning light",
-    "modality": "image",
-    "aspect_ratio": "16:9",
-    "variants": 3,
-    "brand_notes": "warm, unfussy, no props competing with the product"
-  },
-  "mode": "live"                       // "live" | "demo"
+  "prompt": "hero shot of a ceramic bowl on linen, morning light",
+  "aspect_ratio": "1:1",              // "1:1" | "3:2" | "2:3"
+  "variants": 1                         // live still path is deliberately single-output
 }
 ```
 
@@ -72,15 +66,16 @@ its `details.violations` drive the UI. Say plainly in the message that nothing w
 {
   "job_id": "job_01J...",
   "status": "queued",
-  "estimate": {
-    "expected_usd": "0.180000",
-    "worst_case_usd": "0.540000",
-    "per_step": [ { "step": "expand", "usd": "0.001000" }, { "step": "image", "usd": "0.060000" } ],
-    "unpriced_models": []
-  },
-  "events_url": "/v1/runs/job_01J.../events"
+  "expected_cost_usd": "0.030000",
+  "worst_case_cost_usd": "0.090000",
+  "actual_cost_usd": null,
+  "events": [],
+  "attempts": []
 }
 ```
+
+The response is the complete public `LiveRun` record; its anonymous actor identifier is
+intentionally excluded. The event stream lives at `/v1/runs/{job_id}/events`.
 
 `409` when policy blocks. Persist the blocked job and policy event first, then return its
 `job_id` and the estimate alongside the violations so the UI can show what it would have
@@ -112,6 +107,11 @@ server-side.
 
 ### `POST /v1/runs/{job_id}/cancel`
 
+Cancellation is best-effort once a provider call has begun. A queued cancellation
+releases its reservation and records zero spend. A running or publishing cancellation
+keeps the full worst-case reservation as conservative unapproved spend because an
+upstream provider may already have charged even when the local task stops.
+
 ### `POST /v1/regenerate/{job_id}`
 Reconstructs from the manifest and starts a new run linked by `parent_run_id`. Policy is
 re-evaluated — a regeneration can breach a budget that has tightened since. The new Dara
@@ -127,11 +127,13 @@ Parameter diff plus both asset references, for the regeneration comparison view.
 Asset record plus its lineage chain.
 
 ### `POST /v1/assets/{asset_id}/approve`
-Keeps the Genblaze-bound source object unchanged, embeds the manifest into a local
-candidate derivative, computes `published_sha256`, and re-extracts the manifest to
-validate the candidate. The `PRE_PUBLISH` gate evaluates that prepared candidate before
-Dara writes it under `published/`, writes SHA index pointers for both source and published
-hashes, and marks the asset approved.
+
+The live pipeline performs approval atomically at its `PRE_PUBLISH` gate: it keeps the
+Genblaze-bound source object unchanged, embeds the manifest into a local candidate,
+computes `published_sha256`, re-extracts the manifest, then writes the approved derivative
+and both SHA index pointers. This endpoint is an idempotent acknowledgement for such an
+already-approved asset. It returns `409 ASSET_NOT_PUBLISHABLE` rather than bypassing the
+pipeline gate for an unpublished source.
 
 ## Verify — public
 
@@ -211,7 +213,8 @@ waste ratio, run count, failover count. Cache 60s.
 `simulate` is worth building: post a policy plus a brief, get the decision without running
 anything. It makes the governance layer explorable in the demo without spending.
 
-`GET|POST /v1/projects`, `GET|PUT /v1/projects/{id}`.
+`GET|POST /v1/projects`, `GET|PUT /v1/projects/{id}`. Project documents are B2-backed;
+public mutations carry the anonymous actor and are quota-limited.
 
 ## Sharing
 

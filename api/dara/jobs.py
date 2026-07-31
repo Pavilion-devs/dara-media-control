@@ -18,6 +18,7 @@ RunStatus = Literal[
     "succeeded",
     "failed",
     "blocked",
+    "cancelled",
 ]
 
 
@@ -44,6 +45,8 @@ class RunAttempt(BaseModel):
     model: str | None = None
     qa_score: float | None = Field(default=None, ge=0, le=1)
     asset_id: str | None = None
+    cost_usd: Decimal | None = None
+    cost_basis: Literal["known", "estimated", "unknown"] = "unknown"
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

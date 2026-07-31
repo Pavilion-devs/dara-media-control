@@ -123,10 +123,12 @@ is the difference between "demo" and "production readiness."
 
 The root route redirects visitors to `/studio`, where demo replay is the default. The
 public product overview remains available at `/about`.
+The default is a verified production record; synthetic paths remain visibly labelled.
 Seeded runs in `api/seeds/` are replayed through the same event shape with realistic
 inter-step delays, so the UI code path is identical to live generation. Live generation
-requires an explicit action and is subject to both the anonymous action quota and the
-global daily spend cap enforced by the policy engine itself.
+requires two explicit confirmation clicks and is subject to both the anonymous action
+quota and the independent deployment-wide daily spend cap enforced by the policy engine
+itself.
 
 The seed set must include at least: two policy-blocked runs, one run where QA failed and
 the revision passed, one multi-provider fallback event, and one run per pipeline.
@@ -140,9 +142,9 @@ the revision passed, one multi-provider fallback event, and one run per pipeline
 | Region rationale | User-selected existing VPS provider; measured rather than represented as US-East |
 | HTTPS | `usedara.xyz` → Vercel DNS → TierHive London HAProxy → private web listener |
 | Persistence | Backblaze B2, `us-east-005` |
-| Secrets | Platform secret store only. Never in the repo, never in `web/` |
+| Secrets | Root-readable service environment only. Never in the repo or browser bundle |
 | Browser boundary | The server-side proxy holds the API token; the browser never receives it |
-| Rate limits | Per-IP on `/v1/verify`; global daily cap on live generation |
+| Rate limits | Per-IP on `/v1/verify`; pseudonymous quotas on mutations; independent global daily cap on live generation |
 | Health | `GET /healthz` reports B2 configuration and SDK/provider readiness |
 
 The web boundary derives a pseudonymous actor from TierHive's forwarded client address
@@ -165,6 +167,7 @@ tunnel lifecycle limit, lives in `docs/DEPLOYMENT.md`.
 | DuckDB cold start slow | Connection cached at module scope; ledger summary served from a cached aggregate refreshed every 60s |
 | Judge exhausts credits | Live generation blocked by the spend-cap policy with a clear message; demo mode remains fully functional |
 | Process restart mid-run | Startup reconciler marks orphaned runs `failed`; the ledger stays consistent |
+| User cancels after provider work starts | The task is stopped best-effort; the full reservation remains conservatively accounted because upstream spend may already have occurred |
 
 ## Security notes
 

@@ -26,9 +26,11 @@ Dara is the control plane that makes those answers part of the media pipeline.
   month, spend prevented, and cost per approved asset—including work that failed or did
   not ship.
 
-The default experience is a zero-spend replay of a committed 13-run corpus, including
-two production policy blocks and a deterministic fail-revise-pass QA path. Live
-generation is a separate, explicitly spend-labelled action.
+The default experience replays a verified production OpenAI/B2 record with its original
+estimated cost visible and creates no new provider spend. The committed 13-run corpus
+also includes two production policy blocks and a clearly marked deterministic
+fail-revise-pass QA path. Live generation is a separate, explicitly spend-labelled,
+two-confirmation action.
 
 ## How it uses Backblaze B2
 
@@ -58,7 +60,7 @@ dara/share-assets/{token}/{asset_id}.ext      token-scoped share copies
 dara/manifests/{run_id}.json                  provenance
 dara/index/sha/{sha}.json                     trusted hash lookup
 dara/ledger/{table}/year=YYYY/month=MM/*.parquet
-dara/state/{jobs,live-runs,policies,projects,shares}/
+dara/state/{jobs,live-runs,assets,policies,projects,shares}/
 ```
 
 For accounting, Genblaze's `ParquetSink` first writes completed tables into a local

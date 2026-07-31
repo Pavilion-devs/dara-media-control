@@ -1,12 +1,13 @@
 import { HashDisplay } from "@/components/dara/hash-display";
 import { LineageSpine, type LineageNode } from "@/components/dara/lineage-spine";
 import { Badge, CopyRow, Panel, PanelBody, PanelHead } from "@/components/ui";
+import type { AssetRecord } from "../../../asset-schema";
 
 /**
  * The recorded OpenAI → Genblaze → B2 proof. Held as a constant because this is
  * evidence from a specific production run, not a synthetic sample.
  */
-const asset = {
+const seededAsset = {
   id: "B9885F41",
   publishedSha256:
     "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
@@ -19,7 +20,7 @@ const asset = {
   previewUrl: "/dara-verified-sample.png",
 };
 
-const lineage: LineageNode[] = [
+const seededLineage: LineageNode[] = [
   {
     key: "brief",
     step: "01 · brief",
@@ -50,7 +51,29 @@ const lineage: LineageNode[] = [
   },
 ];
 
-export function AssetScreen({ id }: { id: string }) {
+export function AssetScreen({ id, record }: { id: string; record: AssetRecord | null }) {
+  const step = record?.verification?.manifest?.steps[0];
+  const asset = record
+    ? {
+        id: record.asset.asset_id,
+        publishedSha256: record.asset.published_sha256 ?? record.asset.source_sha256,
+        sourceSha256: record.asset.source_sha256,
+        provider: step?.provider ?? "recorded provider",
+        model: step?.model ?? "recorded model",
+        manifestKey: record.verification?.manifest?.canonical_hash ?? record.asset.run_id,
+        latency: `${record.asset.cost_basis} cost · $${record.asset.cost_usd}`,
+        previewUrl: record.asset_url,
+      }
+    : seededAsset;
+  const lineage: LineageNode[] = record?.verification
+    ? record.verification.lineage.map((item, index) => ({
+        key: `${item.run_id}-${index}`,
+        step: `${String(index + 1).padStart(2, "0")} · ${item.relationship}`,
+        title: `${item.provider ?? "Parent run"} / ${item.model ?? "record"}`,
+        detail: item.run_id,
+        trailing: new Date(item.at).toISOString().slice(0, 10),
+      }))
+    : seededLineage;
   return (
     <div className="min-w-0 grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -62,7 +85,7 @@ export function AssetScreen({ id }: { id: string }) {
             Dara provenance proof.
           </h1>
           <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
-            Approved deliverable · exact OpenAI generation record preserved.
+            Approved deliverable · exact provider record preserved.
           </p>
         </div>
         <Badge dot tone="allow">
@@ -93,7 +116,7 @@ export function AssetScreen({ id }: { id: string }) {
         <div className="min-w-0 grid content-start gap-6">
           {/* B2 signs delivered asset URLs at runtime; no static allowlist applies. */}
           <img
-            alt="Dara provenance proof generated with OpenAI GPT Image 2"
+            alt={`Dara provenance proof generated with ${asset.provider} ${asset.model}`}
             className="aspect-[4/3] w-full rounded-2xl border border-line bg-inset object-cover"
             src={asset.previewUrl}
           />

@@ -192,6 +192,30 @@ class LiveRunStoreTests(unittest.IsolatedAsyncioTestCase):
 
 
 class LiveRunEndpointTests(unittest.TestCase):
+    def test_live_policy_cannot_raise_deployment_spend_ceiling(self) -> None:
+        permissive = main_module.POLICIES["pol_permissive"]
+        with patch.dict(
+            "os.environ",
+            {"DARA_GLOBAL_DAILY_SPEND_CAP_USD": "0.750000"},
+        ):
+            resolved = main_module.live_policy(permissive)
+
+        self.assertEqual(resolved.max_cost_usd_per_day, Decimal("0.750000"))
+        self.assertEqual(
+            permissive.max_cost_usd_per_day,
+            Decimal("100.000000"),
+        )
+
+    def test_invalid_global_spend_ceiling_fails_closed(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {"DARA_GLOBAL_DAILY_SPEND_CAP_USD": "not-money"},
+        ):
+            self.assertEqual(
+                main_module.global_daily_spend_cap(),
+                Decimal("5.000000"),
+            )
+
     def test_dara_configuration_names_override_legacy_kiln_aliases(self) -> None:
         with patch.dict(
             "os.environ",
@@ -436,6 +460,72 @@ class LiveRunEndpointTests(unittest.TestCase):
             response.json()["error"]["code"],
             "LIVE_GENERATION_DISABLED",
         )
+
+    def test_cancelling_started_work_keeps_the_worst_case_accounted(self) -> None:
+        run_store = MemoryLiveRunStore()
+        policy_store = MemoryJobStore()
+        policy_engine = PolicyEngine(policy_store)
+        running = LiveRunRecord(
+            job_id="job_1234567890abcdef1234",
+            project_id="prj_northwind_q3",
+            prompt="A provider call that may already have started",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.030000"),
+            worst_case_cost_usd=Decimal("0.090000"),
+            status="running",
+        )
+        asyncio.run(run_store.put(running))
+        asyncio.run(
+            policy_store.put_job(
+                JobRecord(
+                    job_id=running.job_id,
+                    tenant_id="demo",
+                    status="running",
+                    estimated_cost_usd=Decimal("0.030000"),
+                    reserved_cost_usd=Decimal("0.090000"),
+                )
+            )
+        )
+        accounted: list[tuple[LiveRunRecord, bool]] = []
+
+        async def fake_accounting(
+            run: LiveRunRecord,
+            *,
+            collapse_to_run: bool = False,
+        ) -> None:
+            accounted.append((run.model_copy(deep=True), collapse_to_run))
+
+        with (
+            patch.object(main_module, "live_run_store", run_store),
+            patch.object(main_module, "store", policy_store),
+            patch.object(main_module, "engine", policy_engine),
+            patch.object(main_module, "persist_accounting", fake_accounting),
+            patch.object(main_module, "reconcile_orphaned_runs", return_value=0),
+            patch.object(
+                main_module,
+                "public_action_rate_limiter",
+                main_module.PublicActionRateLimiter(),
+            ),
+            patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+            TestClient(main_module.app) as client,
+        ):
+            response = client.post(
+                f"/v1/runs/{running.job_id}/cancel",
+                headers={
+                    "Authorization": "Bearer test-token",
+                    "X-Dara-Actor": "anon_" + "9" * 32,
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "cancelled")
+        self.assertEqual(response.json()["actual_cost_usd"], "0.090000")
+        self.assertIn("conservatively accounted", response.json()["error_message"])
+        self.assertEqual(len(accounted), 1)
+        self.assertTrue(accounted[0][1])
+        policy_job = asyncio.run(policy_store.get_job("demo", running.job_id))
+        self.assertEqual(policy_job and policy_job.actual_cost_usd, Decimal("0.090000"))
 
     def test_sse_stream_replays_events_and_terminal_snapshot(self) -> None:
         run_store = MemoryLiveRunStore()

@@ -6,7 +6,7 @@ Everything is an object in one B2 bucket. There is no database.
 
 ```
 dara/
-  runs/{tenant}/{yyyy-mm-dd}/{run_id}/
+  live/runs/{tenant}/{yyyy-mm-dd}/{run_id}/
       manifest.json                     Genblaze manifest, HIERARCHICAL sink
       assets/{asset_id}.{ext}            unembedded source bytes
   assets/{sha[0:2]}/{sha[2:4]}/{sha}.{ext}    source bytes, content-addressable
@@ -17,9 +17,11 @@ dara/
       runs/year={yyyy}/month={mm}/{run_id}.parquet
       steps/year={yyyy}/month={mm}/{run_id}.parquet
       assets/year={yyyy}/month={mm}/{run_id}.parquet
-      policy_events/year={yyyy}/month={mm}/{job_id}.parquet
+      accounting/year={yyyy}/month={mm}/{job_or_attempt_id}.parquet
   state/
       jobs/{tenant}/{job_id}.json
+      live-runs/{tenant}/{job_id}.json
+      assets/{asset_id}.json
       projects/{tenant}/{project_id}.json
       policies/{tenant}/{policy_id}.json
       shares/{token}.json
@@ -87,28 +89,31 @@ The central record. One writer per job.
   "project_id": "prj_northwind_q3",
   "pipeline_id": "still-campaign",
   "policy_id": "pol_standard",
-  "status": "succeeded",          // queued|running|succeeded|failed|blocked|cancelled
+  "status": "succeeded",          // queued|running|publishing|succeeded|failed|blocked|cancelled
   "created_at": "...",
-  "started_at": "...",
-  "finished_at": "...",
-  "heartbeat_at": "...",          // used by the orphan reconciler
-  "brief": {
-    "prompt": "hero shot of a ceramic bowl on linen, morning light",
-    "modality": "image",
-    "aspect_ratio": "16:9",
-    "variants": 3
-  },
-  "estimated_cost_usd": "0.180000", // pre-flight, from ModelRegistry
-  "reserved_cost_usd": "0.540000",  // worst case while queued/running; zero on terminal
-  "actual_cost_usd": "0.210000",    // accumulated from step results
-  "attempt_count": 2,
+  "updated_at": "...",
+  "prompt": "hero shot of a ceramic bowl on linen, morning light",
+  "aspect_ratio": "1:1",
+  "variants": 1,
+  "expected_cost_usd": "0.030000", // pre-flight, from ModelRegistry
+  "worst_case_cost_usd": "0.090000", // held while queued/running
+  "actual_cost_usd": "0.055000",   // known or conservative estimated terminal amount
+  "cost_basis": "estimated",
   "parent_job_id": null,
   "genblaze_run_id": "run_...",
-  "manifest_uri": "b2://dara-media/manifests/run_....json",
+  "manifest_hash": "...",
+  "source_sha256": "...",
+  "published_sha256": "...",
+  "published_content_address": "dara/published/ab/cd/....png",
+  "qa_status": "passed",
+  "qa_score": 0.91,
+  "qa_attempts": 2,
   "policy_decisions": [ /* Decision objects, see POLICY_ENGINE.md */ ],
   "events": [ /* StepEvent objects, see below */ ],
-  "assets": [ /* AssetRef objects, see below */ ],
-  "error": null
+  "attempts": [ /* RunAttempt objects, see below */ ],
+  "asset_id": "ast_...",
+  "error_code": null,
+  "error_message": null
 }
 ```
 
@@ -122,19 +127,36 @@ serves both, deliberately.
   "seq": 7,
   "at": "2026-07-28T09:00:14.221Z",
   "type": "step.failover",
-  // step.queued | step.started | step.progress | step.failover |
-  // step.succeeded | step.failed | qa.scored | qa.revised |
-  // policy.evaluated | policy.blocked | run.succeeded | run.failed
-  "step_index": 1,
   "provider": "openai",
   "model": "gpt-image-2-2026-04-21",
-  "message": "primary model unavailable, falling back",
-  "data": { "from_model": "gpt-image-2", "error_code": "MODEL_ERROR" }
+  "message": "Primary model unavailable; the recorded fallback recovered."
 }
 ```
 
 Emit `step.failover` prominently. Visible graceful degradation is one of the strongest
 production-readiness signals available and it costs nothing extra to surface.
+
+### RunAttempt
+
+Every evaluated candidate is retained independently so rejected paid work contributes
+to waste and cost-per-approved-asset calculations.
+
+```jsonc
+{
+  "attempt": 2,
+  "genblaze_run_id": "run_...",
+  "parent_run_id": "run_parent...",
+  "status": "approved",            // running|rejected|approved|failed
+  "prompt": "expanded production prompt",
+  "provider": "replicate",
+  "model": "black-forest-labs/flux-1.1-pro",
+  "qa_score": 0.91,
+  "asset_id": "ast_...",
+  "cost_usd": "0.025000",
+  "cost_basis": "estimated",
+  "created_at": "..."
+}
+```
 
 ### AssetRef
 
@@ -199,28 +221,14 @@ record, and presigned URLs are minted only when the share is read.
 
 ## Ledger tables
 
-`ParquetSink` produces `runs`, `steps`, and `assets` in a per-job local staging
-directory. It does not upload those files to B2. After the sink closes successfully,
-Dara uploads each table as its own immutable object at the partitioned keys above.
-Dara writes a fourth table, `policy_events`, because policy decisions are Dara's concept
-and not Genblaze's — and because "we blocked N runs and saved $X" is the single best
-number in the demo.
-
-### policy_events
-
-| column | type | notes |
-|---|---|---|
-| `event_id` | VARCHAR | |
-| `at` | TIMESTAMP | |
-| `tenant_id` | VARCHAR | |
-| `project_id` | VARCHAR | |
-| `job_id` | VARCHAR | |
-| `policy_id` | VARCHAR | |
-| `enforcement_point` | VARCHAR | `pre_flight`/`pre_step`/`post_step`/`pre_publish` |
-| `outcome` | VARCHAR | `allow`/`warn`/`block` |
-| `violation_codes` | VARCHAR[] | |
-| `estimated_cost_usd` | DECIMAL(18,6) | what the run would have cost |
-| `saved_cost_usd` | DECIMAL(18,6) | non-zero only on `block` |
+`ParquetSink` produces Genblaze `runs`, `steps`, and `assets` tables in a per-job local
+staging directory. Dara uploads each completed table to the partitioned keys above after
+the sink closes. Dara also writes its own `accounting` table: one immutable row per paid
+attempt when attempt-level cost exists, otherwise one terminal run row. The record
+includes `source_job_id`, provider/model, `primary_model`, `failover_count`, status,
+cost and basis, saved cost, approval, QA, asset id, and timestamp. Blocked work records
+zero cost plus `saved_cost_usd`; cancelled in-flight work records the conservative full
+reservation when upstream spend is uncertain.
 
 Partition all ledger writes by year and month in the object path so DuckDB can prune.
 Use one immutable file per run/job rather than appending to or overwriting a shared

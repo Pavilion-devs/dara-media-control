@@ -21,6 +21,7 @@ class AccountingRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     job_id: str
+    source_job_id: str | None = None
     genblaze_run_id: str | None = None
     tenant_id: str
     project_id: str
@@ -28,6 +29,8 @@ class AccountingRecord(BaseModel):
     provider: str = "openai"
     model: str = "gpt-image-2"
     modality: str = "image"
+    primary_model: str | None = None
+    failover_count: int = 0
     status: str
     cost_usd: Decimal | None = None
     saved_cost_usd: Decimal = Decimal("0.000000")
@@ -94,6 +97,19 @@ QUERY_SQL = {
                     AS DECIMAL(18,6)) AS cost_per_approved_asset_usd
         FROM accounting
         WHERE created_at >= ? AND created_at < ? AND (? IS NULL OR project_id = ?)
+    """,
+    "failover_rate": """
+        SELECT COALESCE(primary_model, model) AS primary_model,
+               model AS resolved_model, provider,
+               CAST(COALESCE(SUM(failover_count), 0) AS BIGINT) AS failovers,
+               COUNT(*) AS attempts,
+               CAST(COALESCE(SUM(failover_count) / NULLIF(COUNT(*), 0), 0)
+                    AS DECIMAL(18,6)) AS failover_rate
+        FROM accounting
+        WHERE created_at >= ? AND created_at < ? AND (? IS NULL OR project_id = ?)
+        GROUP BY 1, 2, 3
+        HAVING SUM(failover_count) > 0
+        ORDER BY failovers DESC, primary_model
     """,
     "waste_ratio": """
         SELECT CAST(COALESCE(
@@ -220,7 +236,7 @@ class Ledger:
         )
         self.connection.execute(
             f"CREATE OR REPLACE VIEW accounting AS "
-            f"SELECT * FROM read_parquet('{source}', hive_partitioning=true)"
+            f"SELECT * FROM read_parquet('{source}', hive_partitioning=true, union_by_name=true)"
         )
 
     def query(

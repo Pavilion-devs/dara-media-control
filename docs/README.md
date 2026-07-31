@@ -75,7 +75,7 @@ share-assets/{token}/{asset_id}.ext  token-scoped redacted derivatives
 manifests/{run_id}.json            provenance records, retained longer than assets
 index/sha/{sha}.json                extension-free lookup for either hash
 ledger/{table}/year={yyyy}/month={mm}/{id}.parquet  queried in place by DuckDB
-state/{jobs,projects,policies,shares}/               application state as objects
+state/{jobs,live-runs,assets,projects,policies,shares}/ application state as objects
 ```
 
 ## Providers and models

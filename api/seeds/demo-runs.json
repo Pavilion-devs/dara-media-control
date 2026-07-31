@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_at": "2026-07-29T20:15:00Z",
-  "default_seed_id": "seed_still_qa_revision",
+  "default_seed_id": "seed_still_production_openai",
   "runs": [
     {
       "seed_id": "seed_still_qa_revision",
@@ -18,7 +18,7 @@
       "qa_attempts": 2,
       "cost_usd": "0.000000",
       "saved_cost_usd": "0.000000",
-      "asset_url": "/dara-verified-sample.png",
+      "asset_url": null,
       "events": [
         {
           "at_ms": 0,
@@ -87,19 +87,19 @@
       "evidence": "deterministic-fixture"
     },
     {
-      "seed_id": "seed_still_product",
+      "seed_id": "seed_still_production_openai",
       "pipeline_id": "still-campaign",
-      "title": "Product still \u00b7 first-pass approval",
-      "project_id": "prj_field_notes",
+      "title": "OpenAI image \u00b7 recorded production proof",
+      "project_id": "prj_northwind_q3",
       "policy_id": "pol_standard",
-      "brief": "Graphite notebook on raw oak with clean directional light.",
-      "provider": "genblaze-testing",
-      "model": "mock-image-v1",
+      "brief": "Cobalt ceramic cup on washed linen in soft editorial light.",
+      "provider": "openai-dalle",
+      "model": "gpt-image-2",
       "outcome": "succeeded",
       "approved": true,
-      "qa_score": 0.95,
+      "qa_score": null,
       "qa_attempts": 1,
-      "cost_usd": "0.000000",
+      "cost_usd": "0.010000",
       "saved_cost_usd": "0.000000",
       "asset_url": "/dara-verified-sample.png",
       "events": [
@@ -108,24 +108,31 @@
           "type": "policy.allowed",
           "provider": "dara",
           "model": "policy/v1",
-          "message": "Pre-flight policy allowed."
+          "message": "Pre-flight policy allowed a $0.010000 image reservation."
         },
         {
           "at_ms": 800,
           "type": "step.started",
-          "provider": "genblaze-testing",
-          "model": "mock-image-v1",
-          "message": "still-campaign provider step started."
+          "provider": "openai-dalle",
+          "model": "gpt-image-2",
+          "message": "Recorded production image generation started."
         },
         {
-          "at_ms": 18000,
-          "type": "run.completed",
-          "provider": "dara",
-          "model": "still-campaign",
-          "message": "Run completed and its immutable record was sealed."
+          "at_ms": 22772,
+          "type": "step.completed",
+          "provider": "openai-dalle",
+          "model": "gpt-image-2",
+          "message": "Production image completed; $0.010000 conservative estimated cost recorded."
+        },
+        {
+          "at_ms": 23100,
+          "type": "publish.completed",
+          "provider": "genblaze-s3",
+          "model": "backblaze-b2",
+          "message": "Source, manifest, and embedded derivative persisted and verified in B2."
         }
       ],
-      "evidence": "deterministic-fixture"
+      "evidence": "production-proof"
     },
     {
       "seed_id": "seed_still_portrait",
@@ -142,7 +149,7 @@
       "qa_attempts": 1,
       "cost_usd": "0.000000",
       "saved_cost_usd": "0.000000",
-      "asset_url": "/dara-verified-sample.png",
+      "asset_url": null,
       "events": [
         {
           "at_ms": 0,

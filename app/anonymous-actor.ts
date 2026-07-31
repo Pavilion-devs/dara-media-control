@@ -5,7 +5,7 @@ function firstForwardedValue(value: string | null): string | null {
   return candidate || null;
 }
 
-function clientAddress(request: Request): string {
+export function clientAddress(request: Request): string {
   const trustedProxy =
     process.env.DARA_TRUSTED_PROXY ??
     (process.env.VERCEL === "1" ? "vercel" : "cloudflare");

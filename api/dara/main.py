@@ -62,7 +62,16 @@ from .jobs import (
     RunAttempt,
     RunStatus,
 )
+from .ids import new_id
 from .ledger import QUERY_SQL, AccountingRecord, get_ledger, write_accounting_record
+from .projects import (
+    B2ProjectStore,
+    MemoryProjectStore,
+    Project,
+    ProjectCreate,
+    ProjectStore,
+    ProjectUpdate,
+)
 from .pipelines.still import (
     ASPECT_SIZES,
     PolicyGateRejectedError,
@@ -79,10 +88,12 @@ from .share import (
     ShareService,
 )
 from .verify import (
+    AssetRef,
     InvalidHashError,
     UnsupportedMediaError,
     VerificationResponse,
     Verifier,
+    asset_ref_key,
     manifest_key,
 )
 
@@ -93,6 +104,7 @@ logger = logging.getLogger("dara.api")
 async def lifespan(_: FastAPI):
     try:
         await seed_and_hydrate_policies()
+        await seed_projects()
     except Exception:
         logger.exception("Policy startup hydration failed")
         raise
@@ -160,6 +172,7 @@ def build_live_run_store() -> LiveRunStore:
 
 live_run_store = build_live_run_store()
 live_tasks: set[asyncio.Task[None]] = set()
+live_tasks_by_job: dict[str, asyncio.Task[None]] = {}
 
 
 class DaraApiError(RuntimeError):
@@ -253,6 +266,32 @@ def positive_env_int(name: str, default: int) -> int:
     except ValueError:
         return default
     return value if value > 0 else default
+
+
+def global_daily_spend_cap() -> Decimal:
+    """Independent deployment ceiling applied to every live policy.
+
+    Project policies may be stricter, but selecting a permissive policy must never
+    raise the operator-owned public deployment limit.
+    """
+    raw = os.getenv("DARA_GLOBAL_DAILY_SPEND_CAP_USD", "5.000000")
+    try:
+        cap = money(raw)
+    except Exception:
+        logger.error(
+            "Invalid DARA_GLOBAL_DAILY_SPEND_CAP_USD=%r; failing closed at $5/day",
+            raw,
+        )
+        return money("5.000000")
+    return cap if cap > 0 else money("5.000000")
+
+
+def live_policy(policy: Policy) -> Policy:
+    """Clamp a project policy to the deployment-wide live-spend ceiling."""
+    cap = global_daily_spend_cap()
+    if policy.max_cost_usd_per_day <= cap:
+        return policy
+    return policy.model_copy(update={"max_cost_usd_per_day": cap})
 
 
 def enforce_public_action_limit(
@@ -411,6 +450,48 @@ def build_policy_store() -> PolicyStore:
 policy_store = build_policy_store()
 
 
+SEEDED_PROJECTS = (
+    Project(
+        project_id="prj_northwind_q3",
+        name="Northwind — Q3 campaign",
+        client="Northwind Foods",
+        policy_id="pol_standard",
+        tags=("campaign", "food"),
+    ),
+    Project(
+        project_id="prj_atlas_brand",
+        name="Atlas Hotels — Brand film",
+        client="Atlas Hotels",
+        policy_id="pol_standard",
+        tags=("brand", "hospitality"),
+    ),
+    Project(
+        project_id="prj_field_launch",
+        name="Field Notes — Product launch",
+        client="Field Notes",
+        policy_id="pol_standard",
+        tags=("launch", "product"),
+    ),
+)
+
+
+def build_project_store() -> ProjectStore:
+    required = ("B2_KEY_ID", "B2_APP_KEY", "B2_BUCKET", "B2_REGION")
+    if all(os.getenv(name) for name in required):
+        return B2ProjectStore(DaraStorage.from_env())
+    return MemoryProjectStore(SEEDED_PROJECTS)
+
+
+project_store = build_project_store()
+
+
+async def seed_projects() -> None:
+    tenant_id = active_tenant_id()
+    for seeded in SEEDED_PROJECTS:
+        if await project_store.get(tenant_id, seeded.project_id) is None:
+            await project_store.put(seeded.model_copy(update={"tenant_id": tenant_id}))
+
+
 async def seed_and_hydrate_policies() -> None:
     tenant_id = active_tenant_id()
     resolved: dict[str, Policy] = {}
@@ -512,8 +593,8 @@ class SimulateRequest(BaseModel):
 
 
 class LiveRunRequest(BaseModel):
-    project_id: str = Field(default="prj_dara_live", min_length=3, max_length=80)
-    policy_id: str = "pol_standard"
+    project_id: str = Field(default="prj_northwind_q3", min_length=3, max_length=80)
+    policy_id: str | None = None
     prompt: str = Field(min_length=8, max_length=4000)
     aspect_ratio: Literal["1:1", "3:2", "2:3"] = "1:1"
     variants: Literal[1] = 1
@@ -547,8 +628,15 @@ def decode_run_cursor(value: str) -> tuple[datetime, str]:
 def get_policy(policy_id: str) -> Policy:
     resolved = POLICIES.get(policy_id)
     if resolved is None:
-        raise HTTPException(status_code=404, detail="Policy not found.")
+        raise DaraApiError(404, "POLICY_NOT_FOUND", "Policy not found.")
     return resolved
+
+
+async def resolve_policy(project_id: str, requested_policy_id: str | None) -> Policy:
+    if requested_policy_id is not None:
+        return get_policy(requested_policy_id)
+    project = await project_store.get(active_tenant_id(), project_id)
+    return get_policy(project.policy_id if project is not None else "pol_standard")
 
 
 def decision_payload(
@@ -656,27 +744,70 @@ async def hydrate_daily_spend_cap() -> Decimal:
     return committed
 
 
-async def persist_accounting(run: LiveRunRecord) -> None:
-    await asyncio.to_thread(
-        write_accounting_record,
-        DaraStorage.from_env(),
-        AccountingRecord(
-            job_id=run.job_id,
-            genblaze_run_id=run.genblaze_run_id,
-            tenant_id=run.tenant_id,
-            project_id=run.project_id,
-            policy_id=run.policy_id,
-            status=run.status,
-            cost_usd=run.actual_cost_usd,
-            saved_cost_usd=money("0"),
-            cost_basis=run.cost_basis,
-            approved=run.status == "succeeded",
-            qa_score=run.qa_score,
-            qa_attempts=run.qa_attempts,
-            asset_id=run.asset_id,
-            created_at=run.created_at,
-        ),
-    )
+async def persist_accounting(
+    run: LiveRunRecord,
+    *,
+    collapse_to_run: bool = False,
+) -> None:
+    failovers = sum(event.type == "step.failover" for event in run.events)
+    costed_attempts = [
+        attempt for attempt in run.attempts if attempt.cost_usd is not None
+    ]
+    if costed_attempts and not collapse_to_run:
+        records = [
+            AccountingRecord(
+                job_id=f"{run.job_id}-attempt-{attempt.attempt}",
+                source_job_id=run.job_id,
+                genblaze_run_id=attempt.genblaze_run_id,
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                policy_id=run.policy_id,
+                provider=attempt.provider or "unknown",
+                model=attempt.model or "unknown",
+                primary_model="gpt-image-2",
+                failover_count=failovers if index == 0 else 0,
+                status=attempt.status,
+                cost_usd=attempt.cost_usd,
+                saved_cost_usd=money("0"),
+                cost_basis=attempt.cost_basis,
+                approved=attempt.status == "approved",
+                qa_score=attempt.qa_score,
+                qa_attempts=1,
+                asset_id=attempt.asset_id if attempt.status == "approved" else None,
+                created_at=attempt.created_at,
+            )
+            for index, attempt in enumerate(costed_attempts)
+        ]
+    else:
+        resolved_attempt = run.attempts[-1] if run.attempts else None
+        records = [
+            AccountingRecord(
+                job_id=run.job_id,
+                source_job_id=run.job_id,
+                genblaze_run_id=run.genblaze_run_id,
+                tenant_id=run.tenant_id,
+                project_id=run.project_id,
+                policy_id=run.policy_id,
+                provider=(resolved_attempt.provider if resolved_attempt else None)
+                or "openai",
+                model=(resolved_attempt.model if resolved_attempt else None)
+                or "gpt-image-2",
+                primary_model="gpt-image-2",
+                failover_count=failovers,
+                status=run.status,
+                cost_usd=run.actual_cost_usd,
+                saved_cost_usd=money("0"),
+                cost_basis=run.cost_basis,
+                approved=run.status == "succeeded",
+                qa_score=run.qa_score,
+                qa_attempts=run.qa_attempts,
+                asset_id=run.asset_id,
+                created_at=run.created_at,
+            )
+        ]
+    storage = DaraStorage.from_env()
+    for record in records:
+        await asyncio.to_thread(write_accounting_record, storage, record)
 
 
 async def record_policy_decisions(
@@ -944,6 +1075,152 @@ async def healthz() -> dict[str, object]:
     }
 
 
+@app.get("/v1/projects")
+async def list_projects(
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    return {
+        "items": [
+            project.model_dump(mode="json")
+            for project in await project_store.list(active_tenant_id())
+        ]
+    }
+
+
+@app.post("/v1/projects", status_code=201)
+async def create_project(
+    request: ProjectCreate,
+    _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
+) -> dict[str, object]:
+    enforce_public_action_limit(
+        actor_header,
+        action="project-mutation",
+        limit_env="DARA_PROJECT_MUTATION_RATE_LIMIT_PER_HOUR",
+        default_limit=10,
+        window_seconds=3600,
+    )
+    get_policy(request.policy_id)
+    project = Project(
+        project_id=new_id("prj"),
+        tenant_id=active_tenant_id(),
+        **request.model_dump(),
+    )
+    await project_store.put(project)
+    return project.model_dump(mode="json")
+
+
+@app.get("/v1/projects/{project_id}")
+async def read_project(
+    project_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    project = await project_store.get(active_tenant_id(), project_id)
+    if project is None:
+        raise DaraApiError(404, "NOT_FOUND", "Project not found.")
+    return project.model_dump(mode="json")
+
+
+@app.put("/v1/projects/{project_id}")
+async def update_project(
+    project_id: str,
+    request: ProjectUpdate,
+    _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
+) -> dict[str, object]:
+    enforce_public_action_limit(
+        actor_header,
+        action="project-mutation",
+        limit_env="DARA_PROJECT_MUTATION_RATE_LIMIT_PER_HOUR",
+        default_limit=10,
+        window_seconds=3600,
+    )
+    current = await project_store.get(active_tenant_id(), project_id)
+    if current is None:
+        raise DaraApiError(404, "NOT_FOUND", "Project not found.")
+    get_policy(request.policy_id)
+    project = current.model_copy(update=request.model_dump())
+    await project_store.put(project)
+    return project.model_dump(mode="json")
+
+
+async def asset_payload(asset_id: str) -> dict[str, object]:
+    storage = DaraStorage.from_env()
+    reference = await asyncio.to_thread(
+        storage.get_json,
+        asset_ref_key(asset_id),
+        AssetRef,
+    )
+    if reference is None:
+        raise DaraApiError(404, "NOT_FOUND", "Asset not found.")
+    verification = None
+    if reference.published_sha256 is not None:
+        verification = await asyncio.to_thread(
+            Verifier(storage).lookup_hash,
+            reference.published_sha256,
+        )
+    download_key = (
+        reference.published_content_address
+        if reference.approved and reference.published_content_address
+        else reference.source_content_address
+    )
+    asset_url = await asyncio.to_thread(
+        storage.presign,
+        download_key,
+        expires_in=900,
+    )
+    return {
+        "asset": reference.model_dump(mode="json"),
+        "asset_url": asset_url,
+        "verification": (
+            verification.model_dump(mode="json") if verification is not None else None
+        ),
+    }
+
+
+@app.get("/v1/assets/{asset_id}")
+async def read_asset(
+    asset_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+) -> dict[str, object]:
+    try:
+        return await asset_payload(asset_id)
+    except StorageUnavailableError as exc:
+        raise DaraApiError(
+            503,
+            "STORAGE_UNAVAILABLE",
+            "Dara's trusted asset store is temporarily unavailable.",
+        ) from exc
+
+
+@app.post("/v1/assets/{asset_id}/approve")
+async def approve_asset(
+    asset_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
+) -> dict[str, object]:
+    enforce_public_action_limit(
+        actor_header,
+        action="asset-approval",
+        limit_env="DARA_ASSET_APPROVAL_RATE_LIMIT_PER_HOUR",
+        default_limit=20,
+        window_seconds=3600,
+    )
+    payload = await asset_payload(asset_id)
+    reference = AssetRef.model_validate(payload["asset"])
+    if not reference.approved or reference.published_sha256 is None:
+        raise DaraApiError(
+            409,
+            "ASSET_NOT_PUBLISHABLE",
+            "This asset has no policy-approved published derivative. Approval occurs inside Dara's pre-publish pipeline gate.",
+        )
+    payload["approval"] = {
+        "status": "already-approved",
+        "message": "The pre-publish policy gate already approved this exact published hash.",
+    }
+    return payload
+
+
 @app.get("/v1/models")
 async def list_models() -> dict[str, object]:
     availability = (
@@ -1171,7 +1448,8 @@ async def queue_live_run(
     )
 
     tenant_id = active_tenant_id()
-    job_id = f"job_{secrets.token_hex(10)}"
+    resolved_policy = await resolve_policy(request.project_id, request.policy_id)
+    job_id = new_id("job")
     image_route = ROUTES[Modality.IMAGE]
     plan = RunPlan(
         tenant_id=tenant_id,
@@ -1213,7 +1491,7 @@ async def queue_live_run(
         ),
     )
     estimate, decision = await engine.admit(
-        get_policy(request.policy_id),
+        live_policy(resolved_policy),
         plan,
         POLICY_REGISTRY,
     )
@@ -1243,7 +1521,7 @@ async def queue_live_run(
             prompt_is_expanded=prompt_is_expanded,
             aspect_ratio=request.aspect_ratio,
             variants=request.variants,
-            policy_id=request.policy_id,
+            policy_id=resolved_policy.policy_id,
             expected_cost_usd=estimate.expected_usd,
             worst_case_cost_usd=estimate.worst_case_usd,
             actual_cost_usd=money("0"),
@@ -1272,7 +1550,7 @@ async def queue_live_run(
                 job_id=job_id,
                 tenant_id=tenant_id,
                 project_id=request.project_id,
-                policy_id=request.policy_id,
+            policy_id=resolved_policy.policy_id,
                 status="blocked",
                 cost_usd=money("0"),
                 saved_cost_usd=estimate.expected_usd,
@@ -1311,7 +1589,7 @@ async def queue_live_run(
         prompt_is_expanded=prompt_is_expanded,
         aspect_ratio=request.aspect_ratio,
         variants=request.variants,
-        policy_id=request.policy_id,
+        policy_id=resolved_policy.policy_id,
         expected_cost_usd=estimate.expected_usd,
         worst_case_cost_usd=estimate.worst_case_usd,
         parent_job_id=parent_job_id,
@@ -1330,7 +1608,13 @@ async def queue_live_run(
     await live_run_store.put(live_run)
     task = asyncio.create_task(execute_live_still(job_id))
     live_tasks.add(task)
-    task.add_done_callback(live_tasks.discard)
+    live_tasks_by_job[job_id] = task
+
+    def release_task(completed: asyncio.Task[None]) -> None:
+        live_tasks.discard(completed)
+        live_tasks_by_job.pop(job_id, None)
+
+    task.add_done_callback(release_task)
     return await live_run_payload(live_run)
 
 
@@ -1398,6 +1682,67 @@ async def read_live_run(
     run = await live_run_store.get(tenant_id, job_id)
     if run is None:
         raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
+    return await live_run_payload(run)
+
+
+@app.post("/v1/runs/{job_id}/cancel")
+async def cancel_live_run(
+    job_id: str,
+    _: Annotated[None, Depends(require_workspace_token)],
+    actor_header: Annotated[str | None, Header(alias="X-Dara-Actor")] = None,
+) -> dict[str, object]:
+    enforce_public_action_limit(
+        actor_header,
+        action="cancel",
+        limit_env="DARA_CANCEL_RATE_LIMIT_PER_HOUR",
+        default_limit=20,
+        window_seconds=3600,
+    )
+    tenant_id = active_tenant_id()
+    run = await live_run_store.get(tenant_id, job_id)
+    if run is None:
+        raise DaraApiError(404, "NOT_FOUND", "Live run not found.")
+    if run.status not in {"queued", "running", "publishing"}:
+        raise DaraApiError(
+            409,
+            "RUN_NOT_CANCELLABLE",
+            f"A {run.status} run cannot be cancelled.",
+        )
+    task = live_tasks_by_job.pop(job_id, None)
+    provider_may_have_started = run.status in {"running", "publishing"}
+    if task is not None:
+        task.cancel()
+    if provider_may_have_started:
+        engine.reservations.settle(job_id, run.worst_case_cost_usd)
+        run.actual_cost_usd = run.worst_case_cost_usd
+        run.cost_basis = "estimated"
+    else:
+        engine.reservations.release(job_id)
+        run.actual_cost_usd = money("0")
+        run.cost_basis = "known"
+    run.status = "cancelled"
+    run.error_code = "CANCELLED"
+    run.error_message = (
+        "Cancellation was requested after provider work may have started. "
+        "Dara conservatively accounted the full reservation; recorded attempts remain available."
+        if provider_may_have_started
+        else "The queued run was cancelled before provider work started. Nothing was spent."
+    )
+    run.append_event(
+        "run.cancelled",
+        run.error_message,
+        provider="dara",
+        model="control-plane/v1",
+    )
+    await live_run_store.put(run)
+    await persist_accounting(run, collapse_to_run=True)
+    policy_job = await store.get_job(tenant_id, job_id)
+    if policy_job is not None:
+        policy_job.status = "cancelled"
+        policy_job.actual_cost_usd = run.actual_cost_usd
+        policy_job.reserved_cost_usd = money("0")
+        policy_job.error = run.error_message
+        await store.put_job(policy_job)
     return await live_run_payload(run)
 
 
@@ -1604,7 +1949,7 @@ async def stream_live_run_events(
                 yield f"event: run.snapshot\ndata: {snapshot}\n\n"
                 last_updated = run.updated_at
 
-            if run.status in {"succeeded", "failed", "blocked"}:
+            if run.status in {"succeeded", "failed", "blocked", "cancelled"}:
                 return
             yield ": keepalive\n\n"
             await asyncio.sleep(0.8)

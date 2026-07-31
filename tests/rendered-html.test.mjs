@@ -62,13 +62,12 @@ test("server-renders the Dara control plane", async () => {
   assert.match(html, /Keep the record\./);
   assert.match(html, /Checking policy/);
   assert.match(html, /B2 connected/);
-  assert.match(html, /Seeded QA loop fixture · deterministic/);
-  assert.match(html, /mock-image-v1/);
-  assert.match(html, /Vision QA scored 0.58/);
-  assert.match(html, /Prompt revised; second attempt linked by parent_run_id/);
-  assert.match(html, />13</);
-  assert.match(html, /committed seed runs/);
-  assert.match(html, /Production proofs and fixtures are never conflated/);
+  assert.match(html, /OpenAI image · recorded production proof/);
+  assert.match(html, /openai-dalle/);
+  assert.match(html, /gpt-image-2/);
+  assert.match(html, /\$0\.010000/);
+  assert.match(html, /Replay · recorded cost/);
+  assert.match(html, /Production proofs and deterministic fixtures are never conflated/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 

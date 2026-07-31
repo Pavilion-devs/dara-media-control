@@ -418,7 +418,14 @@ export function VerifyScreen() {
       ) : null}
 
       {showResult ? (
-        <Panel className={phase === "idle" ? "mt-6" : undefined}>
+        <Panel
+          className={cn(
+            phase === "idle" && "mt-6",
+            phase === "done"
+              && result.verification === "trusted-mismatch"
+              && "verify-mismatch",
+          )}
+        >
           <PanelHead
             title={
               <div className="min-w-0 py-4">
@@ -482,6 +489,52 @@ export function VerifyScreen() {
             </div>
 
             <MetaStrip result={result} />
+
+            {result.manifest ? (
+              <div className="border-t border-line pt-6">
+                <p className="mb-4 text-[10px] font-semibold uppercase tracking-wider text-subtle">
+                  Recorded generation steps
+                </p>
+                <div className="grid gap-3">
+                  {result.manifest.steps.map((step, index) => (
+                    <div
+                      className="grid gap-3 rounded-xl border border-line bg-inset p-4"
+                      key={`${step.provider}-${step.model}-${index}`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="font-mono text-sm text-ink">
+                          {step.provider ?? "unknown provider"} / {step.model}
+                        </p>
+                        <Badge tone="neutral">
+                          {step.cost_usd ? `$${step.cost_usd}` : "cost unknown"}
+                        </Badge>
+                      </div>
+                      <dl className="grid gap-2 text-xs sm:grid-cols-2">
+                        <div>
+                          <dt className="text-subtle">Modality</dt>
+                          <dd className="font-mono text-ink">{step.modality}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-subtle">Parameters</dt>
+                          <dd className="break-words font-mono text-ink">
+                            {JSON.stringify(step.params)}
+                          </dd>
+                        </div>
+                      </dl>
+                      <div>
+                        <p className="text-xs text-subtle">Recorded prompt</p>
+                        <p className="mt-1 text-sm leading-relaxed text-muted">
+                          {step.prompt ?? "Redacted or not recorded by the provider adapter."}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 font-mono text-xs text-subtle">
+                  Parent run: {result.manifest.parent_run_id ?? "none"} · created {new Date(result.manifest.created_at).toISOString()}
+                </p>
+              </div>
+            ) : null}
 
             <div className="border-t border-line pt-6">
               <p className="mb-5 text-[10px] font-semibold uppercase tracking-wider text-subtle">

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { clientAddress } from "../../../anonymous-actor";
+
 function error(message: string, status: number) {
   return NextResponse.json(
     {
@@ -27,6 +29,7 @@ export async function GET(request: Request) {
   }
   const upstream = await fetch(`${apiUrl}/v1/verify/${sha256}`, {
     cache: "no-store",
+    headers: { "X-Forwarded-For": clientAddress(request) },
   });
   return new Response(await upstream.text(), {
     status: upstream.status,

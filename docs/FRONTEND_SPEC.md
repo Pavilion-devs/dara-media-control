@@ -51,21 +51,22 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
 
 ### Public shell
 
-- `/` — redirects directly to Studio's zero-spend deterministic replay, preserving the
+- `/` — redirects directly to Studio's no-new-spend production-record replay, preserving the
   judge-entry acceptance criterion.
 - `/about` — product overview. Explains the three pillars and links into Studio and
   Verify without leaking operator fixtures.
-- `/verify` — public verification. Hashes locally first, checks the trusted hash index,
-  and uploads only changed, foreign, or unknown files for full embedded-manifest
-  inspection. The web boundary and FastAPI both accept up to 100 MB on the TierHive
-  deployment.
+- `/verify` — public verification. Hashes locally first, then streams normal files for
+  full embedded-manifest inspection. If an edge rejects an oversized upload, Dara can
+  look up the already-computed trusted hash without transmitting the file. The FastAPI
+  boundary accepts up to 100 MB; deploy-time edge limits may be lower.
 - `/share/[token]` — public token-scoped disclosure with redacted provenance and a
   short-lived asset URL. It never renders prompt text, parameters, job IDs, or run IDs.
 
 ### Operator shell
 
-- `/studio` — deterministic replay and explicit live generation. Policy simulation
-  remains visible before the run starts; live events stream from the durable run.
+- `/studio` — a production-record replay by default, clearly labelled deterministic
+  fixtures, and explicit live generation. Policy simulation remains visible before the
+  run starts; live events stream from the durable run.
 - `/runs` — live B2-backed run history plus a separately labelled committed evidence
   corpus. Live records and fixture totals are never blended. Completed live runs can
   issue client disclosure links, explicitly authorize manifest-based regeneration,
@@ -90,8 +91,8 @@ Creation belongs to the completed live run that owns the trusted asset.
 - Every JSON response is Zod-validated at the browser boundary.
 - Run events use the SSE proxy and durable replay. Read screens fall back only to
   committed, explicitly labelled evidence.
-- Verification is hybrid: local SHA-256 → hash lookup → streamed upload only when a
-  full file inspection is still needed.
+- Verification is hybrid: local SHA-256 → streamed inspection for normal files →
+  trusted hash lookup only when an edge cannot carry the file.
 
 ## Verification states
 

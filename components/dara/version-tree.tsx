@@ -64,7 +64,7 @@ export function VersionTree({ nodes }: { nodes: VersionNode[] }) {
                 {node.provider ?? "dara"} / {node.model ?? "control-plane"}
               </span>
               <span>
-                QA {node.qaScore == null ? "—" : Math.round(node.qaScore * 100)}
+                QA {node.qaScore == null ? "—" : node.qaScore.toFixed(2)} / 1.00
               </span>
               {node.parentId ? <span>parent {node.parentId}</span> : null}
             </div>

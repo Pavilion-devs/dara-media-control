@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 import dara.main as main_module
 import dara.ledger as ledger_module
+from dara.jobs import LiveRunRecord, RunAttempt
 from dara.ledger import AccountingRecord, Ledger, write_accounting_record
 
 
@@ -70,6 +71,66 @@ class AccountingWriterTests(unittest.TestCase):
         self.assertEqual(table.to_pylist()[0]["job_id"], "job_accounting")
         self.assertEqual(table.to_pylist()[0]["cost_usd"], Decimal("0.015000"))
 
+    def test_live_run_accounting_preserves_each_paid_qa_attempt(self) -> None:
+        run = LiveRunRecord(
+            job_id="job_attempts",
+            project_id="prj_northwind_q3",
+            prompt="A production still with a recorded QA revision",
+            aspect_ratio="1:1",
+            policy_id="pol_standard",
+            expected_cost_usd=Decimal("0.030000"),
+            worst_case_cost_usd=Decimal("0.090000"),
+            actual_cost_usd=Decimal("0.055000"),
+            cost_basis="estimated",
+            status="succeeded",
+            attempts=[
+                RunAttempt(
+                    attempt=1,
+                    genblaze_run_id="run_rejected",
+                    status="rejected",
+                    provider="openai-dalle",
+                    model="gpt-image-2",
+                    cost_usd=Decimal("0.030000"),
+                    cost_basis="estimated",
+                ),
+                RunAttempt(
+                    attempt=2,
+                    genblaze_run_id="run_approved",
+                    parent_run_id="run_rejected",
+                    status="approved",
+                    provider="replicate",
+                    model="black-forest-labs/flux-1.1-pro",
+                    cost_usd=Decimal("0.025000"),
+                    cost_basis="estimated",
+                    asset_id="ast_approved",
+                ),
+            ],
+        )
+        run.append_event(
+            "step.failover",
+            "Primary failed and the provider-diverse fallback recovered.",
+        )
+        captured: list[AccountingRecord] = []
+
+        def capture(_: object, record: AccountingRecord) -> str:
+            captured.append(record)
+            return record.job_id
+
+        with (
+            patch.object(main_module.DaraStorage, "from_env", return_value=object()),
+            patch.object(main_module, "write_accounting_record", side_effect=capture),
+        ):
+            import asyncio
+
+            asyncio.run(main_module.persist_accounting(run))
+
+        self.assertEqual(len(captured), 2)
+        self.assertEqual(sum(item.cost_usd or Decimal("0") for item in captured), Decimal("0.055000"))
+        self.assertFalse(captured[0].approved)
+        self.assertTrue(captured[1].approved)
+        self.assertEqual(captured[1].provider, "replicate")
+        self.assertEqual(sum(item.failover_count for item in captured), 1)
+
 
 class LedgerQueryTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -82,6 +143,8 @@ class LedgerQueryTests(unittest.TestCase):
                 "policy_id": "pol_standard",
                 "provider": "openai",
                 "model": "gpt-image-2",
+                "primary_model": "gpt-image-2",
+                "failover_count": 1,
                 "status": "succeeded",
                 "cost_usd": Decimal("0.015000"),
                 "saved_cost_usd": Decimal("0.000000"),
@@ -97,6 +160,8 @@ class LedgerQueryTests(unittest.TestCase):
                 "policy_id": "pol_standard",
                 "provider": "openai",
                 "model": "gpt-image-2",
+                "primary_model": "gpt-image-2",
+                "failover_count": 0,
                 "status": "failed",
                 "cost_usd": Decimal("0.015000"),
                 "saved_cost_usd": Decimal("0.000000"),
@@ -112,6 +177,8 @@ class LedgerQueryTests(unittest.TestCase):
                 "policy_id": "pol_locked",
                 "provider": "openai",
                 "model": "gpt-image-2",
+                "primary_model": "gpt-image-2",
+                "failover_count": 0,
                 "status": "blocked",
                 "cost_usd": Decimal("0.000000"),
                 "saved_cost_usd": Decimal("0.015000"),
@@ -164,6 +231,17 @@ class LedgerQueryTests(unittest.TestCase):
             to_date=date(2026, 7, 31),
         )
         self.assertEqual(result["rows"], [["2026-07", 3, "0.030000"]])
+
+    def test_failover_rate_is_allowlisted_and_derived_from_attempt_records(self) -> None:
+        result = self.ledger.query(
+            "failover_rate",
+            from_date=date(2026, 7, 1),
+            to_date=date(2026, 7, 31),
+        )
+        self.assertEqual(
+            result["rows"],
+            [["gpt-image-2", "gpt-image-2", "openai", 1, 3, "0.333333"]],
+        )
 
     def test_dashboard_returns_all_views_from_one_grouped_result(self) -> None:
         dashboard = self.ledger.dashboard(

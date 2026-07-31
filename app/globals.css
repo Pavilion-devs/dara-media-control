@@ -143,3 +143,17 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes verify-mismatch-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.verify-mismatch {
+  animation: verify-mismatch-shake 200ms ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verify-mismatch { animation: none; }
+}

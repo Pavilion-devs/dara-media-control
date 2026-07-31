@@ -31,10 +31,46 @@ import {
 
 import demoSeedData from "../../../api/seeds/demo-runs.json";
 import { demoSeedCorpusSchema, type DemoSeedRun } from "../../demo-seed-schema";
+import { projectListSchema, type Project } from "../../project-schema";
 import { liveRunSchema, type LiveRun } from "../../run-schema";
 import { apiErrorSchema } from "../../verification-schema";
 
 const demoCorpus = demoSeedCorpusSchema.parse(demoSeedData);
+const defaultDemoRun = demoCorpus.runs.find(
+  (run) => run.seed_id === demoCorpus.default_seed_id,
+) as DemoSeedRun;
+const fallbackProjects: Project[] = [
+  {
+    schema_version: 1,
+    project_id: "prj_northwind_q3",
+    tenant_id: "demo",
+    name: "Northwind — Q3 campaign",
+    client: "Northwind Foods",
+    policy_id: "pol_standard",
+    created_at: "2026-07-28T09:00:00Z",
+    tags: ["campaign", "food"],
+  },
+  {
+    schema_version: 1,
+    project_id: "prj_atlas_brand",
+    tenant_id: "demo",
+    name: "Atlas Hotels — Brand film",
+    client: "Atlas Hotels",
+    policy_id: "pol_standard",
+    created_at: "2026-07-28T09:00:00Z",
+    tags: ["brand", "hospitality"],
+  },
+  {
+    schema_version: 1,
+    project_id: "prj_field_launch",
+    tenant_id: "demo",
+    name: "Field Notes — Product launch",
+    client: "Field Notes",
+    policy_id: "pol_standard",
+    created_at: "2026-07-28T09:00:00Z",
+    tags: ["launch", "product"],
+  },
+];
 
 type PolicySimulation = {
   estimate: { expected_usd: string; worst_case_usd: string };
@@ -176,13 +212,13 @@ export function StudioScreen() {
   );
   const demoEvents = useMemo(() => seededEvents(demoRun), [demoRun]);
 
-  const [prompt, setPrompt] = useState(
-    "Hero shot of a ceramic bowl on washed linen, morning light, quiet editorial composition",
-  );
-  const [variants, setVariants] = useState(3);
+  const [prompt, setPrompt] = useState(defaultDemoRun.brief);
+  const [variants, setVariants] = useState(1);
   const [policy, setPolicy] = useState("standard");
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [runMode, setRunMode] = useState<"demo" | "live">("demo");
+  const [projects, setProjects] = useState<Project[]>(fallbackProjects);
+  const [projectId, setProjectId] = useState("prj_northwind_q3");
   const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
   const [events, setEvents] = useState<RunEvent[]>(demoEvents);
   const [runState, setRunState] = useState<"ready" | "running" | "done">("done");
@@ -197,6 +233,7 @@ export function StudioScreen() {
     "checking" | "live" | "fallback"
   >("checking");
   const [runMessage, setRunMessage] = useState("");
+  const [liveSpendArmed, setLiveSpendArmed] = useState(false);
   const [toast, setToast] = useState("");
   const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const eventSource = useRef<EventSource | null>(null);
@@ -217,6 +254,18 @@ export function StudioScreen() {
   const violationMessage =
     simulation?.decision.violations[0]?.message
     ?? "The selected brief exceeds the locked policy. Nothing will be spent.";
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/projects", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const parsed = projectListSchema.parse(await response.json());
+        if (parsed.items.length > 0) setProjects(parsed.items);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -274,7 +323,11 @@ export function StudioScreen() {
       setRunState("done");
       return true;
     }
-    if (current.status === "failed" || current.status === "blocked") {
+    if (
+      current.status === "failed"
+      || current.status === "blocked"
+      || current.status === "cancelled"
+    ) {
       setRunState("done");
       setRunMessage(
         current.error_message
@@ -358,6 +411,14 @@ export function StudioScreen() {
 
   async function runBrief() {
     if (blocked) return;
+    if (runMode === "live" && !liveSpendArmed) {
+      setLiveSpendArmed(true);
+      setRunMessage(
+        `Review the $${formatSpend(worstCase)} worst-case reservation, then click again to authorize provider spend.`,
+      );
+      return;
+    }
+    setLiveSpendArmed(false);
     timers.current.forEach(clearTimeout);
     eventSource.current?.close();
     eventSource.current = null;
@@ -372,7 +433,7 @@ export function StudioScreen() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            project_id: "prj_dara_live",
+            project_id: projectId,
             policy_id: `pol_${policy}`,
             prompt,
             aspect_ratio: aspectRatio,
@@ -416,6 +477,30 @@ export function StudioScreen() {
         }, replayDelay(demoRun, index)),
       );
     });
+  }
+
+  async function cancelLiveRun() {
+    if (!liveRun || !running) return;
+    setRunMessage("Requesting cancellation…");
+    try {
+      const response = await fetch(
+        `/api/runs/${encodeURIComponent(liveRun.job_id)}/cancel`,
+        { method: "POST" },
+      );
+      const json: unknown = await response.json();
+      if (!response.ok) {
+        const parsed = apiErrorSchema.safeParse(json);
+        throw new Error(
+          parsed.success ? parsed.data.error.message : "Dara could not cancel this run.",
+        );
+      }
+      eventSource.current?.close();
+      applyLiveRun(liveRunSchema.parse(json));
+    } catch (error) {
+      setRunMessage(
+        error instanceof Error ? error.message : "Dara could not cancel this run.",
+      );
+    }
   }
 
   function selectSeed(next: string) {
@@ -475,7 +560,7 @@ export function StudioScreen() {
         model: attempt.model,
         qaScore: attempt.qa_score,
       }))
-    : demoRun.seed_id === demoCorpus.default_seed_id
+    : demoRun.seed_id === "seed_still_qa_revision"
       ? [
           {
             id: "attempt-01",
@@ -530,8 +615,9 @@ export function StudioScreen() {
             Keep the record.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            Governed media pipelines with visible policy, honest cost, and
-            provenance that survives the handoff.
+            Teams generating across providers lose track of what each asset
+            cost, which model made it, and whether it can be reproduced. Dara
+            governs the work and preserves that record through handoff.
           </p>
         </div>
 
@@ -565,6 +651,7 @@ export function StudioScreen() {
                 ariaLabel="Run mode"
                 onChange={(next) => {
                   setRunMode(next);
+                  setLiveSpendArmed(false);
                   eventSource.current?.close();
                   timers.current.forEach(clearTimeout);
                   setLiveRun(null);
@@ -580,7 +667,7 @@ export function StudioScreen() {
                   }
                 }}
                 options={[
-                  { value: "demo", label: "Demo replay · $0" },
+                  { value: "demo", label: "Replay · recorded cost" },
                   { value: "live", label: "Live OpenAI · spends" },
                 ]}
                 value={runMode}
@@ -590,10 +677,9 @@ export function StudioScreen() {
                   "One candidate at a time, scored by OpenAI vision. Dara may revise up to three times inside the reserved cap."
                 ) : (
                   <>
-                    Defaulting to a clearly labelled deterministic fixture from{" "}
-                    {demoCorpus.runs.length} committed seed runs. Production
-                    proofs and fixtures are never conflated; live generation
-                    requires the separate control above.
+                    Replaying a recorded run creates no new provider spend. Its
+                    original cost and evidence type stay visible; production
+                    proofs and deterministic fixtures are never conflated.
                   </>
                 )}
               </p>
@@ -617,16 +703,25 @@ export function StudioScreen() {
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
               <Field htmlFor="project" label="Project">
-                <Select defaultValue="northwind" id="project">
-                  <option value="northwind">Northwind — Q3 campaign</option>
-                  <option value="atlas">Atlas Hotels — Brand film</option>
-                  <option value="field">Field Notes — Product launch</option>
+                <Select
+                  id="project"
+                  onChange={(event) => setProjectId(event.target.value)}
+                  value={projectId}
+                >
+                  {projects.map((project) => (
+                    <option key={project.project_id} value={project.project_id}>
+                      {project.name}
+                    </option>
+                  ))}
                 </Select>
               </Field>
               <Field htmlFor="policy" label="Policy">
                 <Select
                   id="policy"
-                  onChange={(event) => setPolicy(event.target.value)}
+                  onChange={(event) => {
+                    setPolicy(event.target.value);
+                    setLiveSpendArmed(false);
+                  }}
                   value={policy}
                 >
                   <option value="permissive">Permissive</option>
@@ -639,7 +734,10 @@ export function StudioScreen() {
             <Field htmlFor="prompt" label="Prompt">
               <Textarea
                 id="prompt"
-                onChange={(event) => setPrompt(event.target.value)}
+                onChange={(event) => {
+                  setPrompt(event.target.value);
+                  setLiveSpendArmed(false);
+                }}
                 value={prompt}
               />
             </Field>
@@ -647,7 +745,10 @@ export function StudioScreen() {
             <Field label="Aspect ratio">
               <Segmented
                 ariaLabel="Aspect ratio"
-                onChange={setAspectRatio}
+                onChange={(next) => {
+                  setAspectRatio(next);
+                  setLiveSpendArmed(false);
+                }}
                 options={[
                   { value: "1:1", label: "1:1" },
                   { value: "3:2", label: "3:2" },
@@ -682,7 +783,9 @@ export function StudioScreen() {
                 </p>
                 <p className="mt-1 text-xs text-subtle">
                   Expected / three-attempt reserve ·{" "}
-                  {policyStatus === "live" ? "from Dara API" : "local preview"}
+                  {policyStatus === "live"
+                    ? "from model registry via Dara API"
+                    : "registry preview unavailable"}
                 </p>
               </div>
               <p className="shrink-0 font-mono text-lg text-ink">
@@ -710,7 +813,7 @@ export function StudioScreen() {
               </p>
             ) : null}
             <Button
-              disabled={blocked || !prompt.trim()}
+              disabled={blocked || !prompt.trim() || running}
               full
               onClick={() => void runBrief()}
               size="lg"
@@ -722,9 +825,16 @@ export function StudioScreen() {
                     ? "Generating with OpenAI…"
                     : "Replay in progress…"
                   : live
-                    ? "Generate one live image"
-                    : "Run verified demo"}
+                    ? liveSpendArmed
+                      ? `Confirm live spend · up to $${formatSpend(worstCase)}`
+                      : "Review live spend"
+                    : "Replay recorded run"}
             </Button>
+            {live && running && liveRun ? (
+              <Button full onClick={() => void cancelLiveRun()} variant="secondary">
+                Cancel run
+              </Button>
+            ) : null}
           </PanelBody>
         </Panel>
       </div>
@@ -797,7 +907,7 @@ export function StudioScreen() {
                   value:
                     summary.qa == null
                       ? "—"
-                      : `${Math.round(Number(summary.qa) * 100)} / 100`,
+                      : `${Number(summary.qa).toFixed(2)} / 1.00`,
                 },
                 { label: "Cost", value: `$${summary.cost ?? "0.000000"}` },
               ].map((item) => (
@@ -833,12 +943,16 @@ export function StudioScreen() {
                 <strong className="font-semibold text-verified-ink">
                   {live
                     ? "Live asset published."
-                    : "The deterministic QA-revision fixture is ready."}
+                    : demoRun.evidence === "production-proof"
+                      ? "Recorded production proof replayed."
+                      : "Deterministic fixture replayed."}
                 </strong>
                 <br />
                 {live
                   ? `Vision QA passed in ${liveRun?.qa_attempts ?? 1} attempt${liveRun?.qa_attempts === 1 ? "" : "s"}; Genblaze manifest embedded and hashes recorded in B2.`
-                  : "Two attempts and parent lineage are replayed without claiming a live provider call or settled spend."}
+                  : demoRun.evidence === "production-proof"
+                    ? `This replay made no new provider call. The original ${demoRun.provider} run recorded $${demoRun.cost_usd} with its manifest and hashes.`
+                    : "This synthetic path is replayed without claiming a live provider call or settled spend."}
               </p>
               <div className="flex flex-wrap gap-2">
                 {assetUrl ? (

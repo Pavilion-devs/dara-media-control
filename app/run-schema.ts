@@ -19,6 +19,8 @@ export const runAttemptSchema = z.object({
   model: z.string().nullable(),
   qa_score: z.number().min(0).max(1).nullable(),
   asset_id: z.string().nullable(),
+  cost_usd: z.string().nullable(),
+  cost_basis: z.enum(["known", "estimated", "unknown"]),
   created_at: z.string(),
 });
 
@@ -53,6 +55,7 @@ export const liveRunSchema = z.object({
     "succeeded",
     "failed",
     "blocked",
+    "cancelled",
   ]),
   prompt: z.string(),
   aspect_ratio: z.enum(["1:1", "3:2", "2:3"]),

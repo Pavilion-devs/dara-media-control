@@ -29,9 +29,11 @@ spreadsheets, chat history, and provider dashboards.
 
 ![Dara Studio showing a deterministic QA revision, policy reserve, and linked event stream](docs/assets/tour-studio.jpg)
 
-Demo replay is the default and costs nothing. The committed 13-run corpus includes still,
-motion, voice, regeneration, two zero-spend policy blocks, and a deterministic QA
-fail-revise-pass path. Live OpenAI generation is a separate, spend-labelled action.
+Replay is the default and creates no new provider spend. It opens on a verified
+production OpenAI/B2 record with its original estimated cost visible; the committed
+13-run corpus also includes clearly marked deterministic fixtures for still, motion,
+voice, regeneration, policy blocks, and a QA fail-revise-pass path. Live generation is
+a separate, spend-labelled action with two-step confirmation.
 
 ### 2. Verify the delivered bytes
 
@@ -41,6 +43,11 @@ Dara extracts the Genblaze manifest and checks its canonical integrity, then com
 uploaded file's whole-file SHA-256 with the trusted `published_sha256` stored in B2. A
 valid foreign manifest is reported only as self-consistent; a changed trusted file fails
 closed as a mismatch.
+
+The browser computes SHA-256 locally before any upload, so the visitor can see the exact
+digest of the bytes they hold before trusting Dara or the network. Normal-sized files are
+then streamed for embedded-manifest inspection; oversized files can fall back to the
+content-hash lookup without transmitting the file.
 
 ### 3. Account for every attempt
 
@@ -67,8 +74,8 @@ work that did not ship.
 
 | Criterion | Where to look | Evidence |
 |---|---|---|
-| **Real-world utility** | [`docs/PRD.md`](docs/PRD.md), [`app/verify/page.tsx`](app/verify/page.tsx), [`app/ledger/page.tsx`](app/ledger/page.tsx) | A named buyer and five concrete questions; verify and ledger remain useful without starting generation. |
-| **Production readiness** | [`api/dara/policy/`](api/dara/policy/), [`api/dara/jobs.py`](api/dara/jobs.py), [`api/dara/main.py`](api/dara/main.py), [`api/tests/`](api/tests/) | Pre-spend policy blocks, atomic reservations, B2-backed restart recovery, anonymous action quotas, typed errors, fallback routes, a zero-network regression suite, and measured deployment evidence. |
+| **Real-world utility** | [`docs/PRD.md`](docs/PRD.md), [Verify screen](<app/(public)/verify/verify-screen.tsx>), [Ledger screen](<app/(app)/ledger/ledger-screen.tsx>) | A named buyer and five concrete questions; verify and ledger remain useful without starting generation. |
+| **Production readiness** | [`api/dara/policy/`](api/dara/policy/), [`api/dara/jobs.py`](api/dara/jobs.py), [`api/dara/main.py`](api/dara/main.py), [`api/tests/`](api/tests/) | Pre-spend policy blocks, atomic reservations, B2-backed restart recovery, anonymous action quotas, typed errors, fallback routes, and measured deployment evidence. Verify distinguishes trusted match, trusted mismatch, self-consistent, and unknown; SHA-256 is computed client-side before upload. |
 | **B2 storage and data orchestration** | [`api/dara/storage.py`](api/dara/storage.py), [`api/dara/ledger.py`](api/dara/ledger.py), [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | One B2 bucket holds source assets, delivered derivatives, manifests, job/policy/share state, hash indexes, and immutable Parquet. There is no application database. |
 | **Use of Genblaze** | [`api/dara/pipelines/`](api/dara/pipelines/), [`api/dara/verify.py`](api/dara/verify.py), [`api/dara/share.py`](api/dara/share.py) | Multi-step pipelines, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id`, `ObjectStorageSink`, `ParquetSink`, `EmbedPolicy`, manifest embed/extract/verify, `ModelRegistry`, `astream()`, `abatch_run()`, replay semantics, and `LoggingTracer`. |
 
@@ -106,7 +113,7 @@ dara/share-assets/{token}/{asset_id}.ext     redacted client derivatives
 dara/manifests/{run_id}.json                 provenance
 dara/index/sha/{sha}.json                    source/published lookup
 dara/ledger/{table}/year=YYYY/month=MM/*.parquet
-dara/state/{jobs,live-runs,policies,projects,shares}/
+dara/state/{jobs,live-runs,assets,policies,projects,shares}/
 ```
 
 Genblaze's source hash and Dara's delivered-file hash are deliberately different.

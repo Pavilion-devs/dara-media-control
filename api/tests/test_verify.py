@@ -228,6 +228,46 @@ class VerifierTests(unittest.TestCase):
 
 
 class VerifyEndpointTests(unittest.TestCase):
+    def test_asset_read_and_idempotent_approval_return_trusted_record(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = create_fixture(Path(temporary))
+            asset_id = next(
+                key.rsplit("/", 1)[-1].removesuffix(".json")
+                for key in fixture.verifier.storage._backend.objects
+                if key.startswith("dara/state/assets/")
+            )
+            with (
+                patch.object(
+                    main_module.DaraStorage,
+                    "from_env",
+                    return_value=fixture.verifier.storage,
+                ),
+                patch.object(
+                    main_module,
+                    "public_action_rate_limiter",
+                    main_module.PublicActionRateLimiter(),
+                ),
+                patch.dict("os.environ", {"DARA_API_TOKEN": "test-token"}),
+                TestClient(app) as client,
+            ):
+                read = client.get(
+                    f"/v1/assets/{asset_id}",
+                    headers={"Authorization": "Bearer test-token"},
+                )
+                approved = client.post(
+                    f"/v1/assets/{asset_id}/approve",
+                    headers={
+                        "Authorization": "Bearer test-token",
+                        "X-Dara-Actor": "anon_" + "8" * 32,
+                    },
+                )
+
+        self.assertEqual(read.status_code, 200)
+        self.assertEqual(read.json()["asset"]["asset_id"], asset_id)
+        self.assertEqual(read.json()["verification"]["verification"], "trusted-match")
+        self.assertEqual(approved.status_code, 200)
+        self.assertEqual(approved.json()["approval"]["status"], "already-approved")
+
     def test_upload_endpoint_returns_typed_verification(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             fixture = create_fixture(Path(temporary))

@@ -653,6 +653,16 @@ async def run_still_pipeline(
                                     if step.assets
                                     else None
                                 ),
+                                "cost_usd": money(
+                                    (
+                                        expansion_cost_usd
+                                        if int(getattr(event, "iteration", 0)) == 0
+                                        else money("0")
+                                    )
+                                    + generation_cost_usd
+                                    + qa_cost_usd
+                                ),
+                                "cost_basis": "estimated",
                                 "created_at": attempt_run.created_at,
                             }
                         )
@@ -684,6 +694,8 @@ async def run_still_pipeline(
                                 "prompt": current_prompt,
                                 "provider": getattr(event, "provider", "openai"),
                                 "model": getattr(event, "model", "gpt-image-2"),
+                                "cost_usd": None,
+                                "cost_basis": "unknown",
                                 "created_at": getattr(
                                     event,
                                     "timestamp",

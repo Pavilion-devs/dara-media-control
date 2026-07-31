@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { clientAddress } from "../../anonymous-actor";
+
 function unavailable() {
   return NextResponse.json(
     {
@@ -33,12 +35,16 @@ export async function POST(request: Request) {
     );
   }
   const contentType = request.headers.get("content-type");
+  const forwardedAddress = clientAddress(request);
   const init: RequestInit & { duplex: "half" } = {
     method: "POST",
     body: request.body,
     cache: "no-store",
     duplex: "half",
-    headers: contentType ? { "Content-Type": contentType } : undefined,
+    headers: {
+      ...(contentType ? { "Content-Type": contentType } : {}),
+      "X-Forwarded-For": forwardedAddress,
+    },
   };
   const upstream = await fetch(`${apiUrl}/v1/verify`, init);
   const body = await upstream.text();

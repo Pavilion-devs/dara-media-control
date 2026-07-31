@@ -103,7 +103,7 @@ Work top to bottom. Each task is one commit.
       Report `embedded` vs `matched-by-hash` vs `unknown`.
 - [x] **T-13** `POST /v1/verify` and `GET /v1/verify/{sha256}`. Public, no auth,
       rate-limited by IP.
-- [x] **T-14** Verify page in `web/`. Dropzone, hash comparison rendering, lineage
+- [x] **T-14** Verify page in `app/(public)/verify/`. Dropzone, hash comparison rendering, lineage
       display. See `docs/FRONTEND_SPEC.md` for the hash-diff treatment.
 - [x] **T-15** Publish an embedded derivative, persist its `published_sha256`, and test
       with a tampered copy. One flipped byte must produce a visible trusted mismatch while
@@ -192,13 +192,15 @@ Work top to bottom. Each task is one commit.
       policy-block proofs and one deterministic QA-failed-then-passed fixture.
       Every record carries an explicit `production-proof` or
       `deterministic-fixture` evidence label; fixture provider names and settled
-      spend never masquerade as live OpenAI execution.
+      spend never masquerade as live OpenAI execution. The default record is the
+      verified production `openai-dalle / gpt-image-2` asset and shows its original
+      `$0.010000` conservative estimate; synthetic fixtures remain selectable.
 - [x] **T-40** Demo mode is the default landing state and replays the committed
-      QA-revision fixture using accelerated timers while displaying the realistic
-      61-second event clock. The screen explicitly labels the fixture, shows zero
-      settled spend, and keeps live OpenAI generation behind a separate
-      spend-labelled control. `/` redirects to this Studio state; the product overview
-      remains available at `/about`.
+      production proof using accelerated timers and no new provider call. The screen
+      distinguishes original recorded cost from replay spend and keeps live generation
+      behind a separate spend-labelled, two-confirmation control. The deterministic
+      QA-revision path remains clearly labelled in the replay selector. `/` redirects
+      to Studio; the product overview remains available at `/about`.
 - [x] **T-41** Rate limits: per-IP on verify; pseudonymous per-actor quotas on
       policy simulation, live generation/regeneration, and disclosure creation;
       plus a global daily spend cap on live generation. The web server HMACs the
@@ -222,8 +224,12 @@ Work top to bottom. Each task is one commit.
       anonymous. The Runs screen separates live B2 history from fixtures; Verify hashes
       locally, streams normal files for full embedded-manifest inspection, and reserves
       hash-only lookup for an edge upload-limit fallback.
-      Paid mutations remain bounded by the kill switch, per-actor quota, and daily
-      spend cap. Exact route-by-route instructions live in `docs/JUDGE_ACCESS.md`.
+      Paid mutations remain bounded by the kill switch, per-actor quota, and independent
+      deployment-wide daily spend cap. Project changes, cancellation, asset approval,
+      policy previews, shares, and generation all use anonymous quotas. Cancellation
+      after provider work may have started keeps the full reservation accounted rather
+      than pretending it was free. Exact route-by-route instructions live in
+      `docs/JUDGE_ACCESS.md`.
 - [x] **T-44** README rewritten per `docs/SUBMISSION.md` with real production
       screenshots, the four-criteria mapping, the deployed architecture, the B2
       object layout, exact local setup and verification commands, an honest limitations

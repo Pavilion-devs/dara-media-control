@@ -74,7 +74,7 @@ def build_corpus() -> dict[str, Any]:
             "qa_attempts": 2,
             "cost_usd": "0.000000",
             "saved_cost_usd": "0.000000",
-            "asset_url": "/dara-verified-sample.png",
+            "asset_url": None,
             "events": [
                 event(
                     0,
@@ -142,26 +142,51 @@ def build_corpus() -> dict[str, Any]:
             ],
         },
         {
-            "seed_id": "seed_still_product",
+            "seed_id": "seed_still_production_openai",
             "pipeline_id": "still-campaign",
-            "title": "Product still · first-pass approval",
-            "project_id": "prj_field_notes",
+            "title": "OpenAI image · recorded production proof",
+            "project_id": "prj_northwind_q3",
             "policy_id": "pol_standard",
-            "brief": "Graphite notebook on raw oak with clean directional light.",
-            "provider": "genblaze-testing",
-            "model": "mock-image-v1",
+            "brief": "Cobalt ceramic cup on washed linen in soft editorial light.",
+            "provider": "openai-dalle",
+            "model": "gpt-image-2",
             "outcome": "succeeded",
             "approved": True,
-            "qa_score": 0.95,
+            "qa_score": None,
             "qa_attempts": 1,
-            "cost_usd": "0.000000",
+            "cost_usd": "0.010000",
             "saved_cost_usd": "0.000000",
             "asset_url": "/dara-verified-sample.png",
-            "events": short_events(
-                provider="genblaze-testing",
-                model="mock-image-v1",
-                pipeline="still-campaign",
-            ),
+            "events": [
+                event(
+                    0,
+                    "policy.allowed",
+                    "dara",
+                    "policy/v1",
+                    "Pre-flight policy allowed a $0.010000 image reservation.",
+                ),
+                event(
+                    800,
+                    "step.started",
+                    "openai-dalle",
+                    "gpt-image-2",
+                    "Recorded production image generation started.",
+                ),
+                event(
+                    22_772,
+                    "step.completed",
+                    "openai-dalle",
+                    "gpt-image-2",
+                    "Production image completed; $0.010000 conservative estimated cost recorded.",
+                ),
+                event(
+                    23_100,
+                    "publish.completed",
+                    "genblaze-s3",
+                    "backblaze-b2",
+                    "Source, manifest, and embedded derivative persisted and verified in B2.",
+                ),
+            ],
         },
         {
             "seed_id": "seed_still_portrait",
@@ -178,7 +203,7 @@ def build_corpus() -> dict[str, Any]:
             "qa_attempts": 1,
             "cost_usd": "0.000000",
             "saved_cost_usd": "0.000000",
-            "asset_url": "/dara-verified-sample.png",
+            "asset_url": None,
             "events": short_events(
                 provider="genblaze-testing",
                 model="mock-image-v1",
@@ -370,6 +395,7 @@ def build_corpus() -> dict[str, Any]:
     production_proofs = {
         "seed_blocked_budget",
         "seed_blocked_shape",
+        "seed_still_production_openai",
         "seed_regeneration",
     }
     for run in runs:
@@ -393,7 +419,7 @@ def build_corpus() -> dict[str, Any]:
     return {
         "schema_version": 1,
         "generated_at": GENERATED_AT,
-        "default_seed_id": "seed_still_qa_revision",
+        "default_seed_id": "seed_still_production_openai",
         "runs": runs,
     }
 
