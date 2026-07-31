@@ -169,6 +169,8 @@ test("connects Runs to paginated live history without blending fixtures", async 
   assert.match(screen, /RegenerationAction/);
   assert.match(screen, /VersionTree/);
   assert.match(schema, /liveRunListSchema/);
+  assert.match(schema, /"motion-spot"/);
+  assert.match(schema, /"voiceover-pack"/);
   assert.match(regeneration, /\/regenerate/);
   assert.match(regeneration, /\/diff\?against=/);
   assert.match(regeneration, /Confirm · reserve/);

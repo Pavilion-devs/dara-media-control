@@ -46,7 +46,11 @@ export const liveRunSchema = z.object({
   job_id: z.string(),
   tenant_id: z.string(),
   project_id: z.string(),
-  pipeline_id: z.literal("still-campaign"),
+  pipeline_id: z.enum([
+    "still-campaign",
+    "motion-spot",
+    "voiceover-pack",
+  ]),
   mode: z.literal("live"),
   status: z.enum([
     "queued",
