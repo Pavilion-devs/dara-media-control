@@ -27,10 +27,13 @@ async function render(pathname = "/") {
   );
 }
 
-test("routes the judge entry point directly to Studio", async () => {
+test("serves a healthy judge entry point and opens Studio", async () => {
   const response = await render();
-  assert.equal(response.status, 307);
-  assert.equal(new URL(response.headers.get("location")).pathname, "/studio");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /http-equiv="refresh"/i);
+  assert.match(html, /content="0;url=\/studio"/i);
+  assert.match(html, /Continue to the governed media control plane/);
 });
 
 test("server-renders the public product overview", async () => {
