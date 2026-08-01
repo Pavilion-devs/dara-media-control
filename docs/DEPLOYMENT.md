@@ -103,8 +103,10 @@ reopening DuckDB or issuing another remote Parquet scan.
 The read path was hardened after the incident. The browser now requests one combined
 dashboard endpoint instead of four concurrent ledger endpoints. DuckDB produces the
 summary, model, project, and month views in one `GROUPING SETS` query over Parquet in B2;
-the API reuses that result for 60 seconds and serializes cold singleton initialization.
-The allowlisted query endpoints remain available for focused analysis.
+the production API reuses that result for one hour and serializes cold singleton
+initialization. B2 state reads use direct GETs instead of an existence probe followed by
+a GET, and live-run records have the same one-hour process cache. The allowlisted query
+endpoints remain available for focused analysis.
 
 This continuity path does not supersede the live ledger requirement.
 
@@ -151,6 +153,45 @@ console remained clean. The same release passed 78 Python tests plus the complet
 gate, including all ten rendered-application tests. The shipped 1.2 MB proof was then
 uploaded through the browser and returned `embedded`, `trusted-match`, valid canonical
 integrity, and the expected B2 published hash.
+
+### Final hardening audit — 2026-08-01
+
+API release `58b2e78` and web release `018056f` are active on the TierHive VPS. The web
+root returns HTTP 200 before immediately opening `/studio`, so the judge still enters the
+zero-spend replay while TierHive's HAProxy health check receives a successful response.
+The `usedara.xyz` backend was re-saved with its unchanged private target
+`10.3.245.5:3000`; TierHive then reported it **Healthy** and the public domain recovered
+from the stale-backend 503.
+
+The final T-51 production pass established all of the following:
+
+- A cookie-free HTTP client received HTTP 200 from `/`, `/studio`, `/about`, `/policies`,
+  `/runs`, `/ledger`, `/verify`, the seeded image asset, the production motion asset, and
+  the production voice asset.
+- A 1440×1000 browser pass rendered the same ten routes with zero horizontal overflow
+  and no console warnings or errors. Studio reported `Live policy active`; Policies read
+  the live policy engine; Runs reported 28 live B2 records; and the three asset pages
+  rendered native image, video, and audio elements respectively.
+- A separate cookie-free Chrome session with device metrics fixed at 390×844 repeated
+  the ten-route pass. Every route had a 390-pixel document width, zero horizontal
+  overflow, no runtime exceptions, and no warning/error log entries. The long-wait mobile
+  checks also rendered `28 live runs`, `Live B2 history`, `Live · DuckDB over B2`, and
+  `$0.818650`.
+- Ledger returned 35 accounted runs, 18 approved assets, `$0.818650` total spend,
+  `$0.045481` cost per approved asset, 27.1593% unapproved-spend share, and `$4.815000`
+  prevented spend from a live DuckDB-over-B2 query.
+- The shipped 1.2 MB PNG was selected in the public Verify screen, hashed locally, then
+  uploaded. Dara extracted the embedded manifest, verified canonical integrity, and
+  returned `Trusted published record match` against the B2 record with no console error.
+- A cookie-free cancellation request against completed motion job
+  `job_01KYWFHKE36VADJYZH76Q678Y3` returned typed HTTP 409
+  `RUN_NOT_CANCELLABLE`; the succeeded run remained unchanged.
+- That motion run and its published asset now expose the same reconciled provider cost,
+  `$0.410780`, while the all-project ledger total remains `$0.818650`.
+
+Backblaze's new daily window was live before the pass. The console initially showed 110
+of 2,500 Class B transactions, 6 of 2,500 Class C transactions, and 1 MB of the 1 GB
+download allowance. No payment method or billing change was needed.
 
 ## Latency
 

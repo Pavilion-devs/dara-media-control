@@ -259,9 +259,13 @@ Work top to bottom. Each task is one commit.
       The all-project live DuckDB ledger reads `$0.818650` spend, `$4.815000` prevented,
       and 27.1593% spend on unshipped work. All dates are actual July execution dates,
       so the monthly chart intentionally has one truthful bar.
-- [ ] **T-51** Deploy this hardening release and repeat the cookie-free desktop/mobile
+- [x] **T-51** Deploy this hardening release and repeat the cookie-free desktop/mobile
       route, console, verification-upload, live ledger, and cancellation checks against
-      `usedara.xyz`. Record the release id and observed results in `docs/DEPLOYMENT.md`.
+      `usedara.xyz`. API release `58b2e78` and web release `018056f` passed the final
+      1440×1000 and 390×844 production audit: ten cookie-free routes returned 200, all
+      browser routes had zero overflow and clean consoles, the 1.2 MB proof uploaded as
+      a trusted match, live B2 Runs/Ledger rendered, and completed-run cancellation
+      failed safely with typed HTTP 409. Exact evidence is in `docs/DEPLOYMENT.md`.
 
 ### Phase 7 — submit (M7)
 
