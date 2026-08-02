@@ -195,7 +195,7 @@ download allowance. No payment method or billing change was needed.
 
 ### Live-first public product audit — 2026-08-02
 
-Web release `50b865a` is active on the TierHive VPS. The public product no longer offers
+Web release `e5e0001` is active on the TierHive VPS. The public product no longer offers
 a replay mode, committed evidence corpus, preloaded verification proof, recorded ledger
 snapshot, or fixture-backed fallback. Studio starts with an empty brief and requires a
 two-click live OpenAI confirmation: the first click exposes the maximum reservation and
