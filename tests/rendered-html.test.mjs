@@ -265,7 +265,8 @@ test("keeps the public ledger live-only without a continuity snapshot", async ()
     readFile(new URL("../app/api/ledger/dashboard/route.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(ledgerUi, /fetch\("\/api\/ledger\/dashboard"/);
+  assert.match(ledgerUi, /\/api\/ledger\/dashboard\?project_id=/);
+  assert.match(ledgerUi, /fetch\("\/api\/projects"/);
   assert.match(ledgerUi, /No recorded snapshot has been substituted/);
   assert.doesNotMatch(ledgerUi, /recordedLedgerProof|ledger-proof/);
   assert.doesNotMatch(ledgerUi, /Promise\.all\(\[\s*fetch\("\/api\/ledger/);

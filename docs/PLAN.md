@@ -269,8 +269,8 @@ Work top to bottom. Each task is one commit.
 - [x] **T-52** Replace the public replay/fixture presentation with a live-first product
       boundary. Studio now starts as an empty governed generation, requires live B2
       projects and policies, and preserves the two-step maximum-cost confirmation.
-      Runs, Assets, Policies, and Ledger render only live API/B2 data and show explicit
-      unavailable states instead of substituting committed evidence. Test fixtures stay
+      Runs, Assets, Policies, and Ledger render only live API/B2 data for active client
+      projects and show explicit unavailable states instead of substituting committed evidence. Test fixtures stay
       in the automated suite. Accounting writes invalidate the process dashboard cache
       so a completed run appears on the next Ledger query.
 

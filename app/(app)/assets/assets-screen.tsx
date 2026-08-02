@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Badge, EmptyState } from "@/components/ui";
 
 import { liveRunListSchema, type LiveRun } from "../../run-schema";
+import { projectListSchema } from "../../project-schema";
 
 export function AssetsScreen() {
   const [runs, setRuns] = useState<LiveRun[]>([]);
@@ -14,16 +15,24 @@ export function AssetsScreen() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetch("/api/runs?limit=100", {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Asset history unavailable");
-        const parsed = liveRunListSchema.parse(await response.json());
+    void Promise.all([
+      fetch("/api/runs?limit=100", { cache: "no-store", signal: controller.signal }),
+      fetch("/api/projects", { cache: "no-store", signal: controller.signal }),
+    ])
+      .then(async ([runResponse, projectResponse]) => {
+        if (!runResponse.ok || !projectResponse.ok) {
+          throw new Error("Asset history unavailable");
+        }
+        const parsed = liveRunListSchema.parse(await runResponse.json());
+        const projects = projectListSchema.parse(await projectResponse.json());
+        const projectIds = projects.items.map((project) => project.project_id);
         setRuns(
           parsed.items.filter(
-            (run) => run.status === "succeeded" && run.asset_id && run.asset_url,
+            (run) =>
+              projectIds.includes(run.project_id)
+              && run.status === "succeeded"
+              && run.asset_id
+              && run.asset_url,
           ),
         );
         setState("live");

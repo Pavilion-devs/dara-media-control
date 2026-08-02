@@ -29,6 +29,7 @@ import {
   liveRunListSchema,
   type LiveRun,
 } from "../../run-schema";
+import { projectListSchema } from "../../project-schema";
 
 const pipelineIcon: Record<string, typeof ImageIcon> = {
   "still-campaign": ImageIcon,
@@ -137,7 +138,7 @@ function LiveRunRow({
             {run.prompt}
           </span>
           <span className="mt-0.5 block truncate font-mono text-[11px] text-subtle">
-            {run.project_id} · {run.policy_id} · {run.job_id}
+            {run.project_id} · {run.job_id}
           </span>
         </span>
         <span className="hidden shrink-0 text-right sm:block">
@@ -225,6 +226,7 @@ export function RunsScreen() {
   const [pipeline, setPipeline] = useState<"all" | LiveRun["pipeline_id"]>("all");
   const [outcome, setOutcome] = useState<"all" | LiveRun["status"]>("all");
   const [liveRuns, setLiveRuns] = useState<LiveRun[]>([]);
+  const [projectIds, setProjectIds] = useState<string[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [liveState, setLiveState] = useState<
@@ -233,15 +235,22 @@ export function RunsScreen() {
 
   useEffect(() => {
     const controller = new AbortController();
-    void fetch("/api/runs?limit=50", {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Live run history is unavailable.");
-        const parsed = liveRunListSchema.parse(await response.json());
-        setLiveRuns(parsed.items);
-        setNextCursor(parsed.next_cursor);
+    void Promise.all([
+      fetch("/api/runs?limit=50", { cache: "no-store", signal: controller.signal }),
+      fetch("/api/projects", { cache: "no-store", signal: controller.signal }),
+    ])
+      .then(async ([runResponse, projectResponse]) => {
+        if (!runResponse.ok || !projectResponse.ok) {
+          throw new Error("Live run history is unavailable.");
+        }
+        const parsedRuns = liveRunListSchema.parse(await runResponse.json());
+        const parsedProjects = projectListSchema.parse(await projectResponse.json());
+        const activeProjectIds = parsedProjects.items.map((project) => project.project_id);
+        setProjectIds(activeProjectIds);
+        setLiveRuns(
+          parsedRuns.items.filter((run) => activeProjectIds.includes(run.project_id)),
+        );
+        setNextCursor(parsedRuns.next_cursor);
         setLiveState("live");
       })
       .catch((error: unknown) => {
@@ -261,7 +270,10 @@ export function RunsScreen() {
       );
       if (!response.ok) throw new Error("Live run history is unavailable.");
       const parsed = liveRunListSchema.parse(await response.json());
-      setLiveRuns((current) => [...current, ...parsed.items]);
+      setLiveRuns((current) => [
+        ...current,
+        ...parsed.items.filter((run) => projectIds.includes(run.project_id)),
+      ]);
       setNextCursor(parsed.next_cursor);
     } catch {
       setNextCursor(null);

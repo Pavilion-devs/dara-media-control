@@ -69,14 +69,16 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
   generation, events, QA, publishing, and accounting. No recorded run or local estimate
   is substituted when the live control plane is unavailable. The provider call requires
   a second confirmation after the maximum reservation is shown.
-- `/runs` — live B2-backed run history only. Completed live runs can
+- `/runs` — live B2-backed history for the active client projects only; internal smoke
+  and recovery probes remain in storage but are not judge-facing. Completed live runs can
   issue client disclosure links, explicitly authorize manifest-based regeneration,
   and render the original/child output plus recorded parameter diff.
-- `/assets` — live published assets derived from succeeded B2 run records.
+- `/assets` — live published assets derived from succeeded B2 records for active client projects.
 - `/assets/[id]` — a live published-asset record: lineage, source and delivered hashes,
   provider, cost basis, and version history.
-- `/ledger` — live DuckDB-over-B2 accounting. An outage is visible and never replaced
-  with a recorded snapshot.
+- `/ledger` — live DuckDB-over-B2 accounting scoped by an active-project selector, so
+  operational probes are not mixed into client economics. An outage is visible and
+  never replaced with a recorded snapshot.
 - `/policies` — active policy documents and all four enforcement points. An outage is
   visible and never replaced with committed defaults.
 

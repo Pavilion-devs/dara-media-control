@@ -4,13 +4,14 @@ import { BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { DataTable } from "@/components/dara/data-table";
-import { Badge, EmptyState, Panel, PanelHead, cn } from "@/components/ui";
+import { Badge, EmptyState, Panel, PanelHead, Select, cn } from "@/components/ui";
 
 import {
   ledgerDashboardSchema,
   type LedgerQuery,
   type LedgerSummary,
 } from "../../ledger-schema";
+import { projectListSchema, type Project } from "../../project-schema";
 
 type Dashboard = {
   summary: LedgerSummary;
@@ -50,17 +51,42 @@ function Metric({
 
 export function LedgerScreen() {
   const [live, setLive] = useState<Dashboard | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
   const [ledgerState, setLedgerState] = useState<"loading" | "live" | "unavailable">(
     "loading",
   );
 
   useEffect(() => {
     const controller = new AbortController();
+    void fetch("/api/projects", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Project list unavailable");
+        const parsed = projectListSchema.parse(await response.json());
+        setProjects(parsed.items);
+        setProjectId(parsed.items[0]?.project_id ?? "");
+        if (parsed.items.length === 0) setLedgerState("unavailable");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLedgerState("unavailable");
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const controller = new AbortController();
     async function loadLedger() {
+      setLive(null);
+      setLedgerState("loading");
       try {
-        const response = await fetch("/api/ledger/dashboard", {
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/ledger/dashboard?project_id=${encodeURIComponent(projectId)}`,
+          {
+            signal: controller.signal,
+          },
+        );
         if (!response.ok) {
           throw new Error("Ledger unavailable");
         }
@@ -73,7 +99,7 @@ export function LedgerScreen() {
     }
     void loadLedger();
     return () => controller.abort();
-  }, []);
+  }, [projectId]);
 
   if (live === null) {
     return (
@@ -90,9 +116,24 @@ export function LedgerScreen() {
               Every attempt counts — including the work that never shipped.
             </p>
           </div>
-          <Badge dot tone="warn">
-            {ledgerState === "loading" ? "Querying B2" : "Live ledger unavailable"}
-          </Badge>
+          <div className="grid min-w-56 gap-2">
+            <Badge dot tone="warn">
+              {ledgerState === "loading" ? "Querying B2" : "Live ledger unavailable"}
+            </Badge>
+            {projects.length ? (
+              <Select
+                aria-label="Ledger project"
+                onChange={(event) => setProjectId(event.target.value)}
+                value={projectId}
+              >
+                {projects.map((project) => (
+                  <option key={project.project_id} value={project.project_id}>
+                    {project.name}
+                  </option>
+                ))}
+              </Select>
+            ) : null}
+          </div>
         </div>
         <EmptyState
           description={
@@ -126,16 +167,27 @@ export function LedgerScreen() {
             Every attempt counts — including the work that never shipped.
           </p>
         </div>
-        <Badge dot tone="allow">
-          Live · DuckDB over B2
-        </Badge>
+        <div className="grid min-w-56 gap-2">
+          <Badge dot tone="allow">Live · DuckDB over B2</Badge>
+          <Select
+            aria-label="Ledger project"
+            onChange={(event) => setProjectId(event.target.value)}
+            value={projectId}
+          >
+            {projects.map((project) => (
+              <option key={project.project_id} value={project.project_id}>
+                {project.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {/* The three numbers the PRD says nobody else tracks. */}
       <div className="grid gap-4 md:grid-cols-3">
         <Metric
           detail={
-            `Across ${summary.run_count} accounted runs, including discarded attempts.`
+            `Across ${summary.run_count} accounted project runs, including discarded attempts.`
           }
           emphasis
           label="Cost / approved asset"
