@@ -92,8 +92,9 @@ cd api && pip install -e . && uvicorn dara.main:app --reload
 cd web && npm install && npm run dev
 ```
 
-Demo mode is the default and requires no provider keys — it replays committed runs from
-`api/seeds/`. Provider keys are only needed for live generation.
+The public product is live-first and does not replay committed runs. Existing B2-backed
+read surfaces require B2 credentials; provider keys are needed only when generation is
+explicitly enabled. Deterministic seeds are retained for automated tests.
 
 ## Honest limitations
 

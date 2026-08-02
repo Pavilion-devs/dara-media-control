@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  AudioLines,
-  Ban,
-  Clapperboard,
-  ImageIcon,
-  RotateCcw,
-  ShieldCheck,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { AudioLines, Ban, Clapperboard, ImageIcon, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import { ActiveEvent, EventStream, type RunEvent } from "@/components/dara/event-stream";
 import { derivePhases } from "@/components/dara/run-phases";
@@ -29,48 +22,10 @@ import {
   cn,
 } from "@/components/ui";
 
-import demoSeedData from "../../../api/seeds/demo-runs.json";
-import { demoSeedCorpusSchema, type DemoSeedRun } from "../../demo-seed-schema";
+import { policyListSchema, type Policy } from "../../policy-schema";
 import { projectListSchema, type Project } from "../../project-schema";
 import { liveRunSchema, type LiveRun } from "../../run-schema";
 import { apiErrorSchema } from "../../verification-schema";
-
-const demoCorpus = demoSeedCorpusSchema.parse(demoSeedData);
-const defaultDemoRun = demoCorpus.runs.find(
-  (run) => run.seed_id === demoCorpus.default_seed_id,
-) as DemoSeedRun;
-const fallbackProjects: Project[] = [
-  {
-    schema_version: 1,
-    project_id: "prj_northwind_q3",
-    tenant_id: "demo",
-    name: "Northwind — Q3 campaign",
-    client: "Northwind Foods",
-    policy_id: "pol_standard",
-    created_at: "2026-07-28T09:00:00Z",
-    tags: ["campaign", "food"],
-  },
-  {
-    schema_version: 1,
-    project_id: "prj_atlas_brand",
-    tenant_id: "demo",
-    name: "Atlas Hotels — Brand film",
-    client: "Atlas Hotels",
-    policy_id: "pol_standard",
-    created_at: "2026-07-28T09:00:00Z",
-    tags: ["brand", "hospitality"],
-  },
-  {
-    schema_version: 1,
-    project_id: "prj_field_launch",
-    tenant_id: "demo",
-    name: "Field Notes — Product launch",
-    client: "Field Notes",
-    policy_id: "pol_standard",
-    created_at: "2026-07-28T09:00:00Z",
-    tags: ["launch", "product"],
-  },
-];
 
 type PolicySimulation = {
   estimate: { expected_usd: string; worst_case_usd: string };
@@ -80,34 +35,11 @@ type PolicySimulation = {
   };
 };
 
-function formatSpend(value: number) {
+type ConnectionState = "loading" | "live" | "unavailable";
+
+function formatSpend(value: number | null) {
+  if (value === null) return "—";
   return value < 0.1 ? value.toFixed(3) : value.toFixed(2);
-}
-
-function seededEvents(run: DemoSeedRun): RunEvent[] {
-  return run.events.map((event, index) => ({
-    seq: index + 1,
-    time: `${(event.at_ms / 1000).toFixed(2)}s`,
-    provider: event.provider,
-    model: event.model,
-    message: event.message,
-    kind: event.type,
-    tone:
-      event.type === "step.failover"
-        ? "failover"
-        : event.type === "qa.revised"
-          ? "revised"
-          : event.type === "run.completed"
-              || event.type === "publish.completed"
-              || (event.type === "agent.iteration.evaluated"
-                && event.message.includes("passed"))
-            ? "success"
-            : "normal",
-  }));
-}
-
-function replayDelay(run: DemoSeedRun, index: number) {
-  return Math.min(2800, 100 + run.events[index].at_ms * 0.04);
 }
 
 function liveEvents(run: LiveRun): RunEvent[] {
@@ -128,8 +60,7 @@ function liveEvents(run: LiveRun): RunEvent[] {
             ? event.message.includes("passed")
               ? "success"
               : "revised"
-            : event.type === "run.completed"
-                || event.type === "publish.completed"
+            : event.type === "run.completed" || event.type === "publish.completed"
               ? "success"
               : "normal",
     } as RunEvent;
@@ -138,12 +69,10 @@ function liveEvents(run: LiveRun): RunEvent[] {
 
 const pipelineIcon: Record<string, typeof ImageIcon> = {
   "still-campaign": ImageIcon,
-  regenerate: ImageIcon,
   "motion-spot": Clapperboard,
   "voiceover-pack": AudioLines,
 };
 
-/** The stage: empty intent, live progress, or the finished asset. */
 function Stage({
   assetUrl,
   blockedRun,
@@ -167,7 +96,7 @@ function Stage({
           Blocked before any provider was called
         </p>
         <p className="max-w-xs text-xs leading-relaxed text-muted">
-          Nothing was spent. The rejection itself is recorded in the ledger.
+          Nothing was spent. The policy decision is preserved in the live ledger.
         </p>
       </div>
     );
@@ -175,7 +104,6 @@ function Stage({
 
   if (assetUrl && !running) {
     return (
-      // B2 signs live asset URLs at runtime, so no static image allowlist applies.
       <img
         alt="Generated asset produced by this Dara run"
         className="aspect-[16/10] w-full rounded-xl border border-line bg-inset object-cover"
@@ -197,100 +125,114 @@ function Stage({
           ? "Working…"
           : started
             ? "This run produced no previewable asset."
-            : "The generated asset appears here."}
+            : "Your generated asset will appear here."}
       </p>
     </div>
   );
 }
 
 export function StudioScreen() {
-  const [seedId, setSeedId] = useState(demoCorpus.default_seed_id);
-  const demoRun = useMemo(
-    () =>
-      demoCorpus.runs.find((run) => run.seed_id === seedId) as DemoSeedRun,
-    [seedId],
-  );
-  const demoEvents = useMemo(() => seededEvents(demoRun), [demoRun]);
-
-  const [prompt, setPrompt] = useState(defaultDemoRun.brief);
-  const [variants, setVariants] = useState(1);
-  const [policy, setPolicy] = useState("standard");
+  const [prompt, setPrompt] = useState("");
   const [aspectRatio, setAspectRatio] = useState("1:1");
-  const [runMode, setRunMode] = useState<"demo" | "live">("demo");
-  const [projects, setProjects] = useState<Project[]>(fallbackProjects);
-  const [projectId, setProjectId] = useState("prj_northwind_q3");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [projectState, setProjectState] = useState<ConnectionState>("loading");
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [policyId, setPolicyId] = useState("");
+  const [policyListState, setPolicyListState] = useState<ConnectionState>("loading");
   const [liveRun, setLiveRun] = useState<LiveRun | null>(null);
-  const [events, setEvents] = useState<RunEvent[]>(demoEvents);
-  const [runState, setRunState] = useState<"ready" | "running" | "done">("done");
-  const simulationKey = `${runMode}:${policy}:${aspectRatio}:${variants}`;
+  const [events, setEvents] = useState<RunEvent[]>([]);
+  const [runState, setRunState] = useState<"ready" | "running" | "done">("ready");
+  const simulationKey = `${policyId}:${aspectRatio}`;
   const [simulationResult, setSimulationResult] = useState<{
     key: string;
     value: PolicySimulation;
   } | null>(null);
   const simulation =
     simulationResult?.key === simulationKey ? simulationResult.value : null;
-  const [policyStatus, setPolicyStatus] = useState<
-    "checking" | "live" | "fallback"
-  >("checking");
+  const [policyStatus, setPolicyStatus] = useState<"checking" | "live" | "unavailable">(
+    "checking",
+  );
   const [runMessage, setRunMessage] = useState("");
-  const [liveSpendArmed, setLiveSpendArmed] = useState(false);
-  const [toast, setToast] = useState("");
+  const [generationArmed, setGenerationArmed] = useState(false);
   const timers = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const eventSource = useRef<EventSource | null>(null);
 
-  const localEstimate = useMemo(
-    () => (runMode === "live" ? 0.02 : 0.01 * variants),
-    [runMode, variants],
-  );
-  const estimate = simulation
-    ? Number(simulation.estimate.expected_usd)
-    : localEstimate;
-  const worstCase = simulation
-    ? Number(simulation.estimate.worst_case_usd)
-    : localEstimate * 3;
-  const blocked = simulation
-    ? simulation.decision.outcome === "block"
-    : policy === "locked" && (worstCase > 0.02 || aspectRatio !== "1:1");
+  const estimate = simulation ? Number(simulation.estimate.expected_usd) : null;
+  const worstCase = simulation ? Number(simulation.estimate.worst_case_usd) : null;
+  const blocked = simulation?.decision.outcome === "block";
   const violationMessage =
     simulation?.decision.violations[0]?.message
-    ?? "The selected brief exceeds the locked policy. Nothing will be spent.";
+    ?? "The active policy rejected this request. Nothing will be spent.";
 
   useEffect(() => {
     const controller = new AbortController();
     void fetch("/api/projects", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) return;
+        if (!response.ok) throw new Error("Project list unavailable");
         const parsed = projectListSchema.parse(await response.json());
-        if (parsed.items.length > 0) setProjects(parsed.items);
+        setProjects(parsed.items);
+        setProjectId((current) => current || parsed.items[0]?.project_id || "");
+        setProjectState("live");
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setProjectState("unavailable");
+      });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    const requestKey = `${runMode}:${policy}:${aspectRatio}:${variants}`;
+    void fetch("/api/policies", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Policy list unavailable");
+        const parsed = policyListSchema.parse(await response.json());
+        setPolicies(parsed.items);
+        setPolicyId((current) =>
+          current
+          || parsed.items.find((policy) => policy.policy_id === "pol_standard")?.policy_id
+          || parsed.items[0]?.policy_id
+          || "",
+        );
+        setPolicyListState("live");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setPolicyListState("unavailable");
+        setPolicyStatus("unavailable");
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!policyId) return;
+    const controller = new AbortController();
+    const requestKey = `${policyId}:${aspectRatio}`;
     const timer = setTimeout(async () => {
       setPolicyStatus("checking");
       try {
-        const response = await fetch(`/api/policies/pol_${policy}/simulate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tenant_id: "demo",
-            job_id: "job_studio_preview",
-            provider: "openai",
-            model: "gpt-image-2",
-            modality: "image",
-            aspect_ratio: aspectRatio,
-            variants,
-            max_attempts: 3,
-            step_count: 1,
-            qa_enabled: runMode === "live",
-            prompt_expansion: runMode === "live",
-          }),
-          signal: controller.signal,
-        });
+        const response = await fetch(
+          `/api/policies/${encodeURIComponent(policyId)}/simulate`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tenant_id: "demo",
+              job_id: "job_studio_preview",
+              provider: "openai",
+              model: "gpt-image-2",
+              modality: "image",
+              aspect_ratio: aspectRatio,
+              variants: 1,
+              max_attempts: 3,
+              step_count: 1,
+              qa_enabled: true,
+              prompt_expansion: true,
+            }),
+            signal: controller.signal,
+          },
+        );
         if (!response.ok) throw new Error("Policy preview unavailable");
         setSimulationResult({
           key: requestKey,
@@ -298,7 +240,7 @@ export function StudioScreen() {
         });
         setPolicyStatus("live");
       } catch (error) {
-        if ((error as Error).name !== "AbortError") setPolicyStatus("fallback");
+        if ((error as Error).name !== "AbortError") setPolicyStatus("unavailable");
       }
     }, 180);
 
@@ -306,7 +248,7 @@ export function StudioScreen() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [aspectRatio, policy, runMode, variants]);
+  }, [aspectRatio, policyId]);
 
   useEffect(
     () => () => {
@@ -321,13 +263,10 @@ export function StudioScreen() {
     setEvents(liveEvents(current));
     if (current.status === "succeeded") {
       setRunState("done");
+      setRunMessage("Generation completed and the durable B2 record was sealed.");
       return true;
     }
-    if (
-      current.status === "failed"
-      || current.status === "blocked"
-      || current.status === "cancelled"
-    ) {
+    if (["failed", "blocked", "cancelled"].includes(current.status)) {
       setRunState("done");
       setRunMessage(
         current.error_message
@@ -367,9 +306,7 @@ export function StudioScreen() {
 
   function streamLiveRun(jobId: string) {
     eventSource.current?.close();
-    const stream = new EventSource(
-      `/api/runs/${encodeURIComponent(jobId)}/events`,
-    );
+    const stream = new EventSource(`/api/runs/${encodeURIComponent(jobId)}/events`);
     eventSource.current = stream;
     let finished = false;
     let fallbackStarted = false;
@@ -410,15 +347,16 @@ export function StudioScreen() {
   }
 
   async function runBrief() {
-    if (blocked) return;
-    if (runMode === "live" && !liveSpendArmed) {
-      setLiveSpendArmed(true);
+    if (blocked || worstCase === null || policyStatus !== "live") return;
+    if (!generationArmed) {
+      setGenerationArmed(true);
       setRunMessage(
-        `Review the $${formatSpend(worstCase)} worst-case reservation, then click again to authorize provider spend.`,
+        `Dara will reserve at most $${formatSpend(worstCase)}. Confirm once more to call OpenAI.`,
       );
       return;
     }
-    setLiveSpendArmed(false);
+
+    setGenerationArmed(false);
     timers.current.forEach(clearTimeout);
     eventSource.current?.close();
     eventSource.current = null;
@@ -427,60 +365,43 @@ export function StudioScreen() {
     setRunMessage("");
     setLiveRun(null);
 
-    if (runMode === "live") {
-      try {
-        const response = await fetch("/api/runs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            project_id: projectId,
-            policy_id: `pol_${policy}`,
-            prompt,
-            aspect_ratio: aspectRatio,
-            variants: 1,
-          }),
-        });
-        const json: unknown = await response.json();
-        if (!response.ok) {
-          const parsed = apiErrorSchema.safeParse(json);
-          throw new Error(
-            parsed.success
-              ? parsed.data.error.message
-              : "Dara could not start the live image job.",
-          );
-        }
-        const created = liveRunSchema.parse(json);
-        setLiveRun(created);
-        setEvents(liveEvents(created));
-        streamLiveRun(created.job_id);
-      } catch (error) {
-        setRunState("done");
-        setRunMessage(
-          error instanceof Error
-            ? error.message
-            : "Dara could not start the live image job.",
+    try {
+      const response = await fetch("/api/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project_id: projectId,
+          policy_id: policyId,
+          prompt,
+          aspect_ratio: aspectRatio,
+          variants: 1,
+        }),
+      });
+      const json: unknown = await response.json();
+      if (!response.ok) {
+        const parsed = apiErrorSchema.safeParse(json);
+        throw new Error(
+          parsed.success
+            ? parsed.data.error.message
+            : "Dara could not start the OpenAI image job.",
         );
       }
-      return;
-    }
-
-    if (policyStatus !== "live") {
+      const created = liveRunSchema.parse(json);
+      setLiveRun(created);
+      setEvents(liveEvents(created));
+      streamLiveRun(created.job_id);
+    } catch (error) {
+      setRunState("done");
       setRunMessage(
-        "The policy service could not be reached, so Dara is replaying the verified record without making a provider call.",
+        error instanceof Error
+          ? error.message
+          : "Dara could not start the OpenAI image job.",
       );
     }
-    demoEvents.forEach((event, index) => {
-      timers.current.push(
-        setTimeout(() => {
-          setEvents((current) => [...current, event]);
-          if (index === demoEvents.length - 1) setRunState("done");
-        }, replayDelay(demoRun, index)),
-      );
-    });
   }
 
   async function cancelLiveRun() {
-    if (!liveRun || !running) return;
+    if (!liveRun || runState !== "running") return;
     setRunMessage("Requesting cancellation…");
     try {
       const response = await fetch(
@@ -503,107 +424,36 @@ export function StudioScreen() {
     }
   }
 
-  function selectSeed(next: string) {
-    timers.current.forEach(clearTimeout);
-    eventSource.current?.close();
-    const run = demoCorpus.runs.find((item) => item.seed_id === next);
-    setSeedId(next);
-    setLiveRun(null);
-    setRunMessage("");
-    setRunState("done");
-    if (run) {
-      setPrompt(run.brief);
-      setEvents(seededEvents(run));
-    }
-  }
-
-  function approve() {
-    setToast("Already approved · trusted published hash is on record");
-    setTimeout(() => setToast(""), 2200);
-  }
-
   const running = runState === "running";
-  const live = runMode === "live";
   const phases = derivePhases(
     events.map((event) => event.kind),
     running,
   );
   const started = events.length > 0;
   const blockedRun = events.some((event) => event.kind === "policy.blocked");
-  const assetUrl = live ? (liveRun?.asset_url ?? null) : demoRun.asset_url;
+  const assetUrl = liveRun?.asset_url ?? null;
   const finished = runState === "done" && started;
   const activeEvent = events[events.length - 1];
-
-  const summary = live
-    ? {
-        provider: "openai",
-        model: "gpt-image-2",
-        qa: liveRun?.qa_score,
-        cost: liveRun?.actual_cost_usd ?? liveRun?.worst_case_cost_usd,
-        attempts: liveRun?.qa_attempts,
-      }
-    : {
-        provider: demoRun.provider,
-        model: demoRun.model,
-        qa: demoRun.qa_score,
-        cost: demoRun.cost_usd,
-        attempts: demoRun.qa_attempts,
-      };
-  const versions: VersionNode[] = live
-    ? (liveRun?.attempts ?? []).map((attempt) => ({
-        id: attempt.genblaze_run_id,
-        parentId: attempt.parent_run_id,
-        status: attempt.status,
-        label: `Attempt ${attempt.attempt}`,
-        prompt: attempt.prompt,
-        provider: attempt.provider,
-        model: attempt.model,
-        qaScore: attempt.qa_score,
-      }))
-    : demoRun.seed_id === "seed_still_qa_revision"
-      ? [
-          {
-            id: "attempt-01",
-            parentId: null,
-            status: "rejected",
-            label: "Attempt 1",
-            prompt: "First deterministic candidate · linen texture and rim detail failed QA.",
-            provider: "genblaze-testing",
-            model: "mock-image-v1",
-            qaScore: 0.58,
-          },
-          {
-            id: "attempt-02",
-            parentId: "attempt-01",
-            status: "approved",
-            label: "Attempt 2",
-            prompt: "Revised prompt · linked to attempt 1 by parent_run_id.",
-            provider: "genblaze-testing",
-            model: "mock-image-v1",
-            qaScore: 0.92,
-          },
-        ]
-      : [
-          {
-            id: demoRun.seed_id,
-            parentId: null,
-            status:
-              demoRun.outcome === "succeeded"
-                ? "approved"
-                : demoRun.outcome === "blocked"
-                  ? "rejected"
-                  : "failed",
-            label: "Recorded run",
-            prompt: demoRun.brief,
-            provider: demoRun.provider,
-            model: demoRun.model,
-            qaScore: demoRun.qa_score,
-          },
-        ];
+  const lastAttempt = liveRun?.attempts.at(-1);
+  const versions: VersionNode[] = (liveRun?.attempts ?? []).map((attempt) => ({
+    id: attempt.genblaze_run_id,
+    parentId: attempt.parent_run_id,
+    status: attempt.status,
+    label: `Attempt ${attempt.attempt}`,
+    prompt: attempt.prompt,
+    provider: attempt.provider,
+    model: attempt.model,
+    qaScore: attempt.qa_score,
+  }));
+  const liveReady =
+    projectState === "live"
+    && policyListState === "live"
+    && policyStatus === "live"
+    && Boolean(projectId)
+    && Boolean(policyId);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-      {/* Brief rail */}
       <div className="grid content-start gap-4 xl:sticky xl:top-8">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-subtle">
@@ -615,25 +465,18 @@ export function StudioScreen() {
             Keep the record.
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">
-            Teams generating across providers lose track of what each asset
-            cost, which model made it, and whether it can be reproduced. Dara
-            governs the work and preserves that record through handoff.
+            Dara checks policy before spend, generates through OpenAI and Genblaze,
+            and stores the asset, provenance, attempts, and accounting in B2.
           </p>
         </div>
 
         <Panel>
           <PanelHead
-            title="New brief"
+            title="New generation"
             trailing={
               <Badge
                 dot
-                tone={
-                  blocked
-                    ? "block"
-                    : policyStatus === "live"
-                      ? "allow"
-                      : "warn"
-                }
+                tone={blocked ? "block" : policyStatus === "live" ? "allow" : "warn"}
               >
                 {blocked
                   ? "Pre-flight blocked"
@@ -641,73 +484,27 @@ export function StudioScreen() {
                     ? "Live policy active"
                     : policyStatus === "checking"
                       ? "Checking policy"
-                      : "Demo policy preview"}
+                      : "Policy unavailable"}
               </Badge>
             }
           />
           <PanelBody className="grid gap-5">
-            <Field label="Run mode">
-              <Segmented
-                ariaLabel="Run mode"
-                onChange={(next) => {
-                  setRunMode(next);
-                  setLiveSpendArmed(false);
-                  eventSource.current?.close();
-                  timers.current.forEach(clearTimeout);
-                  setLiveRun(null);
-                  setRunMessage("");
-                  if (next === "demo") {
-                    setVariants(3);
-                    setEvents(demoEvents);
-                    setRunState("done");
-                  } else {
-                    setVariants(1);
-                    setEvents([]);
-                    setRunState("ready");
-                  }
-                }}
-                options={[
-                  { value: "demo", label: "Replay · recorded cost" },
-                  { value: "live", label: "Live OpenAI · spends" },
-                ]}
-                value={runMode}
-              />
-              <p className="text-xs leading-relaxed text-subtle">
-                {live ? (
-                  "One candidate at a time, scored by OpenAI vision. Dara may revise up to three times inside the reserved cap."
-                ) : (
-                  <>
-                    Replaying a recorded run creates no new provider spend. Its
-                    original cost and evidence type stay visible; production
-                    proofs and deterministic fixtures are never conflated.
-                  </>
-                )}
-              </p>
-            </Field>
-
-            {!live ? (
-              <Field htmlFor="fixture" label="Replay fixture">
-                <Select
-                  id="fixture"
-                  onChange={(event) => selectSeed(event.target.value)}
-                  value={seedId}
-                >
-                  {demoCorpus.runs.map((run) => (
-                    <option key={run.seed_id} value={run.seed_id}>
-                      {run.title}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            ) : null}
-
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
               <Field htmlFor="project" label="Project">
                 <Select
+                  disabled={projectState !== "live" || projects.length === 0}
                   id="project"
-                  onChange={(event) => setProjectId(event.target.value)}
+                  onChange={(event) => {
+                    setProjectId(event.target.value);
+                    setGenerationArmed(false);
+                  }}
                   value={projectId}
                 >
+                  {projects.length === 0 ? (
+                    <option value="">
+                      {projectState === "loading" ? "Loading projects…" : "Projects unavailable"}
+                    </option>
+                  ) : null}
                   {projects.map((project) => (
                     <option key={project.project_id} value={project.project_id}>
                       {project.name}
@@ -717,16 +514,24 @@ export function StudioScreen() {
               </Field>
               <Field htmlFor="policy" label="Policy">
                 <Select
+                  disabled={policyListState !== "live" || policies.length === 0}
                   id="policy"
                   onChange={(event) => {
-                    setPolicy(event.target.value);
-                    setLiveSpendArmed(false);
+                    setPolicyId(event.target.value);
+                    setGenerationArmed(false);
                   }}
-                  value={policy}
+                  value={policyId}
                 >
-                  <option value="permissive">Permissive</option>
-                  <option value="standard">Standard client work</option>
-                  <option value="locked">Locked demo · $0.02 max</option>
+                  {policies.length === 0 ? (
+                    <option value="">
+                      {policyListState === "loading" ? "Loading policies…" : "Policies unavailable"}
+                    </option>
+                  ) : null}
+                  {policies.map((policy) => (
+                    <option key={policy.policy_id} value={policy.policy_id}>
+                      {policy.name}
+                    </option>
+                  ))}
                 </Select>
               </Field>
             </div>
@@ -736,8 +541,9 @@ export function StudioScreen() {
                 id="prompt"
                 onChange={(event) => {
                   setPrompt(event.target.value);
-                  setLiveSpendArmed(false);
+                  setGenerationArmed(false);
                 }}
+                placeholder="Describe the image you want Dara to generate."
                 value={prompt}
               />
             </Field>
@@ -747,7 +553,7 @@ export function StudioScreen() {
                 ariaLabel="Aspect ratio"
                 onChange={(next) => {
                   setAspectRatio(next);
-                  setLiveSpendArmed(false);
+                  setGenerationArmed(false);
                 }}
                 options={[
                   { value: "1:1", label: "1:1" },
@@ -757,54 +563,47 @@ export function StudioScreen() {
                 value={aspectRatio}
               />
             </Field>
-
-            <Field htmlFor="variants" label={`Variants · ${variants}`}>
-              <input
-                className="w-full accent-accent"
-                disabled={live}
-                id="variants"
-                max={live ? 1 : 4}
-                min={1}
-                onChange={(event) => setVariants(Number(event.target.value))}
-                type="range"
-                value={variants}
-              />
-            </Field>
           </PanelBody>
         </Panel>
 
-        {/* Pre-flight: the estimate is the point of decision, so it stays visible. */}
         <Panel className={cn(blocked && "border-blocked/30")}>
           <PanelBody className="grid gap-4">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
-                  Pre-flight estimate
+                  Live pre-flight estimate
                 </p>
                 <p className="mt-1 text-xs text-subtle">
-                  Expected / three-attempt reserve ·{" "}
-                  {policyStatus === "live"
-                    ? "from model registry via Dara API"
-                    : "registry preview unavailable"}
+                  Expected / three-attempt reserve · active model registry
                 </p>
               </div>
               <p className="shrink-0 font-mono text-lg text-ink">
-                ${formatSpend(estimate)}{" "}
-                <span className="text-subtle">/ ${formatSpend(worstCase)}</span>
+                {estimate === null ? "—" : `$${formatSpend(estimate)}`} {" "}
+                <span className="text-subtle">
+                  / {worstCase === null ? "—" : `$${formatSpend(worstCase)}`}
+                </span>
               </p>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-line">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  blocked ? "bg-blocked" : "bg-verified",
-                )}
-                style={{ width: `${Math.min(100, (worstCase / 0.12) * 100)}%` }}
-              />
-            </div>
+            {worstCase !== null ? (
+              <div className="h-1.5 overflow-hidden rounded-full bg-line">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    blocked ? "bg-blocked" : "bg-verified",
+                  )}
+                  style={{ width: `${Math.min(100, (worstCase / 0.12) * 100)}%` }}
+                />
+              </div>
+            ) : null}
             {blocked ? (
               <StatusBlock icon={ShieldCheck} title="Blocked before spend" tone="block">
                 {violationMessage} No provider will be called.
+              </StatusBlock>
+            ) : null}
+            {!liveReady && policyStatus === "unavailable" ? (
+              <StatusBlock icon={ShieldCheck} title="Live control plane unavailable" tone="warn">
+                Dara will not substitute recorded data or start generation until the live
+                policy service is reachable.
               </StatusBlock>
             ) : null}
             {runMessage ? (
@@ -813,7 +612,7 @@ export function StudioScreen() {
               </p>
             ) : null}
             <Button
-              disabled={blocked || !prompt.trim() || running}
+              disabled={blocked || !prompt.trim() || running || !liveReady}
               full
               onClick={() => void runBrief()}
               size="lg"
@@ -821,16 +620,15 @@ export function StudioScreen() {
               {blocked
                 ? "Blocked before spend"
                 : running
-                  ? live
-                    ? "Generating with OpenAI…"
-                    : "Replay in progress…"
-                  : live
-                    ? liveSpendArmed
-                      ? `Confirm live spend · up to $${formatSpend(worstCase)}`
-                      : "Review live spend"
-                    : "Replay recorded run"}
+                  ? "Generating with OpenAI…"
+                  : generationArmed
+                    ? `Confirm generation · up to $${formatSpend(worstCase)}`
+                    : "Generate with OpenAI"}
             </Button>
-            {live && running && liveRun ? (
+            <p className="text-center text-[11px] leading-relaxed text-subtle">
+              The first click reveals the live maximum. The second authorizes the provider call.
+            </p>
+            {running && liveRun ? (
               <Button full onClick={() => void cancelLiveRun()} variant="secondary">
                 Cancel run
               </Button>
@@ -839,16 +637,15 @@ export function StudioScreen() {
         </Panel>
       </div>
 
-      {/* Stage */}
       <Panel className="self-start">
         <PanelHead
           title={
             <div className="min-w-0 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
-                {live ? "Live still · OpenAI to B2" : demoRun.pipeline_id}
+                Live still · OpenAI → Genblaze → B2
               </p>
               <h2 className="mt-1 truncate text-base font-semibold text-ink">
-                {live ? "New live run" : demoRun.title}
+                {liveRun ? liveRun.job_id : "New generation"}
               </h2>
             </div>
           }
@@ -856,68 +653,49 @@ export function StudioScreen() {
             <Badge
               dot
               pulse={running}
-              tone={
-                blockedRun
-                  ? "block"
-                  : running
-                    ? "warn"
-                    : finished
-                      ? "allow"
-                      : "neutral"
-              }
+              tone={blockedRun ? "block" : running ? "warn" : finished ? "allow" : "neutral"}
             >
-              {blockedRun
-                ? "Blocked"
-                : running
-                  ? "Running"
-                  : finished
-                    ? "Sealed"
-                    : "Ready"}
+              {blockedRun ? "Blocked" : running ? "Running" : finished ? "Sealed" : "Ready"}
             </Badge>
           }
         />
 
         <PanelBody className="grid gap-6">
           <Stepper steps={phases} />
-
           <Stage
             assetUrl={assetUrl}
             blockedRun={blockedRun}
-            pipelineId={live ? "still-campaign" : demoRun.pipeline_id}
+            pipelineId={liveRun?.pipeline_id ?? "still-campaign"}
             running={running}
             started={started}
           />
-
           {running ? <ActiveEvent event={activeEvent} /> : null}
-
           {!started && !running ? (
             <p className="text-sm leading-relaxed text-subtle">
-              Pick a project and describe the shot. The estimate updates as you
-              type.
+              Choose a live project, enter a prompt, review the policy reservation,
+              and authorize the generation. No recorded run is preloaded here.
             </p>
           ) : null}
 
-          {finished ? (
+          {finished && liveRun ? (
             <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
               {[
-                { label: "Provider", value: summary.provider },
-                { label: "Model", value: summary.model },
+                { label: "Provider", value: lastAttempt?.provider ?? "—" },
+                { label: "Model", value: lastAttempt?.model ?? "—" },
                 {
                   label: "Vision QA",
-                  value:
-                    summary.qa == null
-                      ? "—"
-                      : `${Number(summary.qa).toFixed(2)} / 1.00`,
+                  value: liveRun.qa_score == null ? "—" : `${liveRun.qa_score.toFixed(2)} / 1.00`,
                 },
-                { label: "Cost", value: `$${summary.cost ?? "0.000000"}` },
+                {
+                  label: "Cost",
+                  value: liveRun.actual_cost_usd ? `$${liveRun.actual_cost_usd}` : "—",
+                },
               ].map((item) => (
                 <div className="grid gap-1 bg-inset px-4 py-3" key={item.label}>
                   <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
                     {item.label}
                   </dt>
-                  <dd className="truncate font-mono text-sm text-ink">
-                    {item.value}
-                  </dd>
+                  <dd className="truncate font-mono text-sm text-ink">{item.value}</dd>
                 </div>
               ))}
             </dl>
@@ -937,58 +715,34 @@ export function StudioScreen() {
             </div>
           ) : null}
 
-          {finished && !blockedRun ? (
+          {finished && liveRun?.status === "succeeded" ? (
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-verified/25 bg-verified/10 p-4">
               <p className="text-sm leading-relaxed text-muted">
                 <strong className="font-semibold text-verified-ink">
-                  {live
-                    ? "Live asset published."
-                    : demoRun.evidence === "production-proof"
-                      ? "Recorded production proof replayed."
-                      : "Deterministic fixture replayed."}
+                  Live asset published.
                 </strong>
                 <br />
-                {live
-                  ? `Vision QA passed in ${liveRun?.qa_attempts ?? 1} attempt${liveRun?.qa_attempts === 1 ? "" : "s"}; Genblaze manifest embedded and hashes recorded in B2.`
-                  : demoRun.evidence === "production-proof"
-                    ? `This replay made no new provider call. The original ${demoRun.provider} run recorded $${demoRun.cost_usd} with its manifest and hashes.`
-                    : "This synthetic path is replayed without claiming a live provider call or settled spend."}
+                Vision QA, the embedded Genblaze manifest, both hashes, and the final
+                accounting record are stored in B2.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {assetUrl ? (
-                  <a
-                    className="inline-flex h-9 items-center rounded-xl border border-line bg-surface px-3 text-xs font-semibold text-ink transition-colors hover:bg-inset"
-                    href={assetUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    Open asset
-                  </a>
-                ) : null}
-                <Button onClick={approve} size="sm" variant="secondary">
-                  <RotateCcw aria-hidden className="size-3.5" />
-                  Approve
-                </Button>
-              </div>
+              {assetUrl ? (
+                <a
+                  className="inline-flex h-9 items-center rounded-xl border border-line bg-surface px-3 text-xs font-semibold text-ink transition-colors hover:bg-inset"
+                  href={assetUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Open asset
+                </a>
+              ) : null}
             </div>
           ) : null}
 
-          {/* Sharing needs a real job_id from the live run store, so it is
-              offered only on a completed live run. */}
-          {live && liveRun?.status === "succeeded" && liveRun.asset_id ? (
+          {liveRun?.status === "succeeded" && liveRun.asset_id ? (
             <ShareAction assetId={liveRun.asset_id} jobId={liveRun.job_id} />
           ) : null}
         </PanelBody>
       </Panel>
-
-      {toast ? (
-        <div
-          className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-ink px-4 py-3 text-xs font-medium text-page shadow-lg"
-          role="status"
-        >
-          {toast}
-        </div>
-      ) : null}
     </div>
   );
 }

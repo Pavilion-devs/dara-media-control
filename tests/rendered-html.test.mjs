@@ -65,31 +65,23 @@ test("server-renders the Dara control plane", async () => {
   assert.match(html, /Keep the record\./);
   assert.match(html, /Checking policy/);
   assert.match(html, /B2 connected/);
-  assert.match(html, /OpenAI image · recorded production proof/);
-  assert.match(html, /openai-dalle/);
-  assert.match(html, /gpt-image-2/);
-  assert.match(html, /\$0\.010000/);
-  assert.match(html, /Replay · recorded cost/);
-  assert.match(html, /Production proofs and deterministic fixtures are never conflated/i);
+  assert.match(html, /New generation/);
+  assert.match(html, /Generate with OpenAI/);
+  assert.match(html, /No recorded run is preloaded here/);
+  assert.match(html, /Production workspace · B2 connected/);
+  assert.doesNotMatch(html, /Replay|fixture|recorded production proof/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
 });
 
-test("server-renders the real verified demo record", async () => {
+test("server-renders an empty public verification flow", async () => {
   const response = await render("/verify");
   assert.equal(response.status, 200);
 
   const html = await response.text();
   assert.match(html, /Public verification/);
   assert.match(html, /Drop a file to check where it came from/);
-  assert.match(html, /Verified demo record/);
-  assert.match(html, /Trusted published record match/);
-  assert.match(
-    html,
-    /900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca/,
-  );
-  assert.match(html, /openai-dalle/);
-  assert.match(html, /gpt-image-2/);
-  assert.match(html, /Not an adversarial authenticity proof/);
+  assert.doesNotMatch(html, /Verified demo record|Showing a committed proof/);
+  assert.doesNotMatch(html, /900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca/);
 });
 
 test("server-renders the token-scoped disclosure shell without private demo content", async () => {
@@ -146,7 +138,7 @@ test("ships product assets and response validation without starter files", async
   );
 });
 
-test("connects Runs to paginated live history without blending fixtures", async () => {
+test("connects Runs to paginated live history without public fixtures", async () => {
   const [route, screen, schema, regeneration, versionTree] = await Promise.all([
     readFile(new URL("../app/api/runs/route.ts", import.meta.url), "utf8"),
     readFile(
@@ -167,8 +159,9 @@ test("connects Runs to paginated live history without blending fixtures", async 
   assert.match(route, /export async function GET/);
   assert.match(route, /\/v1\/runs\$\{query\}/);
   assert.match(screen, /fetch\("\/api\/runs\?limit=50"/);
-  assert.match(screen, /Live B2 history/);
-  assert.match(screen, /never blended into these committed totals/);
+  assert.match(screen, /B2 run history/);
+  assert.match(screen, /No fixture history has been substituted/);
+  assert.doesNotMatch(screen, /demo-runs\.json|demoSeedCorpusSchema/);
   assert.match(screen, /RegenerationAction/);
   assert.match(screen, /VersionTree/);
   assert.match(schema, /liveRunListSchema/);
@@ -263,9 +256,8 @@ test("accepts both legacy and production run identifiers on every run route", as
   for (const route of routes) assert.match(route, /isRunId/);
 });
 
-test("ships the verified ledger continuity snapshot without invented spend", async () => {
-  const [proof, ledgerUi, dashboardRoute] = await Promise.all([
-    readFile(new URL("../app/ledger-proof.ts", import.meta.url), "utf8"),
+test("keeps the public ledger live-only without a continuity snapshot", async () => {
+  const [ledgerUi, dashboardRoute] = await Promise.all([
     readFile(
       new URL("../app/(app)/ledger/ledger-screen.tsx", import.meta.url),
       "utf8",
@@ -273,13 +265,9 @@ test("ships the verified ledger continuity snapshot without invented spend", asy
     readFile(new URL("../app/api/ledger/dashboard/route.ts", import.meta.url), "utf8"),
   ]);
 
-  assert.match(proof, /run_count: 9/);
-  assert.match(proof, /approved_assets: 6/);
-  assert.match(proof, /total_spend_usd: "0\.095000"/);
-  assert.match(proof, /spend_prevented_usd: "0\.015000"/);
-  assert.match(proof, /\["gpt-image-2", "openai", 9, "0\.095000", "0\.013571"\]/);
-  assert.match(proof, /\["prj_t24_proof", 2, 2, null\]/);
   assert.match(ledgerUi, /fetch\("\/api\/ledger\/dashboard"/);
+  assert.match(ledgerUi, /No recorded snapshot has been substituted/);
+  assert.doesNotMatch(ledgerUi, /recordedLedgerProof|ledger-proof/);
   assert.doesNotMatch(ledgerUi, /Promise\.all\(\[\s*fetch\("\/api\/ledger/);
   assert.match(dashboardRoute, /\/v1\/ledger\/dashboard/);
 });

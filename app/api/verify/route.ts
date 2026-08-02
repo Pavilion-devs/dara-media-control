@@ -8,7 +8,7 @@ function unavailable() {
       error: {
         code: "STORAGE_UNAVAILABLE",
         message:
-          "Live verification is not connected on this deployment yet. The verified demo record remains available.",
+          "Live verification is not connected on this deployment.",
         details: {},
         request_id: null,
       },

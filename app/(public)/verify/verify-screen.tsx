@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, FileCheck2, RotateCcw, ShieldCheck } from "lucide-react";
+import { ArrowDown, RotateCcw, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { HashDisplay } from "@/components/dara/hash-display";
@@ -28,55 +28,6 @@ import {
   type VerificationResponse,
   verificationResponseSchema,
 } from "../../verification-schema";
-
-/** The committed proof shown before anyone uploads anything. */
-const demoRecord: VerificationResponse = {
-  result: "embedded",
-  verification: "trusted-match",
-  storage_status: "available",
-  verified: true,
-  uploaded_sha256:
-    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
-  expected_published_sha256:
-    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
-  manifest: {
-    canonical_hash:
-      "d7bc702cafdbbe4b48eef3df2e4c92c0e6b0e2eb4d16b8a72086a4f3ba116f58",
-    hash_matches: true,
-    declared_hashes_match: true,
-    run_id: "a2a6bc2c-8869-4809-a07e-0fc706f3d4c5",
-    created_at: "2026-07-29T19:42:24.645595Z",
-    steps: [
-      {
-        provider: "openai-dalle",
-        model: "gpt-image-2",
-        modality: "image",
-        prompt: null,
-        params: {
-          n: 1,
-          size: "1024x1024",
-          quality: "low",
-          output_format: "png",
-        },
-        cost_usd: "0.010000",
-      },
-    ],
-    parent_run_id: null,
-    redacted: false,
-  },
-  lineage: [
-    {
-      run_id: "a2a6bc2c-8869-4809-a07e-0fc706f3d4c5",
-      at: "2026-07-29T19:42:24.645595Z",
-      relationship: "generated",
-      provider: "openai-dalle",
-      model: "gpt-image-2",
-    },
-  ],
-  warning: null,
-  trust_note:
-    "Tamper-evident within the issuing organisation's storage. Not an adversarial authenticity proof.",
-};
 
 /** All five states are designed; none is a dead end. */
 const states: Record<
@@ -149,13 +100,12 @@ function MetaStrip({ result }: { result: VerificationResponse }) {
 
 export function VerifyScreen() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState("dara-verified-published.png");
+  const [fileName, setFileName] = useState("");
   const [staged, setStaged] = useState<{
     file: File;
     sha256: string;
   } | null>(null);
-  const [result, setResult] = useState<VerificationResponse>(demoRecord);
-  const [mode, setMode] = useState<"demo" | "live">("demo");
+  const [result, setResult] = useState<VerificationResponse | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -197,7 +147,6 @@ export function VerifyScreen() {
           setResult(
             verificationResponseSchema.parse(await lookupResponse.json()),
           );
-          setMode("live");
           setPhase("done");
           return;
         }
@@ -221,7 +170,6 @@ export function VerifyScreen() {
         throw new Error(error.error.message);
       }
       setResult(verificationResponseSchema.parse(json));
-      setMode("live");
       setPhase("done");
     } catch (error) {
       setMessage(
@@ -235,16 +183,14 @@ export function VerifyScreen() {
 
   function reset() {
     setStaged(null);
-    setResult(demoRecord);
-    setFileName("dara-verified-published.png");
-    setMode("demo");
+    setResult(null);
+    setFileName("");
     setPhase("idle");
     setMessage("");
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  const current = states[result.verification];
-  const showResult = phase === "idle" || phase === "done";
+  const current = result ? states[result.verification] : null;
   const steps: Step[] = [
     {
       key: "hash",
@@ -258,7 +204,7 @@ export function VerifyScreen() {
     },
   ];
 
-  const lineage: LineageNode[] = result.lineage.map((item, index) => ({
+  const lineage: LineageNode[] = (result?.lineage ?? []).map((item, index) => ({
     key: `${item.run_id}-${index}`,
     step: `${String(index + 1).padStart(2, "0")} · ${item.relationship}`,
     title: `${item.provider ?? "Parent run"} / ${item.model ?? "record"}`,
@@ -402,7 +348,7 @@ export function VerifyScreen() {
           ) : null}
           <div className="mt-4 flex flex-wrap gap-3">
             <Button onClick={reset} size="sm" variant="secondary">
-              Return to verified demo record
+              Choose another file
             </Button>
             {staged ? (
               <Button
@@ -417,10 +363,9 @@ export function VerifyScreen() {
         </StatusBlock>
       ) : null}
 
-      {showResult ? (
+      {phase === "done" && result && current ? (
         <Panel
           className={cn(
-            phase === "idle" && "mt-6",
             phase === "done"
               && result.verification === "trusted-mismatch"
               && "verify-mismatch",
@@ -430,8 +375,7 @@ export function VerifyScreen() {
             title={
               <div className="min-w-0 py-4">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-subtle">
-                  {mode === "demo" ? "Verified demo record" : "Uploaded file"} ·{" "}
-                  {fileName}
+                  Uploaded file · {fileName}
                 </p>
                 <h2 className="mt-1 text-base font-semibold text-ink">
                   {current.title}
@@ -562,12 +506,6 @@ export function VerifyScreen() {
         </Panel>
       ) : null}
 
-      {phase === "idle" ? (
-        <p className="mt-6 flex items-center justify-center gap-2 text-xs text-subtle">
-          <FileCheck2 aria-hidden className="size-3.5" />
-          Showing a committed proof. Drop your own file to check it instead.
-        </p>
-      ) : null}
     </div>
   );
 }

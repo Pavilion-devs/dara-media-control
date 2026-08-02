@@ -51,11 +51,12 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
 
 ### Public shell
 
-- `/` — redirects directly to Studio's no-new-spend production-record replay, preserving the
-  judge-entry acceptance criterion.
+- `/` — returns a healthy response and opens the live-first Studio, preserving the
+  judge-entry and infrastructure-health acceptance criteria.
 - `/about` — product overview. Explains the three pillars and links into Studio and
   Verify without leaking operator fixtures.
-- `/verify` — public verification. Hashes locally first, then streams normal files for
+- `/verify` — empty public verification flow. Hashes the selected file locally first,
+  then streams normal files for
   full embedded-manifest inspection. If an edge rejects an oversized upload, Dara can
   look up the already-computed trusted hash without transmitting the file. The FastAPI
   boundary accepts up to 100 MB; deploy-time edge limits may be lower.
@@ -64,19 +65,20 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
 
 ### Operator shell
 
-- `/studio` — a production-record replay by default, clearly labelled deterministic
-  fixtures, and explicit live generation. Policy simulation remains visible before the
-  run starts; live events stream from the durable run.
-- `/runs` — live B2-backed run history plus a separately labelled committed evidence
-  corpus. Live records and fixture totals are never blended. Completed live runs can
+- `/studio` — an empty new-generation form backed by live projects, policies, estimates,
+  generation, events, QA, publishing, and accounting. No recorded run or local estimate
+  is substituted when the live control plane is unavailable. The provider call requires
+  a second confirmation after the maximum reservation is shown.
+- `/runs` — live B2-backed run history only. Completed live runs can
   issue client disclosure links, explicitly authorize manifest-based regeneration,
   and render the original/child output plus recorded parameter diff.
-- `/assets/[id]` — the seeded published-asset proof: lineage, source and delivered
-  hashes, provider latency, cost basis, and version history.
-- `/ledger` — live DuckDB-over-B2 accounting with an honestly labelled recorded-proof
-  fallback during storage outages.
-- `/policies` — the active policy documents, four enforcement points, constraints, and
-  live-versus-committed source label.
+- `/assets` — live published assets derived from succeeded B2 run records.
+- `/assets/[id]` — a live published-asset record: lineage, source and delivered hashes,
+  provider, cost basis, and version history.
+- `/ledger` — live DuckDB-over-B2 accounting. An outage is visible and never replaced
+  with a recorded snapshot.
+- `/policies` — active policy documents and all four enforcement points. An outage is
+  visible and never replaced with committed defaults.
 
 There is no standalone Shares screen because the API does not list disclosure records.
 Creation belongs to the completed live run that owns the trusted asset.
@@ -89,8 +91,8 @@ Creation belongs to the completed live run that owns the trusted asset.
 - The web server HMACs the trusted proxy address into a pseudonymous actor ID for
   quotas and audit records. Raw IP addresses and ChatGPT identity are not persisted.
 - Every JSON response is Zod-validated at the browser boundary.
-- Run events use the SSE proxy and durable replay. Read screens fall back only to
-  committed, explicitly labelled evidence.
+- Run events use the SSE proxy and durable replay. Public product screens fail visibly
+  when live data is unavailable; deterministic fixtures are restricted to tests.
 - Verification is hybrid: local SHA-256 → streamed inspection for normal files →
   trusted hash lookup only when an edge cannot carry the file.
 

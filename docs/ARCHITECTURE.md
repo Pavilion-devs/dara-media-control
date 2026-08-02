@@ -119,19 +119,17 @@ mid-run, the record shows `running` with a stale heartbeat; a reconciler on star
 those `failed` with reason `orphaned`. Implement the reconciler — it is ten lines and it
 is the difference between "demo" and "production readiness."
 
-## Demo mode
+## Live-first product boundary
 
-The root route redirects visitors to `/studio`, where demo replay is the default. The
-public product overview remains available at `/about`.
-The default is a verified production record; synthetic paths remain visibly labelled.
-Seeded runs in `api/seeds/` are replayed through the same event shape with realistic
-inter-step delays, so the UI code path is identical to live generation. Live generation
-requires two explicit confirmation clicks and is subject to both the anonymous action
-quota and the independent deployment-wide daily spend cap enforced by the policy engine
-itself.
+The root route opens `/studio`, where no run is preloaded. The public product overview
+remains available at `/about`. Studio requires active project and policy data, shows the
+live model-registry reservation, and requires two explicit confirmation clicks before a
+provider call. Runs, Assets, Policies, and Ledger expose only active API/B2 records and
+show a clear unavailable state instead of replacing them with local evidence.
 
-The seed set must include at least: two policy-blocked runs, one run where QA failed and
-the revision passed, one multi-provider fallback event, and one run per pipeline.
+Deterministic seeds remain in `api/seeds/` for repeatable automated coverage of policy
+blocks, QA revision, provider fallback, and every pipeline. They are not imported by the
+public Studio, Runs, Assets, Policies, or Ledger screens.
 
 ## Deployment
 
@@ -164,8 +162,8 @@ tunnel lifecycle limit, lives in `docs/DEPLOYMENT.md`.
 | Every model in a chain fails | Job → `failed`, structured error; every attempt remains in the ledger with known, estimated, or unknown cost because providers may charge for failed work |
 | Provider hangs | Per-step timeout from the pipeline spec; treated as a model error and failed over |
 | B2 unreachable or capped | Mutating routes and hash-only verify return `503`; embedded verify may return `self-consistent` with `storage_status=unavailable`, never a trusted result. Failed ledger initialization and query execution enter configurable retry cooldowns so public polling cannot multiply B2 transactions. |
-| DuckDB cold start slow | Connection cached at module scope; ledger summary served from a cached aggregate refreshed every 60s |
-| Judge exhausts credits | Live generation blocked by the spend-cap policy with a clear message; demo mode remains fully functional |
+| DuckDB cold start slow | Connection cached at module scope; dashboard cache is invalidated by every accounting write |
+| Judge exhausts credits | Live generation is blocked by the spend-cap policy; existing B2-backed read surfaces remain functional |
 | Process restart mid-run | Startup reconciler marks orphaned runs `failed`; the ledger stays consistent |
 | User cancels after provider work starts | The task is stopped best-effort; the full reservation remains conservatively accounted because upstream spend may already have occurred |
 

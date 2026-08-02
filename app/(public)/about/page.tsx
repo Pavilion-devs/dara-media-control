@@ -258,8 +258,8 @@ export default function LandingPage() {
               receipts.
             </h2>
             <p className="mb-10 max-w-lg text-lg leading-relaxed text-neutral-400 md:text-xl">
-              No account required. The Studio demo replays a committed corpus at
-              zero cost, and Verify never contacts a provider.
+              No account required. Studio shows the live policy reservation before
+              generation, and Verify never contacts a provider.
             </p>
             <div className="flex w-full flex-col items-center justify-center gap-4 md:flex-row">
               <Link

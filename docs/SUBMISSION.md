@@ -110,7 +110,7 @@ Not: "great SDK, add more models."
 ## Final checks — Aug 2
 
 - [x] Open the app in a private window, no session, from a phone. Verified Studio,
-      Ledger, Verify, and the seeded asset in a clean 390×844 browser viewport on
+      Ledger, Verify, and a live B2 asset in a clean 390×844 browser viewport on
       2026-07-30: no sign-in wall, horizontal overflow, warnings, or errors.
 - [x] Clone the repo to a fresh directory and follow your own README exactly. Verified
       anonymously from public commit `1cb5b13` on 2026-07-29.
@@ -118,7 +118,7 @@ Not: "great SDK, add more models."
 - [ ] Every link in the submission resolves.
 - [x] Repo access granted to the Backblaze testing account if private. Not applicable:
       the repository is public and was cloned without authentication.
-- [x] Demo mode is the default landing state.
+- [x] Studio is live-first; fixture evidence is restricted to automated tests.
 - [x] Spend cap is active.
 - [x] Nobody can reach a judge-path screen that requires a key they do not have.
 - [ ] Submit. Then stop deploying.

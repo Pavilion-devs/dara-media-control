@@ -27,16 +27,15 @@ spreadsheets, chat history, and provider dashboards.
 
 ### 1. Generate under policy
 
-![Dara Studio showing a deterministic QA revision, policy reserve, and linked event stream](docs/assets/tour-studio.jpg)
+![Dara Studio showing the governed generation flow, policy reserve, and linked event stream](docs/assets/tour-studio.jpg)
 
-Replay is the default and creates no new provider spend. It opens on a verified
-production OpenAI/B2 record with its original estimated cost visible; the committed
-13-run corpus also includes clearly marked deterministic fixtures for still, motion,
-voice, regeneration, policy blocks, and a QA fail-revise-pass path. Live generation is
-a separate, spend-labelled action with two-step confirmation. The live B2 evidence
-corpus contains 20 current client-project runs: 12 approved assets, three zero-cost
-policy blocks, three paid QA rejections, two provider-diverse recoveries, production
-voice, and a complete production motion package.
+Studio starts as a clean live generation form. Projects, policies, estimates, events,
+assets, and cost come from the active Dara API and B2 records; no replay or fixture is
+preloaded into the public product. The first generation click reveals the live
+worst-case reservation, and the second explicitly authorizes the provider call. The
+existing B2 evidence includes approved assets, zero-cost policy blocks, paid QA
+rejections, provider-diverse recoveries, production voice, and a complete production
+motion package.
 
 ### 2. Verify the delivered bytes
 
@@ -159,9 +158,10 @@ api/.venv/bin/pip install -e api
 npm ci
 ```
 
-For the zero-spend demo, leave `DARA_LIVE_GENERATION_ENABLED=false`. B2 credentials are
-required for durable state and the live ledger; `OPENAI_API_KEY` is required only for
-explicit live generation. Browser-facing API routes require no account. The web server
+Leave `DARA_LIVE_GENERATION_ENABLED=false` in environments that must be read-only. The
+live B2-backed Runs, Assets, Policies, Ledger, and Verify surfaces remain useful without
+starting a provider call; `OPENAI_API_KEY` is required only when generation is enabled.
+Browser-facing API routes require no account. The web server
 derives a pseudonymous actor ID from the connecting address for abuse controls and
 mutation audit records; raw IP addresses and ChatGPT identity are not persisted.
 
@@ -183,8 +183,9 @@ set +a
 npm run dev
 ```
 
-Open `http://localhost:3000` for the committed Studio demo replay. The product overview
-remains at `http://localhost:3000/about`. The replay makes no provider call.
+Open `http://localhost:3000` for Studio. The product overview remains at
+`http://localhost:3000/about`. Studio will not substitute fixture data when the live API
+or B2 is unavailable.
 
 ## Verify the build
 

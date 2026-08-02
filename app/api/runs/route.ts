@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const token = process.env.DARA_API_TOKEN;
   if (!apiUrl || !token) {
     return unavailable(
-      "Live generation is not connected on this deployment. Demo replay remains available.",
+      "Live generation is not connected on this deployment.",
     );
   }
 

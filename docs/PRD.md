@@ -128,7 +128,7 @@ including discarded and failed attempts.
 | Live step streaming (SSE) | Generate | P0 |
 | Version tree with failed attempts | Generate | P0 |
 | DuckDB ledger over B2 Parquet | Account | P0 |
-| Demo mode (zero-cost replay) | — | P0 |
+| Live-first public control plane with two-step spend confirmation | — | P0 |
 | Regeneration from manifest | Verify | P1 |
 | Regeneration visual diff | Verify | P1 |
 | `motion-spot` pipeline | Generate | P1 |

@@ -32,8 +32,10 @@ Four pillars, in priority order. If you must cut, cut from the bottom:
   verification.
 - **No secrets in the frontend.** Provider keys and B2 credentials only ever exist in
   the Python service's environment.
-- **Demo mode is the default.** Judges land in a replay of cached runs that costs $0.
-  Live generation is behind an explicit action with a hard spend cap.
+- **The public product is live-first.** Judges see only active API/B2 records on Studio,
+  Runs, Assets, Policies, and Ledger. Deterministic fixtures remain test evidence and
+  never substitute for unavailable production data. Generation requires two explicit
+  confirmations and remains bounded by the kill switch, quotas, and hard daily cap.
 - **Every generation path must have a `fallback_models` chain.** Provider flakiness is
   the single most likely cause of a failed demo.
 - **Every provider attempt is accounted for.** Failure and timeout do not imply zero

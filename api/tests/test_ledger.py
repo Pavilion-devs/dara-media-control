@@ -71,6 +71,25 @@ class AccountingWriterTests(unittest.TestCase):
         self.assertEqual(table.to_pylist()[0]["job_id"], "job_accounting")
         self.assertEqual(table.to_pylist()[0]["cost_usd"], Decimal("0.015000"))
 
+    def test_accounting_write_invalidates_the_live_dashboard_cache(self) -> None:
+        storage = CaptureStorage()
+        cached_ledger = Mock()
+        record = AccountingRecord(
+            job_id="job_cache_invalidation",
+            tenant_id="demo",
+            project_id="prj_test",
+            policy_id="pol_standard",
+            status="succeeded",
+            cost_usd=Decimal("0.010000"),
+            approved=True,
+            created_at=datetime(2026, 8, 2, tzinfo=UTC),
+        )
+
+        with patch.object(ledger_module, "_ledger_instance", cached_ledger):
+            write_accounting_record(storage, record)  # type: ignore[arg-type]
+
+        cached_ledger.invalidate_cache.assert_called_once_with()
+
     def test_live_run_accounting_preserves_each_paid_qa_attempt(self) -> None:
         run = LiveRunRecord(
             job_id="job_attempts",

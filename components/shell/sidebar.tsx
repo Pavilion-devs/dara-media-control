@@ -51,7 +51,7 @@ function WorkspaceFooter() {
           aria-hidden
           className="size-1.5 shrink-0 animate-pulse rounded-full bg-verified"
         />
-        Demo workspace · B2 connected
+        Production workspace · B2 connected
       </div>
       <ThemeToggle />
     </div>

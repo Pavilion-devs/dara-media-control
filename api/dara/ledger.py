@@ -58,12 +58,14 @@ def write_accounting_record(
     table = pa.Table.from_pylist([row])
     output = BytesIO()
     pq.write_table(table, output)
-    return storage.put_bytes(
+    stored = storage.put_bytes(
         accounting_key(record),
         output.getvalue(),
         content_type="application/vnd.apache.parquet",
         metadata={"job-id": record.job_id, "table": "accounting"},
     )
+    invalidate_ledger_cache()
+    return stored
 
 
 QUERY_SQL = {
@@ -211,6 +213,11 @@ class Ledger:
             int(os.getenv("DARA_LEDGER_QUERY_RETRY_SECONDS", "300")),
         )
         self._query_retry_after = failed_at + retry_seconds
+
+    def invalidate_cache(self) -> None:
+        """Make the next dashboard request observe newly persisted accounting."""
+        with self.lock:
+            self._dashboard_cache.clear()
 
     def _configure_b2(self) -> None:
         endpoint_value = os.getenv("B2_ENDPOINT") or (
@@ -438,3 +445,10 @@ def get_ledger() -> Ledger:
                 _ledger_instance = ledger
                 _ledger_retry_after = 0.0
     return _ledger_instance
+
+
+def invalidate_ledger_cache() -> None:
+    """Invalidate the process cache without forcing eager DuckDB initialization."""
+    ledger = _ledger_instance
+    if ledger is not None:
+        ledger.invalidate_cache()

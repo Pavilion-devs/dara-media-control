@@ -25,14 +25,10 @@ import {
   type Tone,
 } from "@/components/ui";
 
-import demoSeedData from "../../../api/seeds/demo-runs.json";
-import { demoSeedCorpusSchema, type DemoSeedRun } from "../../demo-seed-schema";
 import {
   liveRunListSchema,
   type LiveRun,
 } from "../../run-schema";
-
-const corpus = demoSeedCorpusSchema.parse(demoSeedData);
 
 const pipelineIcon: Record<string, typeof ImageIcon> = {
   "still-campaign": ImageIcon,
@@ -40,34 +36,6 @@ const pipelineIcon: Record<string, typeof ImageIcon> = {
   "motion-spot": Clapperboard,
   "voiceover-pack": AudioLines,
 };
-
-const outcomeTone: Record<DemoSeedRun["outcome"], Tone> = {
-  succeeded: "allow",
-  blocked: "block",
-  failed: "warn",
-};
-
-function toRunEvents(run: DemoSeedRun): RunEvent[] {
-  return run.events.map((event, index) => ({
-    seq: index + 1,
-    time: `${(event.at_ms / 1000).toFixed(2)}s`,
-    provider: event.provider,
-    model: event.model,
-    message: event.message,
-    kind: event.type,
-    tone:
-      event.type === "step.failover"
-        ? "failover"
-        : event.type === "qa.revised"
-          ? "revised"
-          : event.type === "run.completed"
-              || event.type === "publish.completed"
-              || (event.type === "agent.iteration.evaluated"
-                && event.message.includes("passed"))
-            ? "success"
-            : "normal",
-  }));
-}
 
 function toLiveRunEvents(run: LiveRun): RunEvent[] {
   return run.events.map((event) => ({
@@ -130,94 +98,6 @@ function Filter<T extends string>({
   );
 }
 
-function RunRow({ run }: { run: DemoSeedRun }) {
-  const [open, setOpen] = useState(false);
-  const Icon = pipelineIcon[run.pipeline_id] ?? ImageIcon;
-  const events = useMemo(() => toRunEvents(run), [run]);
-  const phases = derivePhases(
-    events.map((event) => event.kind),
-    false,
-  );
-
-  return (
-    <div className="border-b border-line last:border-0">
-      <button
-        aria-expanded={open}
-        className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-inset"
-        onClick={() => setOpen((value) => !value)}
-        type="button"
-      >
-        <Icon aria-hidden className="size-4 shrink-0 text-subtle" />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-ink">
-            {run.title}
-          </span>
-          <span className="mt-0.5 block truncate font-mono text-[11px] text-subtle">
-            {run.provider} · {run.model} · {run.policy_id}
-          </span>
-        </span>
-        <span className="hidden shrink-0 text-right sm:block">
-          <span className="block font-mono text-xs text-ink">
-            {run.qa_score == null
-              ? "QA —"
-              : `QA ${Math.round(run.qa_score * 100)}`}
-          </span>
-          <span className="mt-0.5 block font-mono text-[11px] text-subtle">
-            ${run.cost_usd}
-          </span>
-        </span>
-        {/* Never let a fixture read as a paid production call. */}
-        <Badge tone={run.evidence === "production-proof" ? "accent" : "neutral"}>
-          {run.evidence === "production-proof" ? "Proof" : "Fixture"}
-        </Badge>
-        <Badge dot tone={outcomeTone[run.outcome]}>
-          {run.outcome}
-        </Badge>
-        <ChevronRight
-          aria-hidden
-          className={cn(
-            "size-4 shrink-0 text-faint transition-transform",
-            open && "rotate-90",
-          )}
-        />
-      </button>
-
-      {open ? (
-        <div className="grid gap-5 border-t border-line bg-inset/40 px-5 py-5">
-          <p className="text-sm leading-relaxed text-muted">{run.brief}</p>
-          <Stepper steps={phases} />
-          {run.asset_url ? (
-            // Fixture assets are committed files; live assets are signed by B2.
-            <img
-              alt={`Asset produced by ${run.title}`}
-              className="max-w-sm rounded-xl border border-line bg-surface object-cover"
-              src={run.asset_url}
-            />
-          ) : null}
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
-            {[
-              { label: "Project", value: run.project_id },
-              { label: "Attempts", value: String(run.qa_attempts) },
-              { label: "Cost", value: `$${run.cost_usd}` },
-              { label: "Prevented", value: `$${run.saved_cost_usd}` },
-            ].map((item) => (
-              <div className="grid gap-1 bg-surface px-4 py-3" key={item.label}>
-                <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
-                  {item.label}
-                </dt>
-                <dd className="truncate font-mono text-sm text-ink">
-                  {item.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <EventStream events={events} />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 const liveStatusTone: Record<LiveRun["status"], Tone> = {
   queued: "warn",
   running: "warn",
@@ -236,6 +116,7 @@ function LiveRunRow({
   run: LiveRun;
 }) {
   const [open, setOpen] = useState(false);
+  const Icon = pipelineIcon[run.pipeline_id] ?? ImageIcon;
   const events = useMemo(() => toLiveRunEvents(run), [run]);
   const phases = derivePhases(
     events.map((event) => event.kind),
@@ -250,7 +131,7 @@ function LiveRunRow({
         onClick={() => setOpen((value) => !value)}
         type="button"
       >
-        <ImageIcon aria-hidden className="size-4 shrink-0 text-subtle" />
+        <Icon aria-hidden className="size-4 shrink-0 text-subtle" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-ink">
             {run.prompt}
@@ -341,8 +222,8 @@ function LiveRunRow({
 }
 
 export function RunsScreen() {
-  const [pipeline, setPipeline] = useState<string>("all");
-  const [outcome, setOutcome] = useState<string>("all");
+  const [pipeline, setPipeline] = useState<"all" | LiveRun["pipeline_id"]>("all");
+  const [outcome, setOutcome] = useState<"all" | LiveRun["status"]>("all");
   const [liveRuns, setLiveRuns] = useState<LiveRun[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -389,23 +270,20 @@ export function RunsScreen() {
     }
   }
 
-  const runs = corpus.runs.filter(
+  const runs = liveRuns.filter(
     (run) =>
       (pipeline === "all" || run.pipeline_id === pipeline)
-      && (outcome === "all" || run.outcome === outcome),
+      && (outcome === "all" || run.status === outcome),
   );
 
-  // Totals are derived from the corpus, never hardcoded.
   const totals = {
-    all: corpus.runs.length,
-    approved: corpus.runs.filter((run) => run.approved).length,
-    blocked: corpus.runs.filter((run) => run.outcome === "blocked").length,
-    failed: corpus.runs.filter((run) => run.outcome === "failed").length,
-    prevented: corpus.runs
-      .reduce((sum, run) => sum + Number(run.saved_cost_usd), 0)
+    all: liveRuns.length,
+    approved: liveRuns.filter((run) => run.status === "succeeded").length,
+    blocked: liveRuns.filter((run) => run.status === "blocked").length,
+    failed: liveRuns.filter((run) => run.status === "failed").length,
+    spend: liveRuns
+      .reduce((sum, run) => sum + Number(run.actual_cost_usd ?? "0"), 0)
       .toFixed(6),
-    proofs: corpus.runs.filter((run) => run.evidence === "production-proof")
-      .length,
   };
 
   return (
@@ -425,10 +303,10 @@ export function RunsScreen() {
         </div>
         <Badge dot tone={liveState === "live" ? "allow" : "warn"}>
           {liveState === "live"
-            ? `${liveRuns.length} live run${liveRuns.length === 1 ? "" : "s"}`
+            ? `${liveRuns.length} B2 run${liveRuns.length === 1 ? "" : "s"}`
             : liveState === "loading"
               ? "Checking live history"
-              : "Committed corpus available"}
+              : "Live history unavailable"}
         </Badge>
       </div>
 
@@ -437,29 +315,82 @@ export function RunsScreen() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-ink" id="live-run-history">
-                Live B2 history
+                B2 run history
               </h2>
               <p className="mt-1 text-xs text-subtle">
-                Durable run records returned by the active Dara API.
+                Durable generation, policy, QA, provenance, and cost records returned
+                by the active Dara API.
               </p>
             </div>
             <Badge dot tone="allow">Live</Badge>
           </div>
+
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-5">
+            {[
+              { label: "Runs loaded", value: String(totals.all) },
+              { label: "Succeeded", value: String(totals.approved) },
+              { label: "Blocked", value: String(totals.blocked) },
+              { label: "Failed", value: String(totals.failed) },
+              { label: "Settled spend", value: `$${totals.spend}` },
+            ].map((item) => (
+              <div className="grid gap-1 bg-surface px-4 py-4" key={item.label}>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
+                  {item.label}
+                </dt>
+                <dd className="font-mono text-xl text-ink">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Filter
+              label="Pipeline"
+              onChange={setPipeline}
+              options={[
+                { value: "all", label: "All" },
+                { value: "still-campaign", label: "Still" },
+                { value: "motion-spot", label: "Motion" },
+                { value: "voiceover-pack", label: "Voice" },
+              ]}
+              value={pipeline}
+            />
+            <Filter
+              label="Outcome"
+              onChange={setOutcome}
+              options={[
+                { value: "all", label: "All" },
+                { value: "succeeded", label: "Succeeded" },
+                { value: "blocked", label: "Blocked" },
+                { value: "failed", label: "Failed" },
+                { value: "cancelled", label: "Cancelled" },
+              ]}
+              value={outcome}
+            />
+          </div>
+
           {liveRuns.length ? (
             <>
-              <Panel>
-                {liveRuns.map((run) => (
-                  <LiveRunRow
-                    key={run.job_id}
-                    relatedRun={liveRuns.find(
-                      (candidate) =>
-                        candidate.parent_job_id === run.job_id
-                        || run.parent_job_id === candidate.job_id,
-                    )}
-                    run={run}
-                  />
-                ))}
-              </Panel>
+              {runs.length ? (
+                <Panel>
+                  {runs.map((run) => (
+                    <LiveRunRow
+                      key={run.job_id}
+                      relatedRun={liveRuns.find(
+                        (candidate) =>
+                          candidate.parent_job_id === run.job_id
+                          || run.parent_job_id === candidate.job_id,
+                      )}
+                      run={run}
+                    />
+                  ))}
+                </Panel>
+              ) : (
+                <EmptyState
+                  description="No live B2 run matches this combination. Clear a filter to see the rest."
+                  icon={ListOrdered}
+                  title="Nothing matches those filters"
+                />
+              )}
               {nextCursor ? (
                 <Button
                   disabled={loadingMore}
@@ -473,84 +404,19 @@ export function RunsScreen() {
             </>
           ) : (
             <EmptyState
-              description="Start a live run in Studio and it will appear here."
+              description="Start a generation in Studio and its durable record will appear here."
               icon={ListOrdered}
-              title="No live runs yet"
+              title="No runs yet"
             />
           )}
         </section>
-      ) : null}
-
-      <div>
-        <h2 className="text-lg font-semibold text-ink">Committed evidence corpus</h2>
-        <p className="mt-1 text-xs text-subtle">
-          Production proofs and deterministic fixtures retained for the zero-spend tour.
-        </p>
-      </div>
-
-      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-5">
-        {[
-          { label: "Runs", value: String(totals.all) },
-          { label: "Approved", value: String(totals.approved) },
-          { label: "Blocked", value: String(totals.blocked) },
-          { label: "Failed", value: String(totals.failed) },
-          { label: "Spend prevented", value: `$${totals.prevented}` },
-        ].map((item) => (
-          <div className="grid gap-1 bg-surface px-4 py-4" key={item.label}>
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-subtle">
-              {item.label}
-            </dt>
-            <dd className="font-mono text-xl text-ink">{item.value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <Filter
-          label="Pipeline"
-          onChange={setPipeline}
-          options={[
-            { value: "all", label: "All" },
-            { value: "still-campaign", label: "Still" },
-            { value: "motion-spot", label: "Motion" },
-            { value: "voiceover-pack", label: "Voice" },
-            { value: "regenerate", label: "Regeneration" },
-          ]}
-          value={pipeline}
-        />
-        <Filter
-          label="Outcome"
-          onChange={setOutcome}
-          options={[
-            { value: "all", label: "All" },
-            { value: "succeeded", label: "Succeeded" },
-            { value: "blocked", label: "Blocked" },
-            { value: "failed", label: "Failed" },
-          ]}
-          value={outcome}
-        />
-      </div>
-
-      {runs.length === 0 ? (
+      ) : liveState === "unavailable" ? (
         <EmptyState
-          description="No run in the committed corpus matches this combination. Clear a filter to see the rest."
+          description="Dara could not read the live B2 run store. No fixture history has been substituted."
           icon={ListOrdered}
-          title="Nothing matches those filters"
+          title="Run history unavailable"
         />
-      ) : (
-        <Panel>
-          {runs.map((run) => (
-            <RunRow key={run.seed_id} run={run} />
-          ))}
-        </Panel>
-      )}
-
-      <p className="text-xs leading-relaxed text-subtle">
-        {totals.proofs} of these {totals.all} runs are production proofs; the
-        rest are deterministic fixtures, labelled as such and never presented as
-        paid provider calls. Live API history is shown separately above and is
-        never blended into these committed totals.
-      </p>
+      ) : null}
     </div>
   );
 }

@@ -28,7 +28,7 @@ dara/
   share-assets/{token}/{asset_id}.{ext}          isolated source-byte copies
   share-assets/{token}/{asset_id}.{ext}.genblaze.json
                                                   redacted Genblaze pointer sidecars
-  seeds/demo/{scenario_id}.json               committed demo replays
+  seeds/demo/{scenario_id}.json               deterministic test evidence only
 ```
 
 One fresh `ObjectStorageSink` writes the hierarchical run layout for each pipeline run.

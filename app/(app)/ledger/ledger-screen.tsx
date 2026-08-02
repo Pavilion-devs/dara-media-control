@@ -1,28 +1,22 @@
 "use client";
 
+import { BarChart3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { DataTable } from "@/components/dara/data-table";
-import { Badge, Panel, PanelHead, cn } from "@/components/ui";
+import { Badge, EmptyState, Panel, PanelHead, cn } from "@/components/ui";
 
 import {
   ledgerDashboardSchema,
   type LedgerQuery,
   type LedgerSummary,
 } from "../../ledger-schema";
-import { recordedLedgerProof } from "../../ledger-proof";
 
 type Dashboard = {
   summary: LedgerSummary;
   models: LedgerQuery;
   projects: LedgerQuery;
   months: LedgerQuery;
-};
-
-const clientProjectNames: Record<string, string> = {
-  prj_northwind_q3: "Northwind — Q3 campaign",
-  prj_atlas_brand: "Atlas Hotels — Brand film",
-  prj_field_launch: "Field Notes — Product launch",
 };
 
 function Metric({
@@ -55,13 +49,9 @@ function Metric({
 }
 
 export function LedgerScreen() {
-  // Seeded with the recorded proof so the page is populated on first paint
-  // rather than flashing empty tables. The label starts as "recorded" and only
-  // claims "live" once the B2 query actually answers, so what is shown always
-  // matches what it says it is.
-  const [live, setLive] = useState<Dashboard>(recordedLedgerProof);
-  const [ledgerState, setLedgerState] = useState<"live" | "fallback">(
-    "fallback",
+  const [live, setLive] = useState<Dashboard | null>(null);
+  const [ledgerState, setLedgerState] = useState<"loading" | "live" | "unavailable">(
+    "loading",
   );
 
   useEffect(() => {
@@ -77,22 +67,50 @@ export function LedgerScreen() {
         setLive(ledgerDashboardSchema.parse(await response.json()));
         setLedgerState("live");
       } catch (error) {
-        // The seeded recorded proof already stands; nothing to swap in.
         if ((error as Error).name === "AbortError") return;
+        setLedgerState("unavailable");
       }
     }
     void loadLedger();
     return () => controller.abort();
   }, []);
 
+  if (live === null) {
+    return (
+      <div className="grid gap-6">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-subtle">
+              Spend ledger
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tighter text-ink md:text-5xl">
+              The honest numbers.
+            </h1>
+            <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
+              Every attempt counts — including the work that never shipped.
+            </p>
+          </div>
+          <Badge dot tone="warn">
+            {ledgerState === "loading" ? "Querying B2" : "Live ledger unavailable"}
+          </Badge>
+        </div>
+        <EmptyState
+          description={
+            ledgerState === "loading"
+              ? "DuckDB is querying the immutable accounting Parquet in Backblaze B2."
+              : "Dara could not query the live B2 ledger. No recorded snapshot has been substituted."
+          }
+          icon={BarChart3}
+          title={ledgerState === "loading" ? "Loading live ledger" : "Ledger unavailable"}
+        />
+      </div>
+    );
+  }
+
   const summary = live.summary;
   const wastePercent =
     (Number(summary.waste_ratio) * 100).toFixed(1);
   const wasteSpend = Number(summary.total_spend_usd) * Number(summary.waste_ratio);
-  const clientProjectRows = live.projects.rows
-    .filter((row) => typeof row[0] === "string" && row[0] in clientProjectNames)
-    .map((row) => [clientProjectNames[String(row[0])], ...row.slice(1)]);
-  const clientProjectColumns = ["project", ...live.projects.columns.slice(1)];
 
   return (
     <div className="grid gap-6">
@@ -108,10 +126,8 @@ export function LedgerScreen() {
             Every attempt counts — including the work that never shipped.
           </p>
         </div>
-        <Badge dot tone={ledgerState === "live" ? "allow" : "warn"}>
-          {ledgerState === "live"
-            ? "Live · DuckDB over B2"
-            : "Recorded proof"}
+        <Badge dot tone="allow">
+          Live · DuckDB over B2
         </Badge>
       </div>
 
@@ -143,9 +159,7 @@ export function LedgerScreen() {
       </p>
 
       <p className="font-mono text-xs text-subtle">
-        {ledgerState === "live"
-          ? `Generated ${new Date(summary.generated_at).toISOString()} · total spend $${summary.total_spend_usd}`
-          : "Live ledger unavailable · verified B2 snapshot from 29 Jul 2026"}
+        {`Generated ${new Date(summary.generated_at).toISOString()} · total spend $${summary.total_spend_usd}`}
       </p>
 
       <Panel>
@@ -162,9 +176,9 @@ export function LedgerScreen() {
         <Panel>
           <PanelHead title="Spend by project" />
           <DataTable
-            columns={clientProjectColumns}
-            empty="No client-project spend is recorded yet. Internal probes stay out of this view."
-            rows={clientProjectRows}
+            columns={live.projects.columns}
+            empty="No project spend is recorded yet."
+            rows={live.projects.rows}
           />
         </Panel>
         <Panel>
@@ -179,8 +193,7 @@ export function LedgerScreen() {
       </div>
 
       <p className="text-xs leading-relaxed text-subtle">
-        Null cells are values the recorded evidence did not preserve; they are
-        shown as unknown rather than filled in. Conservative low-quality policy
+        Null cells are shown as unknown rather than filled in. Conservative policy
         reservations are used where a provider did not return settled cost.
       </p>
     </div>

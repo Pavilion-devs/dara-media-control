@@ -1,5 +1,5 @@
 /**
- * The zero-spend Studio replay is Dara's judge entry point. The full product
+ * The live-first Studio is Dara's judge entry point. The full product
  * story remains available at /about without putting a marketing step in front
  * of the working control plane. This route deliberately returns 200 before the
  * browser moves to /studio so infrastructure health checks do not treat the

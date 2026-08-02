@@ -25,7 +25,7 @@ order at the bottom of this file.
 | M3 | One pipeline live | `still-campaign` runs end to end with QA loop and streams to the UI |
 | M4 | Ledger queries | DuckDB returns spend-by-model from Parquet on B2 |
 | M5 | Regenerate works | Replay a run from its manifest and show the diff |
-| M6 | Judge-ready | Deployed, seeded, rate-limited, README done, demo mode default |
+| M6 | Judge-ready | Deployed, live-first, rate-limited, README and acceptance pass done |
 | M7 | Submitted | Devpost form complete, video public, repo access granted |
 
 ## Day by day
@@ -46,9 +46,9 @@ three until this one is solid.
 
 **Day 4 — ledger, regenerate, remaining pipelines (M4, M5)**
 
-**Day 5 — harden, deploy, seed, README (M6)**
-Seeding is not optional. A judge who clicks nothing must still see a fully populated
-system.
+**Day 5 — harden, deploy, production evidence, README (M6)**
+Production evidence is not optional. A judge who opens the read surfaces must see
+real B2-backed history without first creating a new paid run.
 
 **Day 6 — demo video, submission text, submit (M7)**
 Budget the whole day. The video is scored and most people give it forty minutes.
@@ -266,6 +266,13 @@ Work top to bottom. Each task is one commit.
       browser routes had zero overflow and clean consoles, the 1.2 MB proof uploaded as
       a trusted match, live B2 Runs/Ledger rendered, and completed-run cancellation
       failed safely with typed HTTP 409. Exact evidence is in `docs/DEPLOYMENT.md`.
+- [x] **T-52** Replace the public replay/fixture presentation with a live-first product
+      boundary. Studio now starts as an empty governed generation, requires live B2
+      projects and policies, and preserves the two-step maximum-cost confirmation.
+      Runs, Assets, Policies, and Ledger render only live API/B2 data and show explicit
+      unavailable states instead of substituting committed evidence. Test fixtures stay
+      in the automated suite. Accounting writes invalidate the process dashboard cache
+      so a completed run appears on the next Ledger query.
 
 ### Phase 7 — submit (M7)
 

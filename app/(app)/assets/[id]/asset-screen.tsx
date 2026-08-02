@@ -3,24 +3,6 @@ import { LineageSpine, type LineageNode } from "@/components/dara/lineage-spine"
 import { Badge, CopyRow, Panel, PanelBody, PanelHead } from "@/components/ui";
 import type { AssetRecord } from "../../../asset-schema";
 
-/**
- * The recorded OpenAI → Genblaze → B2 proof. Held as a constant because this is
- * evidence from a specific production run, not a synthetic sample.
- */
-const seededAsset = {
-  id: "B9885F41",
-  publishedSha256:
-    "900de07759c139b8c2175d3149e98c5ace56f80e2594def405f7e0c433e1e5ca",
-  sourceSha256:
-    "83c597a8937c372ae6f606d3ab974d986aa434cf0d0bfa0f538be11dbed35eeb",
-  provider: "openai-dalle",
-  model: "gpt-image-2",
-  manifestKey: "d7bc702cafdbbe4b48eef3df2e4c92c0e6b0e2eb4d16b8a72086a4f3ba116f58",
-  latency: "Recorded live",
-  previewUrl: "/dara-verified-sample.png",
-  mimeType: "image/png",
-};
-
 function AssetPreview({
   mimeType,
   model,
@@ -52,52 +34,19 @@ function AssetPreview({
   return <img alt={label} className={frame} src={previewUrl} />;
 }
 
-const seededLineage: LineageNode[] = [
-  {
-    key: "brief",
-    step: "01 · brief",
-    title: "Dara policy engine",
-    detail: "Standard client work · pre-flight allow",
-    trailing: "$0.00",
-  },
-  {
-    key: "generate",
-    step: "02 · generate",
-    title: "openai-dalle / gpt-image-2",
-    detail: "1024×1024 · low quality · PNG",
-    trailing: "$0.01*",
-  },
-  {
-    key: "record",
-    step: "03 · record",
-    title: "Genblaze manifest / B2",
-    detail: "Source hash and canonical manifest verified",
-    trailing: "$0.00",
-  },
-  {
-    key: "publish",
-    step: "04 · publish",
-    title: "Dara publish / B2",
-    detail: "Embedded derivative and published hash indexed",
-    trailing: "$0.00",
-  },
-];
-
-export function AssetScreen({ id, record }: { id: string; record: AssetRecord | null }) {
+export function AssetScreen({ id, record }: { id: string; record: AssetRecord }) {
   const step = record?.verification?.manifest?.steps[0];
-  const asset = record
-    ? {
-        id: record.asset.asset_id,
-        publishedSha256: record.asset.published_sha256 ?? record.asset.source_sha256,
-        sourceSha256: record.asset.source_sha256,
-        provider: step?.provider ?? "recorded provider",
-        model: step?.model ?? "recorded model",
-        manifestKey: record.verification?.manifest?.canonical_hash ?? record.asset.run_id,
-        latency: `${record.asset.cost_basis} cost · $${record.asset.cost_usd}`,
-        previewUrl: record.asset_url,
-        mimeType: record.asset.mime_type,
-      }
-    : seededAsset;
+  const asset = {
+    id: record.asset.asset_id,
+    publishedSha256: record.asset.published_sha256 ?? record.asset.source_sha256,
+    sourceSha256: record.asset.source_sha256,
+    provider: step?.provider ?? "recorded provider",
+    model: step?.model ?? "recorded model",
+    manifestKey: record.verification?.manifest?.canonical_hash ?? record.asset.run_id,
+    latency: `${record.asset.cost_basis} cost · $${record.asset.cost_usd}`,
+    previewUrl: record.asset_url,
+    mimeType: record.asset.mime_type,
+  };
   const lineage: LineageNode[] = record?.verification
     ? record.verification.lineage.map((item, index) => ({
         key: `${item.run_id}-${index}`,
@@ -106,7 +55,7 @@ export function AssetScreen({ id, record }: { id: string; record: AssetRecord | 
         detail: item.run_id,
         trailing: new Date(item.at).toISOString().slice(0, 10),
       }))
-    : seededLineage;
+    : [];
   return (
     <div className="min-w-0 grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">

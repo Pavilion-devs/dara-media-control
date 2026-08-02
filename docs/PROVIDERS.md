@@ -154,15 +154,16 @@ either even when individual smoke tests succeed.
 
 ## Demo-day protection
 
-1. All seeded runs are pre-generated and committed to `api/seeds/`. Demo mode never calls
-   a provider.
+1. Public read surfaces use existing production B2 records and never require a provider
+   call. Deterministic seeds are retained only for automated tests.
 2. The locked demonstration policy caps a run at $0.02, images only, 1:1 only,
    1 variant. This is the same seeded policy defined in `POLICY_ENGINE.md`; do not create
    a fourth policy name only for this document.
 3. A global daily spend ceiling enforced by the policy engine itself. When it trips, live
-   generation is blocked with a clear message and demo mode still works completely.
-4. Record the demo video against seeded runs, not live calls. Do one live run on camera
-   only if it has been reliable for a full day, and have the seeded take ready as backup.
+   generation is blocked with a clear message and the live read surfaces remain available.
+4. Record one deliberately authorized live image run on camera after rehearsing the
+   prompt and reservation. Use existing B2-backed records for the longer motion, voice,
+   regeneration, verification, and ledger sections.
 
 ## Attribution for the submission
 

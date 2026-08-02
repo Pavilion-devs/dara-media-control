@@ -3,12 +3,11 @@
 import { Ban, Check, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Badge, Panel, PanelBody, PanelHead, cn } from "@/components/ui";
+import { Badge, EmptyState, Panel, PanelBody, PanelHead, cn } from "@/components/ui";
 
 import {
   enforcementPoints,
   policyListSchema,
-  seededPolicies,
   type Policy,
 } from "../../policy-schema";
 
@@ -73,11 +72,9 @@ function Flag({ on, children }: { on: boolean; children: React.ReactNode }) {
 }
 
 export function PoliciesScreen() {
-  // Seeded from the policies committed in api/dara/main.py so the page is
-  // populated before the live engine answers; the label says which it is.
-  const [policies, setPolicies] = useState<Policy[]>(seededPolicies);
-  const [selectedId, setSelectedId] = useState(seededPolicies[1].policy_id);
-  const [source, setSource] = useState<"live" | "seeded">("seeded");
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [source, setSource] = useState<"loading" | "live" | "unavailable">("loading");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -88,12 +85,16 @@ export function PoliciesScreen() {
         });
         if (!response.ok) throw new Error("Policy list unavailable");
         const parsed = policyListSchema.parse(await response.json());
-        if (parsed.items.length === 0) return;
         setPolicies(parsed.items);
+        setSelectedId(
+          parsed.items.find((policy) => policy.policy_id === "pol_standard")?.policy_id
+          ?? parsed.items[0]?.policy_id
+          ?? "",
+        );
         setSource("live");
       } catch (error) {
-        // The seeded committed policies already stand.
         if ((error as Error).name === "AbortError") return;
+        setSource("unavailable");
       }
     }
     void load();
@@ -119,7 +120,11 @@ export function PoliciesScreen() {
           </p>
         </div>
         <Badge dot tone={source === "live" ? "allow" : "warn"}>
-          {source === "live" ? "Live policy engine" : "Committed defaults"}
+          {source === "live"
+            ? "Live policy engine"
+            : source === "loading"
+              ? "Loading policies"
+              : "Policy engine unavailable"}
         </Badge>
       </div>
 
@@ -162,6 +167,19 @@ export function PoliciesScreen() {
         </div>
       </Panel>
 
+      {source === "unavailable" ? (
+        <EmptyState
+          description="Dara could not read the active policy documents. No committed defaults have been substituted."
+          icon={ShieldCheck}
+          title="Policies unavailable"
+        />
+      ) : source === "loading" || !selected ? (
+        <EmptyState
+          description="Reading the active policy documents from Dara's B2-backed control plane."
+          icon={ShieldCheck}
+          title="Loading policies"
+        />
+      ) : (
       <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
         {/* Policy list */}
         <div className="grid content-start gap-3">
@@ -329,6 +347,7 @@ export function PoliciesScreen() {
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 }
