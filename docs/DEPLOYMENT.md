@@ -193,6 +193,39 @@ Backblaze's new daily window was live before the pass. The console initially sho
 of 2,500 Class B transactions, 6 of 2,500 Class C transactions, and 1 MB of the 1 GB
 download allowance. No payment method or billing change was needed.
 
+### Live-first public product audit — 2026-08-02
+
+Web release `50b865a` is active on the TierHive VPS. The public product no longer offers
+a replay mode, committed evidence corpus, preloaded verification proof, recorded ledger
+snapshot, or fixture-backed fallback. Studio starts with an empty brief and requires a
+two-click live OpenAI confirmation: the first click exposes the maximum reservation and
+the second is the only action that may create provider spend. The production kill switch,
+policy checks, project quotas, and daily cap remain in force.
+
+The live surfaces now scope their B2 reads to the three active client projects, keeping
+internal recovery and smoke probes out of the judge-facing Runs, Assets, and Ledger
+views. The deployed browser pass established the following:
+
+- Studio loaded live projects, live policies, and the live pre-flight estimate. The first
+  confirmation step displayed the reservation without making a paid provider call.
+- Runs returned 20 active-project B2 records: 12 succeeded, 3 policy-blocked, 5 failed,
+  and `$0.723650` in settled provider spend.
+- Assets returned 12 published B2 records and used native media-safe previews: still
+  images, one video, and audio placeholders rather than broken image elements.
+- Ledger rendered the live project selector and a DuckDB-over-B2 result. Atlas Hotels
+  returned 10 accounted runs, 3 approved assets, `$0.433120` settled spend, and `$1.60`
+  prevented spend.
+- Policies came from the live policy service and Verify opened empty, with no committed
+  sample or trusted result preloaded.
+- `/studio`, `/policies`, `/verify`, `/runs`, `/assets`, and `/ledger` were repeated at
+  390×844. Every route had a 390-pixel document width and zero horizontal overflow.
+- A cookie-free production check returned HTTP 200 for all public pages and the projects,
+  policies, runs, and ledger API routes.
+
+The release passed TypeScript checking, ESLint, the five-stage Vinext production build,
+all 11 rendered-application tests, and the previously completed 93-test Python API suite.
+No paid generation was triggered during this audit.
+
 ## Latency
 
 Eight HTTPS health samples from the build workstation configured for Africa/Lagos:
