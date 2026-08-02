@@ -424,7 +424,7 @@ export function RunsScreen() {
         </section>
       ) : liveState === "unavailable" ? (
         <EmptyState
-          description="Dara could not read the live B2 run store. No fixture history has been substituted."
+          description="Dara could not read the live B2 run store. Refresh to try the live service again."
           icon={ListOrdered}
           title="Run history unavailable"
         />

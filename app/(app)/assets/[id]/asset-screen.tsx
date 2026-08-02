@@ -157,7 +157,7 @@ export function AssetScreen({ id, record }: { id: string; record: AssetRecord })
               title="Version history"
               trailing={
                 <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">
-                  1 recorded run
+                  1 source run
                 </span>
               }
             />

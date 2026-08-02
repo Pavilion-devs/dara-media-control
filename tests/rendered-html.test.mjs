@@ -67,7 +67,7 @@ test("server-renders the Dara control plane", async () => {
   assert.match(html, /B2 connected/);
   assert.match(html, /New generation/);
   assert.match(html, /Generate with OpenAI/);
-  assert.match(html, /No recorded run is preloaded here/);
+  assert.match(html, /authorize the live provider generation/);
   assert.match(html, /Production workspace · B2 connected/);
   assert.doesNotMatch(html, /Replay|fixture|recorded production proof/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/i);
@@ -160,7 +160,7 @@ test("connects Runs to paginated live history without public fixtures", async ()
   assert.match(route, /\/v1\/runs\$\{query\}/);
   assert.match(screen, /fetch\("\/api\/runs\?limit=50"/);
   assert.match(screen, /B2 run history/);
-  assert.match(screen, /No fixture history has been substituted/);
+  assert.match(screen, /Refresh to try the live service again/);
   assert.doesNotMatch(screen, /demo-runs\.json|demoSeedCorpusSchema/);
   assert.match(screen, /RegenerationAction/);
   assert.match(screen, /VersionTree/);

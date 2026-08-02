@@ -673,7 +673,7 @@ export function StudioScreen() {
           {!started && !running ? (
             <p className="text-sm leading-relaxed text-subtle">
               Choose a live project, enter a prompt, review the policy reservation,
-              and authorize the generation. No recorded run is preloaded here.
+              and authorize the live provider generation.
             </p>
           ) : null}
 
