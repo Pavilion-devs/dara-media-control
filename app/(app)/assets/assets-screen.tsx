@@ -1,6 +1,6 @@
 "use client";
 
-import { Images } from "lucide-react";
+import { AudioLines, Images } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -8,6 +8,36 @@ import { Badge, EmptyState } from "@/components/ui";
 
 import { liveRunListSchema, type LiveRun } from "../../run-schema";
 import { projectListSchema } from "../../project-schema";
+
+function AssetPreview({ run }: { run: LiveRun }) {
+  if (run.pipeline_id === "motion-spot") {
+    return (
+      <video
+        aria-label={`Generated motion asset for ${run.project_id}`}
+        className="aspect-[4/3] w-full bg-inset object-cover"
+        muted
+        playsInline
+        preload="metadata"
+        src={run.asset_url as string}
+      />
+    );
+  }
+  if (run.pipeline_id === "voiceover-pack") {
+    return (
+      <div className="flex aspect-[4/3] w-full items-center justify-center bg-inset">
+        <AudioLines aria-hidden className="size-10 text-faint" strokeWidth={1.5} />
+        <span className="sr-only">Generated audio asset for {run.project_id}</span>
+      </div>
+    );
+  }
+  return (
+    <img
+      alt={`Generated image asset for ${run.project_id}`}
+      className="aspect-[4/3] w-full bg-inset object-cover"
+      src={run.asset_url as string}
+    />
+  );
+}
 
 export function AssetsScreen() {
   const [runs, setRuns] = useState<LiveRun[]>([]);
@@ -76,11 +106,7 @@ export function AssetsScreen() {
               href={`/assets/${encodeURIComponent(run.asset_id as string)}`}
               key={run.asset_id}
             >
-              <img
-                alt={`Generated asset for ${run.project_id}`}
-                className="aspect-[4/3] w-full bg-inset object-cover"
-                src={run.asset_url as string}
-              />
+              <AssetPreview run={run} />
               <div className="grid gap-2 p-4">
                 <p className="line-clamp-2 text-sm font-semibold text-ink">
                   {run.prompt}
