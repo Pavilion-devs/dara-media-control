@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   FileCheck2,
   Images,
   ListOrdered,
@@ -33,6 +34,7 @@ export const appNav: NavItem[] = [
 /** Public trust surfaces — no operator chrome around these. */
 export const publicNav: NavItem[] = [
   { href: "/verify", label: "Verify", icon: FileCheck2 },
+  { href: "/docs", label: "Docs", icon: BookOpen, prefix: "/docs" },
 ];
 
 export function isActive(pathname: string, item: NavItem) {

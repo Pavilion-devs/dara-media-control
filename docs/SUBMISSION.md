@@ -28,17 +28,20 @@ the first thirty seconds. No intro card, no logo animation, no "hi, my name is."
 |---|---|---|
 | 0:00–0:12 | **The problem, concretely.** "A team generates four thousand assets a month across five providers. Ask them what any one of them cost, or how to make it again, and there's no answer." | Ledger screen, populated, real numbers |
 | 0:12–0:25 | **What Dara is.** One sentence: governed pipelines, verifiable provenance, a spend ledger. | Studio screen |
-| 0:25–1:00 | **Generate.** Submit a brief. Live estimate updates before committing. Step stream runs. A `step.failover` fires and the fallback catches it. QA scores below threshold, revises the prompt, second attempt passes. | Studio, step stream, version tree |
-| 1:00–1:25 | **Govern.** Switch to the locked policy. Submit the same brief. Blocked, with the reason and the cost that was not spent. Say the words: "no provider was called." | Studio, policy block state |
-| 1:25–2:00 | **Verify — the money shot.** Download the published embedded asset. Drop it into the public verify page: its whole-file hash matches the trusted `published_sha256` in B2 and full lineage renders. Then flip one byte and drop it again: the trusted comparison diverges visibly. Do not imply that Genblaze's pre-embed `asset.sha256` is the whole-file hash of the embedded derivative. | Verify page, both states |
-| 2:00–2:20 | **Regenerate.** Expand a completed live run, authorize regeneration from its manifest, then show the linked child, reconstructed parameters, and side-by-side. | Runs |
-| 2:20–2:40 | **The B2 story.** Bucket layout on screen: Genblaze-bound source assets, exact embedded deliverables, manifests, immutable Parquet partitions, and job state. Show one local `ParquetSink` output uploaded to B2, then DuckDB querying it in place. "No database. One bucket." | B2 console, ledger |
-| 2:40–2:50 | **Close.** Cost per approved asset and spend prevented, on screen. No sign-off, no thanks. | Ledger headline numbers |
+| 0:25–0:50 | **Govern.** Select the locked policy and an incompatible request. Show the live reservation becoming a zero-spend block. Say the words: "no provider was called." | Studio, policy block state |
+| 0:50–1:15 | **Generate.** Switch to Standard, show the live estimate and the two confirmations, then cut cleanly from the submitted job to its real completed state. Do not make the viewer wait through provider latency. | Studio, event stream, published asset |
+| 1:15–1:40 | **Orchestrate.** Filter Runs by `Fallback`, open a genuine B2 record, and show the provider failover plus version tree. Then point to the `QA revised`, motion, and voice evidence filters. | Runs, live evidence badges and event stream |
+| 1:40–2:10 | **Verify — the money shot.** Download the published embedded asset. Drop it into the public verify page: its whole-file hash matches the trusted `published_sha256` in B2 and full lineage renders. Then flip one byte and drop the copy again: the trusted comparison diverges visibly. Do not imply that Genblaze's pre-embed `asset.sha256` is the whole-file hash of the embedded derivative. | Verify page, both states |
+| 2:10–2:35 | **The B2 story.** Show the one-run architecture and bucket layout: Genblaze-bound sources, exact embedded deliverables, manifests, immutable Parquet, and job state. Show DuckDB querying the Parquet in place. "No database. One bucket." | Architecture docs, B2 console, Ledger |
+| 2:35–2:50 | **Close.** Cost per approved asset and spend prevented, on screen. No sign-off, no thanks. | Ledger headline numbers |
 
 Production notes:
 
 - Screen recording at 1080p minimum, cursor visible, UI at a readable zoom.
-- Record against **seeded runs**, not live provider calls. A timeout on camera is fatal.
+- Every product surface shown must be live API/B2 data. Use a clean edit between a real
+  submitted job and its completed state rather than making the viewer wait through
+  provider latency. Existing fallback and revision evidence must be shown from genuine
+  B2 records, never fixtures.
 - Voiceover written and read, not improvised. Write the script, time it, then record.
 - No copyrighted music. Silence with clear narration beats a licensing problem.
 - Show real numbers. Placeholder or obviously fake data undercuts everything.
@@ -68,7 +71,7 @@ Put this near the top. Fill in real paths and line numbers before submitting.
 | **Real-world utility** | `docs/PRD.md` | Named buyer, five concrete unanswerable questions Dara answers. Verify and ledger work without any generation happening. |
 | **Production readiness** | `api/dara/policy/`, `api/dara/jobs.py`, `api/dara/providers.py` | Pre-spend policy enforcement, fallback chains on every step, orphaned-run reconciler, typed error model, rate limits, spend caps, tests asserting a blocked run makes zero provider calls |
 | **B2 storage + data orchestration** | `api/dara/storage.py`, `api/dara/ledger.py`, `docs/DATA_MODEL.md` | Single bucket as the entire persistence layer. Source and published content-addressed objects preserve both Genblaze binding and exact delivered bytes. Locally staged `ParquetSink` telemetry is uploaded as immutable B2 partitions and queried in place by DuckDB. Job state, policies, projects, shares all live as objects. |
-| **Use of Genblaze** | `api/dara/pipelines/`, `api/dara/verify.py`, `api/dara/share.py` | Multi-step DAG execution, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id` lineage, `ObjectStorageSink` + `ParquetSink`, `EmbedPolicy` redaction, manifest embed/extract/verify, `ModelRegistry` pricing customisation, `astream()`, replay-based regeneration, `LoggingTracer` |
+| **Use of Genblaze** | `api/dara/pipelines/`, `api/dara/verify.py`, `api/dara/share.py`, live Runs evidence filters | Multi-step DAG execution, `input_from` fan-in, `fallback_models`, `AgentLoop`, `parent_run_id` lineage, `ObjectStorageSink` + `ParquetSink`, `EmbedPolicy` redaction, manifest embed/extract/verify, `ModelRegistry` pricing customisation, `astream()`, manifest-driven regeneration, `LoggingTracer` |
 
 ## Devpost description
 

@@ -1,0 +1,91 @@
+export const metadata = {
+  title: "Quickstart",
+  description: "Run the API and web app locally, then verify a file without spending anything.",
+};
+
+<Eyebrow>Getting started</Eyebrow>
+
+# Quickstart
+
+<Lede>
+Two processes: a Python control plane and a Next.js web tier. Verification and the ledger
+work without touching a generation provider, so nothing here costs money.
+</Lede>
+
+<Callout type="note" title="Node 22 is required">
+The web build uses `fs/promises.glob`, which landed in Node 22.13. On Node 18 the build fails
+with `SyntaxError: ... does not provide an export named 'glob'`.
+</Callout>
+
+<Steps>
+  <Step title="Clone and configure">
+    ```bash
+    git clone https://github.com/Pavilion-devs/dara-media-control.git dara
+    cd dara
+    cp .env.example .env
+    ```
+  </Step>
+  <Step title="Install both runtimes">
+    ```bash
+    python3.12 -m venv api/.venv
+    api/.venv/bin/pip install -e api
+    npm ci
+    ```
+  </Step>
+  <Step title="Start the control plane">
+    Load the environment first — the API reads B2 credentials from it.
+
+    ```bash
+    set -a && source .env && set +a
+    api/.venv/bin/uvicorn dara.main:app --app-dir api --port 8000
+    ```
+  </Step>
+  <Step title="Start the web tier">
+    In a second terminal, with the same variables loaded:
+
+    ```bash
+    set -a && source .env && set +a
+    npm run dev
+    ```
+  </Step>
+  <Step title="Open it">
+    Visit `http://localhost:3000`. Studio is at `/studio`, and `/verify` works immediately.
+  </Step>
+</Steps>
+
+## Verify a file, spending nothing
+
+Verification contacts no generation provider. The file is hashed **in your browser** before
+anything is uploaded, so you can watch the claim rather than take it on faith.
+
+<Steps>
+  <Step title="Drop a file on /verify">
+    Its SHA-256 appears immediately, computed locally via WebCrypto.
+  </Step>
+  <Step title="Choose Verify this file">
+    Dara extracts any embedded manifest, checks its canonical integrity, and compares the
+    bytes against the trusted published record in B2.
+  </Step>
+  <Step title="Read the result honestly">
+    A file Dara has never seen returns `unknown` — not an error. A valid manifest with no
+    matching record returns `self-consistent`, which is not the same as verified.
+  </Step>
+</Steps>
+
+## Check the build
+
+```bash
+npm run typecheck && npm run lint && npm test
+PYTHONPATH=api api/.venv/bin/python -m unittest discover -s api/tests
+```
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Installation & setup" icon="Settings" href="/docs/setup">
+    Credentials, environment variables, and what each one gates.
+  </Card>
+  <Card title="How it works" icon="Workflow" href="/docs/how-it-works">
+    What actually happens when a brief is submitted.
+  </Card>
+</CardGroup>

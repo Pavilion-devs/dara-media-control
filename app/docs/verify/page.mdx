@@ -1,0 +1,59 @@
+export const metadata = {
+  title: "Verify",
+  description: "Public file verification with embedded-manifest and content-addressed lookup paths.",
+};
+
+<Eyebrow>The four pillars</Eyebrow>
+
+# Verify
+
+<Lede>
+Drop in a file and find out where it came from. No account, no provider call, and the hash is
+computed in your browser before anything is uploaded.
+</Lede>
+
+## What happens
+
+<Steps>
+  <Step title="The file is hashed locally">
+    WebCrypto computes the SHA-256 in the browser. Nothing has been sent yet — the claim that
+    Dara checks *your* bytes is something you can watch rather than trust.
+  </Step>
+  <Step title="A manifest is extracted, if there is one">
+    Dara reads any embedded Genblaze manifest and verifies its canonical hash.
+  </Step>
+  <Step title="The record is resolved">
+    With a manifest, the run and asset are looked up in trusted storage. Without one, the
+    content hash is resolved against `index/sha/{sha}.json`.
+  </Step>
+  <Step title="The bytes are compared">
+    The uploaded file's whole-file hash is compared with the `published_sha256` recorded when
+    the deliverable was published.
+  </Step>
+</Steps>
+
+## Two discovery paths
+
+<CardGroup cols={2}>
+  <Card title="Embedded" icon="FileCheck2">
+    A manifest was found inside the file. Reported as `embedded`.
+  </Card>
+  <Card title="Matched by hash" icon="Fingerprint">
+    No manifest, but the content hash matched a known asset. Reported as `matched-by-hash` —
+    deliberately not presented as equivalent.
+  </Card>
+</CardGroup>
+
+<Callout type="tip" title="Large files skip the upload entirely">
+Because the hash is already computed client-side, an oversized file can be checked by hash
+alone through `GET /v1/verify/{sha256}` — no upload required.
+</Callout>
+
+## Why this page exists first
+
+Verification is the only pillar that must keep working when everything else is broken. It
+contacts no generation provider, so provider outages cannot affect it, and it needs no
+account, so a client's legal team can use it directly.
+
+See the [trust model](/docs/trust-model) for exactly what a passing result does and does not
+prove.

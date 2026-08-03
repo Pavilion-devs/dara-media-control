@@ -1,0 +1,80 @@
+export const metadata = {
+  title: "How it works",
+  description: "Policy clears the brief, the pipeline runs under watch, and the record outlives the file.",
+};
+
+<Eyebrow>Concepts</Eyebrow>
+
+# How it works
+
+<Lede>
+One brief, followed end to end. The interesting part is not the generation — it is everything
+Dara does around it.
+</Lede>
+
+## The five phases
+
+Every run passes through the same five phases, and the UI renders them as a progress spine
+rather than a flat log.
+
+<Steps>
+  <Step title="Policy">
+    Cost is estimated from the model registry and checked against budget **before a provider is
+    called**. A run that would overspend is rejected at zero cost, and the rejection itself is
+    recorded.
+  </Step>
+  <Step title="Expand">
+    The brief is expanded into a structured production prompt. This is a model call, so it is
+    inside the budget the policy already approved.
+  </Step>
+  <Step title="Generate">
+    The pipeline runs its steps. If the primary model fails, a fallback route is attempted —
+    and the failed attempt is preserved rather than erased.
+  </Step>
+  <Step title="Vision QA">
+    Output is scored against a rubric. Below threshold, the prompt is revised and another
+    attempt is linked by `parent_run_id`. The version tree shows the real history.
+  </Step>
+  <Step title="Publish">
+    The manifest is embedded, both hashes are indexed, and an immutable Parquet row is written.
+  </Step>
+</Steps>
+
+## Two hashes, deliberately different
+
+This trips people up, so it is worth stating plainly.
+
+Embedding a manifest **changes the file's bytes**. So the hash of what the model produced and
+the hash of what the client receives cannot be the same number.
+
+| Hash | Covers | Used for |
+|---|---|---|
+| `source_sha256` | Upstream bytes, before embedding | The Genblaze-bound original |
+| `published_sha256` | The exact delivered file | What Verify compares against |
+
+<Callout type="warning" title="Manifest validity is necessary, not sufficient">
+`Manifest.verify_hash()` checks the manifest's own canonical integrity. It does **not** fetch
+and rehash the media. That is why Dara performs a separate whole-file comparison against
+`published_sha256` — and why a valid manifest with no trusted record is reported as
+`self-consistent`, never as verified.
+</Callout>
+
+## Nothing is thrown away
+
+A sanitised history would not be a record. Failed provider attempts, QA rejections, and
+policy blocks all persist:
+
+- Failed attempts keep their row, linked by `parent_run_id`.
+- Policy blocks record what *would* have been spent, which is where "spend prevented" comes from.
+- Cost per approved asset therefore includes the attempts that never shipped.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="Network" href="/docs/architecture">
+    The components behind these phases.
+  </Card>
+  <Card title="Govern" icon="ShieldCheck" href="/docs/policy">
+    Exactly what is checked, and where.
+  </Card>
+</CardGroup>

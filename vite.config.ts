@@ -43,11 +43,30 @@ export default defineConfig(async () => {
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
+  // Documentation pages are MDX. Vinext would auto-inject @mdx-js/rollup, but it
+  // only forwards remark/rehype/recma options — not `providerImportSource`,
+  // which is what lets a page resolve <Callout> and friends from
+  // mdx-components.tsx. Supplying the plugin here makes vinext stand down
+  // (it checks for a user-provided MDX plugin) and gives us the full option set.
+  const mdx = (await import("@mdx-js/rollup")).default;
+  const remarkGfm = (await import("remark-gfm")).default;
+  const rehypeSlug = (await import("rehype-slug")).default;
+  const remarkCodeMeta = (await import("./lib/remark-code-meta.mjs")).default;
+
   return {
     server: isCodexSeatbeltSandbox
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
+      {
+        enforce: "pre" as const,
+        ...mdx({
+          providerImportSource: "@/mdx-components",
+          remarkPlugins: [remarkGfm, remarkCodeMeta],
+          // Gives every heading an id, which is what the "On this page" rail reads.
+          rehypePlugins: [rehypeSlug],
+        }),
+      },
       vinext(),
       sites(),
       cloudflare({

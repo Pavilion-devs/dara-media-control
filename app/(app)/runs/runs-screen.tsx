@@ -109,6 +109,47 @@ const liveStatusTone: Record<LiveRun["status"], Tone> = {
   cancelled: "neutral",
 };
 
+type EvidenceFilter =
+  | "all"
+  | "fallback"
+  | "qa-revised"
+  | "policy-blocked"
+  | "motion-graph"
+  | "voice-batch";
+
+type EvidenceBadge = {
+  id: Exclude<EvidenceFilter, "all">;
+  label: string;
+  tone: Tone;
+};
+
+/** Derive judge-facing evidence only from the live B2 run record. */
+function evidenceFor(run: LiveRun): EvidenceBadge[] {
+  const eventTypes = new Set(run.events.map((event) => event.type));
+  const evidence: EvidenceBadge[] = [];
+
+  if (eventTypes.has("step.failover")) {
+    evidence.push({ id: "fallback", label: "Provider fallback", tone: "accent" });
+  }
+  if (
+    eventTypes.has("qa.revised")
+    || run.attempts.some((attempt) => attempt.status === "rejected")
+  ) {
+    evidence.push({ id: "qa-revised", label: "QA revised", tone: "warn" });
+  }
+  if (run.status === "blocked" || eventTypes.has("policy.blocked")) {
+    evidence.push({ id: "policy-blocked", label: "Zero-spend block", tone: "block" });
+  }
+  if (run.pipeline_id === "motion-spot") {
+    evidence.push({ id: "motion-graph", label: "Motion graph", tone: "accent" });
+  }
+  if (run.pipeline_id === "voiceover-pack") {
+    evidence.push({ id: "voice-batch", label: "Voice batch", tone: "accent" });
+  }
+
+  return evidence;
+}
+
 function LiveRunRow({
   relatedRun,
   run,
@@ -123,6 +164,7 @@ function LiveRunRow({
     events.map((event) => event.kind),
     ["queued", "running", "publishing"].includes(run.status),
   );
+  const evidence = useMemo(() => evidenceFor(run), [run]);
 
   return (
     <div className="border-b border-line last:border-0">
@@ -140,6 +182,15 @@ function LiveRunRow({
           <span className="mt-0.5 block truncate font-mono text-[11px] text-subtle">
             {run.project_id} · {run.job_id}
           </span>
+          {evidence.length ? (
+            <span className="mt-2 flex flex-wrap gap-1.5">
+              {evidence.map((item) => (
+                <Badge key={item.id} tone={item.tone}>
+                  {item.label}
+                </Badge>
+              ))}
+            </span>
+          ) : null}
         </span>
         <span className="hidden shrink-0 text-right sm:block">
           <span className="block font-mono text-xs text-ink">
@@ -225,6 +276,7 @@ function LiveRunRow({
 export function RunsScreen() {
   const [pipeline, setPipeline] = useState<"all" | LiveRun["pipeline_id"]>("all");
   const [outcome, setOutcome] = useState<"all" | LiveRun["status"]>("all");
+  const [evidence, setEvidence] = useState<EvidenceFilter>("all");
   const [liveRuns, setLiveRuns] = useState<LiveRun[]>([]);
   const [projectIds, setProjectIds] = useState<string[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -285,7 +337,11 @@ export function RunsScreen() {
   const runs = liveRuns.filter(
     (run) =>
       (pipeline === "all" || run.pipeline_id === pipeline)
-      && (outcome === "all" || run.status === outcome),
+      && (outcome === "all" || run.status === outcome)
+      && (
+        evidence === "all"
+        || evidenceFor(run).some((item) => item.id === evidence)
+      ),
   );
 
   const totals = {
@@ -377,6 +433,19 @@ export function RunsScreen() {
                 { value: "cancelled", label: "Cancelled" },
               ]}
               value={outcome}
+            />
+            <Filter
+              label="Evidence"
+              onChange={setEvidence}
+              options={[
+                { value: "all", label: "All" },
+                { value: "fallback", label: "Fallback" },
+                { value: "qa-revised", label: "QA revised" },
+                { value: "policy-blocked", label: "Blocked" },
+                { value: "motion-graph", label: "Motion" },
+                { value: "voice-batch", label: "Voice" },
+              ]}
+              value={evidence}
             />
           </div>
 

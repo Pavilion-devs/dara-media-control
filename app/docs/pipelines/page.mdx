@@ -1,0 +1,58 @@
+export const metadata = {
+  title: "Generate",
+  description: "Still, motion, voice and regeneration pipelines with fallback chains and an agentic QA loop.",
+};
+
+<Eyebrow>The four pillars</Eyebrow>
+
+# Generate
+
+<Lede>
+Four pipeline templates, each a multi-step Genblaze pipeline with provider fallback chains and
+a QA loop that retries with a refined prompt until it passes or exhausts its budget.
+</Lede>
+
+## The pipelines
+
+<CardGroup cols={2}>
+  <Card title="still-campaign" icon="Image">
+    The primary image path. Prompt expansion, generation, vision QA, embed, publish.
+  </Card>
+  <Card title="motion-spot" icon="Clapperboard">
+    Video generation with a same-provider fallback route.
+  </Card>
+  <Card title="voiceover-pack" icon="AudioLines">
+    Parallel speech generation across multiple voices in one batch.
+  </Card>
+  <Card title="regenerate" icon="RotateCcw">
+    Replays a recorded manifest's canonical parameters and links the new run to its parent.
+  </Card>
+</CardGroup>
+
+## The QA loop
+
+An agent scores the output against a rubric. Below threshold, it rewrites the prompt and tries
+again, up to the attempt budget the policy allows.
+
+What makes this more than a retry: **every attempt is preserved**. A rejected candidate keeps
+its row, its score, and its link to the parent run, so the version tree shows what actually
+happened rather than a tidied summary.
+
+<Callout type="note" title="Reproducible conditions, not identical bytes">
+Media models are generally non-deterministic. Regeneration replays canonical parameters and
+records lineage — it does not promise the same output, and Dara does not claim it does.
+</Callout>
+
+## Fallback chains
+
+When a primary model fails, the pipeline attempts the next route in the chain. Both the failure
+and the recovery are recorded; the run does not silently look like a first-attempt success.
+
+Image generation is provider-diverse — OpenAI primary, Replicate as a genuinely different
+provider. Video and speech currently use same-provider fallbacks, which is stated plainly
+rather than dressed up.
+
+## Streaming
+
+Progress is streamed over SSE from `GET /v1/runs/{job_id}/events`, with polling as a fallback
+if the stream drops. The client reconnects with `?after_seq=N` so no event is replayed twice.

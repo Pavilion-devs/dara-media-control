@@ -39,14 +39,14 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "Dara — Make the work. Keep the record.",
       description: "Governed media generation with verifiable provenance and honest cost.",
-      images: [{ url: `${origin}/og.png`, width: 1200, height: 630, alt: "Dara — governed media generation" }],
+      images: [{ url: `${origin}/og-live-first.png`, width: 1200, height: 630, alt: "Dara — governed media generation from policy to verified B2 record" }],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title: "Dara — Make the work. Keep the record.",
       description: "Governed media generation with verifiable provenance and honest cost.",
-      images: [`${origin}/og.png`],
+      images: [`${origin}/og-live-first.png`],
     },
   };
 }

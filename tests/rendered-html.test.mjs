@@ -27,16 +27,23 @@ async function render(pathname = "/") {
   );
 }
 
-test("serves a healthy judge entry point and opens Studio", async () => {
+test("serves the landing page at the root without a redirect", async () => {
   const response = await render();
+  // A 200 here is deliberate: health checks probing `/` must not read the entry
+  // point as an unavailable backend.
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /http-equiv="refresh"/i);
-  assert.match(html, /content="0;url=\/studio"/i);
-  assert.match(html, /Continue to the governed media control plane/);
+  assert.match(html, /Make the work\./);
+  assert.match(html, /Keep the/);
+  assert.match(html, /Open Studio/);
+  assert.match(html, /Verify a file/);
+  assert.match(html, /Not an adversarial authenticity proof/);
+  // The root is the landing page itself now, not a pass-through to Studio.
+  assert.doesNotMatch(html, /http-equiv="refresh"/i);
+  assert.doesNotMatch(html, /Demo workspace · B2 connected/);
 });
 
-test("server-renders the public product overview", async () => {
+test("keeps /about serving the product overview for existing links", async () => {
   const response = await render("/about");
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
@@ -52,6 +59,26 @@ test("server-renders the public product overview", async () => {
   // No operator chrome or seeded run internals leak onto the public page.
   assert.doesNotMatch(html, /Demo workspace · B2 connected/);
   assert.doesNotMatch(html, /Seeded QA loop fixture/);
+});
+
+test("server-renders the public Genblaze and B2 architecture guide", async () => {
+  const [overviewResponse, architectureResponse] = await Promise.all([
+    render("/docs"),
+    render("/docs/architecture"),
+  ]);
+  assert.equal(overviewResponse.status, 200);
+  assert.equal(architectureResponse.status, 200);
+
+  const [overview, architecture] = await Promise.all([
+    overviewResponse.text(),
+    architectureResponse.text(),
+  ]);
+  assert.match(overview, /creative-operations team at an agency or brand/i);
+  assert.match(architecture, /Where Genblaze does the work/);
+  assert.match(architecture, /fallback_models/);
+  assert.match(architecture, /ObjectStorageSink/);
+  assert.match(architecture, /ParquetSink/);
+  assert.match(architecture, /no application database/i);
 });
 
 test("server-renders the Dara control plane", async () => {
@@ -161,6 +188,11 @@ test("connects Runs to paginated live history without public fixtures", async ()
   assert.match(screen, /fetch\("\/api\/runs\?limit=50"/);
   assert.match(screen, /B2 run history/);
   assert.match(screen, /Refresh to try the live service again/);
+  assert.match(screen, /Provider fallback/);
+  assert.match(screen, /QA revised/);
+  assert.match(screen, /Zero-spend block/);
+  assert.match(screen, /label="Evidence"/);
+  assert.match(screen, /eventTypes\.has\("step\.failover"\)/);
   assert.doesNotMatch(screen, /demo-runs\.json|demoSeedCorpusSchema/);
   assert.match(screen, /RegenerationAction/);
   assert.match(screen, /VersionTree/);

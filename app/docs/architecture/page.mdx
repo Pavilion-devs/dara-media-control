@@ -1,0 +1,130 @@
+export const metadata = {
+  title: "Architecture",
+  description: "Dara's deployment boundaries, governed generation lifecycle, and two-hash provenance model.",
+};
+
+<Eyebrow>Concepts</Eyebrow>
+
+# Architecture
+
+<Lede>
+A server-side web boundary protects the workspace credential, one Python control plane owns
+paid work, and one B2 bucket holds every durable record.
+</Lede>
+
+<ArchitectureDiagram framed className="my-8" />
+
+## What each component owns
+
+The diagram shows the boundaries; this table carries the detail that used to be
+drawn inside the boxes, where it was too small to read.
+
+| Component | Owns |
+|---|---|
+| **HAProxy** | TLS termination and public ingress at `usedara.xyz` |
+| **Next.js** | Route handlers are the browser-facing API boundary. The workspace token exists only in the server environment. An HMAC pseudonym identifies callers for quotas without storing an address. Progress is proxied over SSE without exposing secrets |
+| **FastAPI · API boundary** | Typed endpoints, streaming, and request limits |
+| **FastAPI · Policy & admission** | Four enforcement gates, cost estimation, and an atomic in-process reservation |
+| **FastAPI · Job runtime** | Genblaze pipelines — still and regenerate run live; motion and voice are packaged |
+| **FastAPI · Publish & verify** | Manifest embed and extract, share derivatives, whole-file hashing |
+| **FastAPI · Ledger reader** | Embedded DuckDB running allowlisted queries over Parquet in B2 |
+| **Browser runtime** | Computes a file's SHA-256 locally for Verify, and never receives the workspace token |
+| **Backblaze B2** | Mutable control state (jobs, runs, projects, policies), immutable evidence (source, published, manifests, indexes), and immutable per-attempt accounting Parquet |
+
+## Reading the diagram
+
+<CardGroup cols={3}>
+  <Card title="Trust boundaries" icon="ShieldCheck">
+    Each lane is a boundary crossing. The token stops at the Next.js tier; the browser never
+    holds a credential.
+  </Card>
+  <Card title="One process" icon="Cpu">
+    Admission control and job execution use in-process locks, so the control plane runs as a
+    single instance by design.
+  </Card>
+  <Card title="One datastore" icon="Database">
+    Every durable byte lands in one B2 bucket. There is no application database.
+  </Card>
+</CardGroup>
+
+## Why one bucket
+
+There is no application database. The same bucket holds source assets, delivered derivatives,
+redacted share copies, manifests, hash indexes, job and policy state, and the accounting
+Parquet — each under its own prefix.
+
+That is a deliberate constraint, not an omission: durable state lives in one place, so restart
+reconciliation can fail orphaned work safely and rebuild the daily spend commitment from
+storage alone.
+
+## Why a single API instance
+
+Admission control and job execution use in-process locks. Two instances would need an external
+transactional coordinator to avoid double-spending a budget.
+
+<Callout type="note" title="A known limitation, stated">
+B2 has no compare-and-swap for these JSON records, so concurrent writes to the same job are
+last-write-wins. One writer per job is the operating assumption.
+</Callout>
+
+## Governed generation
+
+The lifecycle separates admission from execution. Policy resolves the project, estimates the
+complete fallback and QA plan, and reserves the worst case before any paid model is contacted.
+
+<GenerationFlowDiagram className="my-8" />
+
+A policy block is still a durable event: Dara records the decision and the spend it prevented,
+but settles provider spend at zero. An allowed run first persists a queued record, then starts
+the in-process task and streams its progress back through the web tier.
+
+## Where Genblaze does the work
+
+Genblaze is the execution and provenance spine, not a wrapper around one provider call.
+
+| Genblaze primitive | Dara's production use |
+|---|---|
+| `Pipeline` and `input_from` | Multi-step still, motion, voice, and regeneration graphs; motion fans generated visuals and narration into deterministic FFmpeg composition |
+| `fallback_models` | Every generative step has a fallback chain; real OpenAI→Replicate recoveries remain visible in the live Runs event stream |
+| `AgentLoop` and `parent_run_id` | Vision QA can reject, revise, and retry while preserving the complete version tree |
+| `ObjectStorageSink` | Source assets and manifests are written through the B2-compatible storage backend |
+| `ParquetSink` | Run, step, asset, and cost telemetry is staged locally, uploaded as immutable B2 partitions, then queried in place by DuckDB |
+| `EmbedPolicy` and `Manifest` | Provenance is embedded, extracted, canonically verified, and redacted for token-scoped client disclosure |
+| `ModelRegistry` | Live pre-flight pricing and worst-case reservations are calculated before provider execution |
+| `astream()` and `abatch_run()` | Studio streams live progress; voice variants run with bounded concurrency |
+| `LoggingTracer` | Structured execution evidence is retained alongside the durable run record |
+
+The live [Runs evidence filters](/runs) expose provider fallback, QA revision, zero-spend
+policy blocks, motion graphs, and voice batches directly from B2 records.
+
+## Provenance and verification
+
+The source file and the delivered file have different jobs and deliberately different hashes.
+The Genblaze manifest commits to the source. Embedding that manifest changes the bytes, so Dara
+also records the hash of the exact derivative delivered to the client.
+
+<ProvenanceFlowDiagram className="my-8" />
+
+Verify never upgrades an internally valid manifest into a trusted result by assertion alone. A
+`trusted-match` requires the uploaded whole-file hash to match the approved `published_sha256`
+in B2. A valid foreign manifest remains `self-consistent`.
+
+## Read paths
+
+**Verification** is the shortest path and the most important: browser → Next route handler →
+`POST /v1/verify` → B2. No generation provider is involved, which is why the page stays useful
+when every provider is down.
+
+**The ledger** never touches a provider either. DuckDB is not another service: it is embedded in
+FastAPI and opens the Parquet directly over B2's S3-compatible endpoint.
+
+## Failure behaviour
+
+Each surface degrades rather than breaking:
+
+| Unavailable | Behaviour |
+|---|---|
+| Trusted storage | Embedded verification may report `self-consistent` with a storage warning; it never invents a trusted verdict |
+| Control plane | Route handlers return typed `503`s and live surfaces show an explicit unavailable state |
+| Provider | Fallback route is attempted, then the failure is recorded |
+| Process restart | Queued or running work is marked orphaned and failed safely; it is not replayed automatically |

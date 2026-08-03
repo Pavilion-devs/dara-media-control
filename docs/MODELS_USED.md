@@ -17,5 +17,5 @@ and provenance SDK, not a model provider.
 
 The motion pipeline also uses a Dara compositor built on Genblaze's FFmpeg
 provider primitives for local still/video/audio fan-in. Those local steps
-are recorded at $0. Committed demo fixtures use visibly named mock
-providers and never masquerade as live AI-provider execution.
+are recorded at $0. Deterministic provider fixtures are restricted to the
+automated test suite and never appear on public product surfaces.

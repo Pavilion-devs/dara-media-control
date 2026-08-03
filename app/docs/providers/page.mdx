@@ -1,0 +1,56 @@
+export const metadata = {
+  title: "Providers & models",
+  description: "Which model serves which step, the fallback routes, and how cost is estimated.",
+};
+
+<Eyebrow>Reference</Eyebrow>
+
+# Providers & models
+
+<Lede>
+OpenAI is the primary provider. Replicate supplies a genuinely provider-diverse image fallback.
+Genblaze is the orchestration and provenance SDK — not a provider.
+</Lede>
+
+## Inventory
+
+| Provider | Model | Use |
+|---|---|---|
+| OpenAI | `gpt-image-2` | Primary image generation |
+| OpenAI | `gpt-image-2-2026-04-21` | Same-provider image fallback |
+| Replicate | `black-forest-labs/flux-1.1-pro` | Provider-diverse image fallback |
+| OpenAI | `gpt-4.1-mini` | Prompt expansion and vision QA |
+| OpenAI | `sora-2` → `sora-2-pro` | Motion generation |
+| OpenAI | `tts-1` → `tts-1-hd` | Voice generation |
+
+The inventory is generated from `api/dara/providers.py` rather than maintained by hand, so it
+cannot drift from what the code actually calls.
+
+## Fallback routes
+
+<Callout type="warning" title="Provider diversity is image-first">
+Both image routes are production-probed across two different companies. Video and speech
+currently fall back **within** OpenAI, which is a weaker guarantee — a provider-wide outage
+would take both routes down. Stated rather than glossed over.
+</Callout>
+
+## Cost estimation
+
+Pre-flight estimates come from the Genblaze `ModelRegistry`, which maps a model and its
+parameters to a price. Two figures are produced:
+
+- **Expected** — the cost if the first attempt passes QA.
+- **Worst case** — the cost if every permitted attempt is used.
+
+Policy compares the **worst case** against budget. Reserving optimistically would let a run
+start that could not legally finish.
+
+<Callout type="tip" title="Reserve, then reconcile">
+The worst case is reserved against the daily commitment up front and reconciled to actual spend
+when the run ends. Two runs cannot both pass a budget check on the same remaining balance.
+</Callout>
+
+## When a provider returns no cost
+
+Some responses omit usage. Dara records a conservative policy reservation and **marks it** —
+the ledger shows an asterisk rather than presenting an assumption as a settled figure.

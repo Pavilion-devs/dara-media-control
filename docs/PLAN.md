@@ -273,6 +273,12 @@ Work top to bottom. Each task is one commit.
       projects and show explicit unavailable states instead of substituting committed evidence. Test fixtures stay
       in the automated suite. Accounting writes invalidate the process dashboard cache
       so a completed run appears on the next Ledger query.
+- [x] **T-53** Make judging evidence explicit without inventing new product state. The
+      landing names the creative-operations buyer, public MDX documentation maps the
+      one-run Genblaze/B2 architecture, and Runs derives fallback, QA-revision,
+      zero-spend-block, motion-graph, and voice-batch badges and filters from live B2
+      records. Devpost and video guidance are live-first, the social preview matches the
+      deployed product, and an availability heartbeat watches every judge-facing route.
 
 ### Phase 7 — submit (M7)
 

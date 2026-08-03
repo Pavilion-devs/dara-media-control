@@ -1,0 +1,65 @@
+export const metadata = {
+  title: "API",
+  description: "Public and authenticated endpoints, error envelope, and rate limits.",
+};
+
+<Eyebrow>Reference</Eyebrow>
+
+# API
+
+<Lede>
+The control plane speaks HTTP. The browser never calls it directly — Next.js route handlers
+proxy every request and attach the bearer token server-side.
+</Lede>
+
+## Public endpoints
+
+No authentication. These are the surfaces an outsider can use.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/v1/verify` | Verify an uploaded file |
+| `GET` | `/v1/verify/{sha256}` | Content-addressed lookup, no upload |
+| `GET` | `/v1/share/{token}` | Token-scoped client disclosure |
+| `GET` | `/healthz` | Liveness |
+
+## Control plane
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/v1/runs` | Paginated run history |
+| `POST` | `/v1/runs` | Start a run — **can spend money** |
+| `GET` | `/v1/runs/{job_id}` | Run detail |
+| `GET` | `/v1/runs/{job_id}/events` | SSE progress stream |
+| `GET` | `/v1/runs/{job_id}/diff` | Regeneration parameter diff |
+| `POST` | `/v1/regenerate/{job_id}` | Replay a manifest — **can spend money** |
+| `GET` | `/v1/policies` | List policy documents |
+| `POST` | `/v1/policies/{id}/simulate` | Preview a decision, zero cost |
+| `GET` | `/v1/ledger/dashboard` | Summary plus the three canonical queries |
+| `POST` | `/v1/shares` | Issue a client disclosure link |
+
+## Error envelope
+
+Every error uses the same shape, so clients can parse one thing:
+
+```json
+{
+  "error": {
+    "code": "POLICY_BLOCKED",
+    "message": "This run would cost $2.40. The project limit is $2.00.",
+    "details": { "violations": [] },
+    "request_id": "req_..."
+  }
+}
+```
+
+<Callout type="note" title="Messages are written for humans">
+Errors state what happened and what to do, in the interface's voice. Never "Oops!", never
+"Something went wrong."
+</Callout>
+
+## Limits
+
+- Per-IP rate limiting on `/v1/verify` and share creation.
+- A global daily cap on live generation, independent of policy budgets.
+- Uploads are bounded by `DARA_MAX_UPLOAD_MB`, which the API enforces authoritatively.

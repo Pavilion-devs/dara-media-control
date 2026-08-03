@@ -1,0 +1,79 @@
+export const metadata = {
+  title: "Govern",
+  description: "Typed policy documents enforced at four points, the first before any provider is called.",
+};
+
+<Eyebrow>The four pillars</Eyebrow>
+
+# Govern
+
+<Lede>
+A policy is a document attached to a project. It is checked four times per run, and the first
+check happens before a provider is called — so a rejection costs nothing.
+</Lede>
+
+## The four enforcement points
+
+<Steps>
+  <Step title="Pre-flight — before any provider is called">
+    Cost is estimated from the model registry and compared with budget. Providers, models,
+    modality, aspect ratio, and the step, variant and attempt limits are all checked. A run
+    that would exceed budget is rejected **at zero cost**.
+  </Step>
+  <Step title="Pre-step — before every provider step">
+    Each step is re-checked against the per-step ceiling and the remaining run budget, so a
+    fallback route cannot quietly overspend what pre-flight approved.
+  </Step>
+  <Step title="Post-step — after quality assurance">
+    The vision QA score is compared with the required minimum. Whether failure blocks or merely
+    warns is itself part of the policy.
+  </Step>
+  <Step title="Pre-publish — after embedding, before delivery">
+    Manifest embedding and share redaction are verified before anything reaches a client, so a
+    disclosure cannot leak what policy withheld.
+  </Step>
+</Steps>
+
+## The policy document
+
+```python title="api/dara/policy/models.py"
+class Policy(FrozenModel):
+    policy_id: str
+    allowed_providers: frozenset[str]
+    allowed_models: frozenset[str] = frozenset({"*"})
+    allowed_modalities: frozenset[str]
+    allowed_aspect_ratios: frozenset[str]
+    max_steps: int
+    max_variants: int
+    max_attempts: int
+    max_cost_usd_per_step: Decimal
+    max_cost_usd_per_run: Decimal
+    max_cost_usd_per_day: Decimal
+    min_qa_score: float = 0.75
+    block_on_qa_failure: bool = False
+    require_approval: bool = True
+    embed_manifest: bool = True
+    redact_prompt_on_share: bool = True
+    strip_params_on_share: bool = True
+    asset_retention_days: int = 365
+    manifest_retention_days: int = 2555
+```
+
+## The shipped policies
+
+| Policy | Per run | Per day | Notes |
+|---|---|---|---|
+| `pol_permissive` | $20.00 | $100.00 | Advisory QA, no approval required |
+| `pol_standard` | $2.00 | $1.00 | Default guardrails for billable work |
+| `pol_locked` | $0.02 | $1.00 | Image-only, 1:1 only, blocking QA |
+
+## Simulation
+
+Studio previews the decision as you type, through `POST /v1/policies/{id}/simulate`. It returns
+the expected and worst-case cost plus any violations — governance at the point of decision,
+not after the invoice.
+
+<Callout type="tip" title="A block is a record, not an error">
+Rejections are written to the ledger with what they would have cost. That is where the "spend
+prevented" figure comes from — it is measured, not estimated.
+</Callout>

@@ -1,0 +1,70 @@
+export const metadata = {
+  title: "Data model",
+  description: "Bucket layout, object schemas, ledger tables, identifiers, and how money is represented.",
+};
+
+<Eyebrow>Reference</Eyebrow>
+
+# Data model
+
+<Lede>
+One bucket, several distinct byte roles. There is no application database, so every prefix
+below is load-bearing.
+</Lede>
+
+## Bucket layout
+
+```text
+dara/live/runs/{tenant}/{date}/{run_id}/       Genblaze run grouping
+dara/assets/{aa}/{bb}/{source_sha}.ext         immutable source bytes
+dara/published/{aa}/{bb}/{published_sha}.ext   exact delivered bytes
+dara/share-assets/{token}/{asset_id}.ext       redacted client derivatives
+dara/manifests/{run_id}.json                   provenance
+dara/index/sha/{sha}.json                      source/published lookup
+dara/ledger/{table}/year=YYYY/month=MM/*.parquet
+dara/state/{jobs,live-runs,policies,projects,shares}/
+```
+
+The two-level `{aa}/{bb}` fan-out comes from the first four characters of the hash, which keeps
+any single prefix from growing unbounded.
+
+## Why source and published are separate
+
+Embedding a manifest rewrites the file. Keeping both prefixes means Dara never overwrites the
+Genblaze-bound original, and never has to pretend the two hashes should match.
+
+<Callout type="note" title="Redacted shares are separate objects">
+A client link serves from `share-assets/`, never from `published/`. A redacted disclosure must
+not be one URL guess away from the unredacted file.
+</Callout>
+
+## Ledger tables
+
+| Table | Grain | Notable columns |
+|---|---|---|
+| `runs` | one row per run | `run_id`, `policy_id`, `outcome`, `cost_usd`, `saved_cost_usd` |
+| `steps` | one row per step | `provider`, `model`, `latency_ms`, `cost_usd` |
+| `assets` | one row per asset | `source_sha256`, `published_sha256`, `approved` |
+
+Partitioned by `year=` and `month=` so DuckDB can prune whole directories.
+
+## Identifiers
+
+| Prefix | Meaning |
+|---|---|
+| `job_` | A unit of work submitted to the control plane |
+| `run_` | A Genblaze run inside a job |
+| `ast_` | A produced asset |
+| `pol_` | A policy document |
+| `prj_` | A project |
+| `shr_` | A client disclosure token |
+
+## Money
+
+Costs are `Decimal`, serialised as strings with **six decimal places**, never floats. A run
+that cost nine hundredths of a cent is `"0.000900"` — not `9e-4`, and not rounded to zero.
+
+<Callout type="warning" title="Null means unknown">
+A missing cost is `null`, never `0`. Zero is a claim that nothing was spent; null is an
+admission that the value was not preserved. The UI renders them differently on purpose.
+</Callout>

@@ -1,0 +1,57 @@
+export const metadata = {
+  title: "Account",
+  description: "Immutable Parquet in B2, queried in place by DuckDB, including work that never shipped.",
+};
+
+<Eyebrow>The four pillars</Eyebrow>
+
+# Account
+
+<Lede>
+The ledger answers spend by model, by project, by month — and the number nobody tracks: cost
+per approved asset, including the attempts that were discarded.
+</Lede>
+
+## How it works
+
+Each completed job writes run, step, and asset tables as Parquet to a local staging directory,
+which is uploaded to an immutable, partitioned key in B2. DuckDB then queries that Parquet
+**in place** over the S3 endpoint — nothing is loaded into a database first, because there is
+no database.
+
+```sql
+SELECT model, provider, count(*) AS runs, sum(cost_usd) AS total_usd
+FROM read_parquet('s3://dara/ledger/runs/**/*.parquet')
+GROUP BY 1, 2
+```
+
+## The three numbers
+
+<CardGroup cols={3}>
+  <Card title="Cost per approved asset" icon="Receipt">
+    Total spend divided by assets that actually shipped. The honest one.
+  </Card>
+  <Card title="Spend prevented" icon="ShieldCheck">
+    What policy-blocked work would have cost. Measured from real rejections.
+  </Card>
+  <Card title="Waste ratio" icon="TrendingDown">
+    The share of spend that never became a deliverable.
+  </Card>
+</CardGroup>
+
+<Callout type="warning" title="Unknown is not zero">
+Where the recorded evidence did not preserve a value, the ledger shows an empty cell rather
+than filling in a plausible number. A missing per-project cost renders as unknown, not `$0.00`.
+</Callout>
+
+## Why immutability matters
+
+Parquet files are written once and never rewritten. An accounting record that can be edited
+after the fact is not an accounting record — so corrections arrive as new rows rather than
+mutations of old ones.
+
+## When the ledger is unreachable
+
+The screen falls back to the last verified snapshot and **labels itself** "Recorded proof"
+rather than "Live". It only claims to be live once the B2 query actually answers, so what is
+shown always matches what it says it is.

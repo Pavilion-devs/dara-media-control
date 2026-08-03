@@ -10,16 +10,17 @@ persisted successfully to B2.
 
 ## Credit strategy — do this first
 
-1. Use `gpt-image-2` low quality for smoke tests and reserve higher-quality generations
-   for seeded showcase assets.
-2. Keep live generation behind Dara's policy gate. Demo mode must never spend credits.
+1. Use `gpt-image-2` low quality for controlled production probes and account every
+   attempt, including failures and QA rejections.
+2. Keep live generation behind Dara's policy gate and two explicit confirmations.
+   Judge-facing evidence is read from genuine B2 records without creating a provider call.
 3. Add a second provider only where it creates real resilience. Do not collect keys
    speculatively.
 4. A Claude key is optional for prompt refinement or visual QA through a custom evaluator;
    it does not replace the Genblaze media provider.
 
-Budget the whole event at **under $20 of real spend.** If you are heading past that,
-something is wrong with demo mode.
+Budget the whole event at **under $20 of real spend.** The independent daily cap,
+per-actor quota, and policy reservation must fail closed before uncontrolled spend.
 
 ## Fallback chains
 

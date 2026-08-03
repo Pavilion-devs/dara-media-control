@@ -1,0 +1,68 @@
+export const metadata = {
+  title: "Installation & setup",
+  description: "Python, Node, Backblaze B2 credentials, and the environment variables that matter.",
+};
+
+<Eyebrow>Getting started</Eyebrow>
+
+# Installation & setup
+
+<Lede>
+Dara needs Python 3.12, Node 22.13, and a Backblaze B2 bucket. A generation provider key is
+optional and only gates live spend.
+</Lede>
+
+## Requirements
+
+| Component | Version | Why |
+|---|---|---|
+| Python | 3.12+ | The control plane and Genblaze SDK |
+| Node.js | 22.13+ | The web build uses `fs/promises.glob` |
+| FFmpeg | any recent | Only for the motion regression test |
+| Backblaze B2 | one bucket | Durable state, assets, manifests, and the ledger |
+
+## Environment
+
+<CodeGroup>
+```bash title="Storage"
+B2_KEY_ID=...
+B2_APPLICATION_KEY=...
+B2_BUCKET=dara
+B2_ENDPOINT=https://s3.us-east-005.backblazeb2.com
+```
+
+```bash title="Web tier"
+DARA_API_URL=http://127.0.0.1:8000
+DARA_API_TOKEN=...
+```
+
+```bash title="Generation"
+DARA_LIVE_GENERATION_ENABLED=false
+OPENAI_API_KEY=...
+REPLICATE_API_TOKEN=...
+```
+</CodeGroup>
+
+<Callout type="danger" title="The kill switch is the important one">
+`DARA_LIVE_GENERATION_ENABLED` defaults to `false` and is enforced **server-side** in the
+control plane, not in the browser. Leave it false unless you intend to spend money. Every
+other surface — verification, the ledger, policies, run history — works regardless.
+</Callout>
+
+## What each variable gates
+
+- **No B2 credentials** — durable state and the live ledger are unavailable. The ledger falls
+  back to a recorded snapshot and labels itself as such.
+- **No `DARA_API_URL` or `DARA_API_TOKEN`** — the web tier's route handlers return `503` with a
+  typed error. Screens degrade to their recorded proofs rather than breaking.
+- **No provider key** — generation is unavailable. Verification is unaffected, by design.
+
+<Callout type="note" title="The token never reaches the browser">
+`DARA_API_TOKEN` is read only inside Next.js route handlers under `app/api/`. Client code calls
+same-origin paths; the bearer token is attached server-side.
+</Callout>
+
+## Storage layout
+
+Dara creates its own prefixes inside the single bucket. Nothing else is required — there is no
+application database to provision. See the [data model](/docs/data-model).

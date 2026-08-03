@@ -51,10 +51,12 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
 
 ### Public shell
 
-- `/` — returns a healthy response and opens the live-first Studio, preserving the
-  judge-entry and infrastructure-health acceptance criteria.
-- `/about` — product overview. Explains the three pillars and links into Studio and
-  Verify without leaking operator fixtures.
+- `/` — the product overview and judge entry. It returns a normal healthy response,
+  names the creative-operations buyer, and links directly into Studio, Verify, Ledger,
+  and the public architecture documentation.
+- `/about` — compatibility route for existing product-overview links.
+- `/docs` — public technical documentation, including the one-run Genblaze flow,
+  one-bucket B2 architecture, policy, pipelines, ledger, and trust model.
 - `/verify` — empty public verification flow. Hashes the selected file locally first,
   then streams normal files for
   full embedded-manifest inspection. If an edge rejects an oversized upload, Dara can
@@ -72,7 +74,9 @@ the visitor makes an explicit choice. Reduced-motion preferences suppress animat
 - `/runs` — live B2-backed history for the active client projects only; internal smoke
   and recovery probes remain in storage but are not judge-facing. Completed live runs can
   issue client disclosure links, explicitly authorize manifest-based regeneration,
-  and render the original/child output plus recorded parameter diff.
+  and render the original/child output plus recorded parameter diff. Evidence badges and
+  filters for fallback, QA revision, zero-spend blocks, motion graphs, and voice batches
+  are derived from each live run rather than a showcase allowlist.
 - `/assets` — live published assets derived from succeeded B2 records for active client projects.
 - `/assets/[id]` — a live published-asset record: lineage, source and delivered hashes,
   provider, cost basis, and version history.

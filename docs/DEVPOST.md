@@ -26,12 +26,18 @@ Dara is the control plane that makes those answers part of the media pipeline.
   month, spend prevented, and cost per approved asset—including work that failed or did
   not ship.
 
-The default experience replays a verified production OpenAI/B2 record with its original
-estimated cost visible and creates no new provider spend. The live B2 evidence corpus
-contains 20 current records across the three client projects: 12 approved assets, three
-zero-cost expensive-video blocks, three paid QA rejections, two OpenAI→Replicate
-recoveries, production voice, and a complete production motion package. Live generation
-is a separate, explicitly spend-labelled, two-confirmation action.
+The public product is live-first. Studio opens as an empty governed generation backed by
+the active B2 projects and policies. Its first action exposes the live maximum reservation;
+only a second explicit confirmation can authorize a provider call. Runs, Assets, Policies,
+and Ledger read active API/B2 records and visibly fail closed rather than substituting
+fixtures when production data is unavailable.
+
+The audited B2 evidence set contains 20 real client-project records: 12 approved assets,
+three zero-cost expensive-video blocks, three paid QA rejections, two OpenAI→Replicate
+recoveries, production voice, and a complete production motion package. The Runs screen
+derives evidence badges and filters directly from those live records, making fallback,
+revision, policy, motion, and voice orchestration inspectable without manufacturing a
+provider failure during judging.
 
 ## How it uses Backblaze B2
 
@@ -93,7 +99,7 @@ call. Dara uses:
 - a customised `ModelRegistry` for pre-flight pricing and worst-case reservations;
 - `astream()` for the live Studio event stream;
 - `abatch_run()` for bounded, genuinely concurrent voice variants;
-- replay semantics for regeneration from recorded parameters;
+- manifest-driven regeneration from recorded parameters;
 - `LoggingTracer` for structured execution evidence; and
 - `FFmpegCompositor` for deterministic audio/video fan-in.
 
@@ -130,10 +136,9 @@ two Replicate fallback successes, one 86.652-second Sora render, eleven TTS samp
 eight visual-QA evaluations including three paid rejections. Failed work remains in the
 ledger instead of disappearing from cost-per-approved-asset calculations.
 
-Committed demo fixtures use visibly named mock providers and are never presented as live
-provider execution. The live DuckDB-over-B2 ledger currently reads `$0.818650` total
-spend, `$4.815000` prevented, 18 approved assets, and 27.1593% of spend on unshipped
-work. All execution dates remain truthful; the monthly chart has one July 2026 bar.
+The active client-project records account for `$0.723650` in settled provider spend and
+`$4.800000` prevented by policy before a provider call. All execution dates are truthful;
+Dara does not backdate rows to manufacture a monthly chart.
 
 ## What we'd build next
 

@@ -1,0 +1,66 @@
+export const metadata = {
+  title: "Overview",
+  description:
+    "What Dara is: a control plane that makes provenance and cost part of the media supply chain.",
+};
+
+<Eyebrow>Getting started</Eyebrow>
+
+# Dara
+
+<Lede>
+A creative-operations team at an agency or brand can generate thousands of assets across
+model providers and still have no durable answer to basic operational questions. Dara makes
+those answers part of the client-media supply chain instead of leaving them in spreadsheets,
+chat history, and provider dashboards.
+</Lede>
+
+## The questions this answers
+
+- **Attribution.** Which model produced this asset, with what parameters?
+- **Cost.** What did it cost, including the seven attempts that were thrown away?
+- **Reproducibility.** Can the original conditions be reconstructed, or do we start over?
+- **Disclosure.** What can be handed to a client that does not also hand them the brief?
+- **Control.** How would an expensive batch have been stopped *before* the invoice?
+
+## The four pillars
+
+<CardGroup cols={2}>
+  <Card title="Verify" icon="FileCheck2" href="/docs/verify">
+    Public, no-authentication file verification. Works when every generation provider is down.
+  </Card>
+  <Card title="Govern" icon="ShieldCheck" href="/docs/policy">
+    Typed policies enforced at four points — the first before any provider is called.
+  </Card>
+  <Card title="Generate" icon="Wand2" href="/docs/pipelines">
+    Multi-step pipelines with fallback chains and an agentic QA loop that keeps every attempt.
+  </Card>
+  <Card title="Account" icon="Receipt" href="/docs/ledger">
+    Immutable Parquet in B2, queried in place, including the work that never shipped.
+  </Card>
+</CardGroup>
+
+## What Dara is not
+
+<Callout type="warning" title="Not an adversarial authenticity system">
+Dara is tamper-evident **within an organisation that controls its own storage**. It is not a
+defence against a motivated forger. C2PA or an external signer is the appropriate next layer,
+and Dara says so rather than overclaiming. See the [trust model](/docs/trust-model).
+</Callout>
+
+Also explicitly out of scope: user accounts and roles, payments, a timeline or node editor,
+model hosting or fine-tuning, and a mobile app.
+
+## Where to go next
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="Rocket" href="/docs/quickstart">
+    Run it locally and verify a file without spending anything.
+  </Card>
+  <Card title="How it works" icon="Workflow" href="/docs/how-it-works">
+    The path a single brief takes, end to end.
+  </Card>
+  <Card title="Architecture" icon="Network" href="/docs/architecture">
+    Every component and the one bucket underneath them.
+  </Card>
+</CardGroup>

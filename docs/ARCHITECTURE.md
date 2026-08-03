@@ -16,7 +16,8 @@ OpenAI · Replicate fallback           Backblaze B2 (single bucket)
                                        assets · manifests · ledger · state
 ```
 
-Two deployables, one bucket, no other infrastructure.
+Two application deployables and one bucket. The model providers and TierHive ingress are
+external dependencies, not Dara-owned application services.
 
 ## The architectural claim
 
@@ -27,8 +28,10 @@ is no database.
 This is a deliberate position, and it is worth stating plainly in the README because it
 is exactly what a storage company wants demonstrated. The consequences:
 
-- The Python service is stateless. Kill it mid-run and the job record in B2 still
-  reflects the last committed state; a restart resumes reconciliation.
+- Durable state is external to the Python service. The process still owns ephemeral tasks,
+  admission locks, rate limits, caches, and the embedded DuckDB connection. Kill it mid-run
+  and the job record in B2 reflects the last committed state; startup reconciliation then
+  fails orphaned work safely rather than replaying a paid call automatically.
 - Deployment is two containers and a bucket. No migrations, no connection pools.
 - The analytics story and the storage story are the same story: `ParquetSink` writes
   locally, Dara uploads immutable per-run Parquet objects to B2, and DuckDB queries them
